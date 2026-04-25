@@ -30,3 +30,7 @@ path = "src/bin/wi.rs"
 [[bin]]
 name = "wi-init"
 path = "src/bin/wi-init.rs"
+
+[[bin]]
+name = "wi-stats"
+path = "src/bin/wi-stats.rs"

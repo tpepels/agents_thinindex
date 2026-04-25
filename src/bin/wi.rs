@@ -5,6 +5,7 @@ use clap::Parser;
 use thinindex::{
     indexer::find_repo_root,
     search::{format_result, search, SearchOptions},
+    stats::{self, UsageEvent},
 };
 
 #[derive(Debug, Parser)]
@@ -31,8 +32,8 @@ struct Args {
     #[arg(long, help = "Filter by source, e.g. ctags or extras")]
     source: Option<String>,
 
-    #[arg(long, default_value_t = 30, help = "Maximum number of results")]
-    limit: usize,
+    #[arg(long, help = "Maximum number of results")]
+    limit: Option<usize>,
 
     #[arg(short, long, help = "Print verbose results")]
     verbose: bool,
@@ -63,19 +64,44 @@ fn run() -> Result<()> {
 
     let root = find_repo_root(&start)?;
 
+    let used_type = args.kind.is_some();
+    let used_lang = args.lang.is_some();
+    let used_path = args.path.is_some();
+    let used_limit = args.limit.is_some();
+    let limit = args.limit.unwrap_or(30);
+
     let options = SearchOptions {
         kind: args.kind,
         lang: args.lang,
         path: args.path,
         source: args.source,
-        limit: args.limit,
+        limit,
         verbose: args.verbose,
     };
 
     let results = search(&root, &args.query, &options)?;
+    let result_count = results.len();
 
-    for result in results {
-        println!("{}", format_result(&result, options.verbose));
+    for result in &results {
+        println!("{}", format_result(result, options.verbose));
+    }
+
+    let event = UsageEvent {
+        ts: stats::current_unix_seconds(),
+        query: args.query.clone(),
+        query_len: args.query.chars().count(),
+        result_count,
+        hit: result_count > 0,
+        used_type,
+        used_lang,
+        used_path,
+        used_limit,
+        repo: root.display().to_string(),
+        indexed_files: stats::manifest_indexed_files(&root),
+    };
+
+    if let Err(error) = stats::append_usage_event(&root, &event) {
+        eprintln!("warning: failed to log wi usage: {error:#}");
     }
 
     Ok(())

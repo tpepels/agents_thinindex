@@ -32,7 +32,10 @@ struct Args {
     #[arg(long, help = "With --remove, keep .dev_index")]
     keep_index: bool,
 
-    #[arg(long, help = "Overwrite WI.md even if it already exists")]
+    #[arg(
+        long,
+        help = "Overwrite WI.md and .thinindexignore even if they already exist"
+    )]
     force: bool,
 }
 
