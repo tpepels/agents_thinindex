@@ -1,0 +1,26 @@
+   0.126817111s  INFO prepare_target{force=false package_id=thinindex v0.1.0 (/home/tom/Projects/thinindex) target="wi-stats"}: cargo::core::compiler::fingerprint: fingerprint error for thinindex v0.1.0 (/home/tom/Projects/thinindex)/Check { test: false }/TargetInner { name: "wi-stats", doc: true, ..: with_path("/home/tom/Projects/thinindex/src/bin/wi-stats.rs", Edition2021) }
+   0.126847207s  INFO prepare_target{force=false package_id=thinindex v0.1.0 (/home/tom/Projects/thinindex) target="wi-stats"}: cargo::core::compiler::fingerprint:     err: failed to read `/home/tom/Projects/thinindex/target/debug/.fingerprint/thinindex-adbbc86d2632fe4b/bin-wi-stats`
+
+Caused by:
+    No such file or directory (os error 2)
+
+Stack backtrace:
+   0: <unknown>
+   1: <unknown>
+   2: <unknown>
+   3: <unknown>
+   4: <unknown>
+   5: <unknown>
+   6: <unknown>
+   7: <unknown>
+   8: <unknown>
+   9: <unknown>
+  10: <unknown>
+  11: <unknown>
+  12: <unknown>
+  13: <unknown>
+  14: <unknown>
+  15: __libc_start_main
+  16: <unknown>
+    Checking thinindex v0.1.0 (/home/tom/Projects/thinindex)
+error: could not compile `thinindex` (bin "wi-stats") due to 1 previous error

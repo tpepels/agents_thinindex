@@ -1,0 +1,2 @@
+class KeptGeneratedService:
+    pass

@@ -1,0 +1,2 @@
+class VisibleGitignoreService:
+    pass

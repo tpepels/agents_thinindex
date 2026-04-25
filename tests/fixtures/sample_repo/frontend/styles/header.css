@@ -1,0 +1,16 @@
+:root {
+  --paper-bg: white;
+}
+
+.headerNavigation {
+  display: flex;
+}
+
+#mainHeader {
+  position: sticky;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

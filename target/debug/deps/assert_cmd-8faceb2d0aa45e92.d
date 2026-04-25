@@ -1,0 +1,14 @@
+/home/tom/Projects/thinindex/target/debug/deps/assert_cmd-8faceb2d0aa45e92.d: /home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/lib.rs /home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/macros.rs /home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/assert.rs /home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/cargo.rs /home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/cmd.rs /home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/output.rs /home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/color.rs /home/tom/Projects/thinindex/target/debug/build/assert_cmd-3a8b119eaa1d6d8f/out/current_target.txt
+
+/home/tom/Projects/thinindex/target/debug/deps/libassert_cmd-8faceb2d0aa45e92.rmeta: /home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/lib.rs /home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/macros.rs /home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/assert.rs /home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/cargo.rs /home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/cmd.rs /home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/output.rs /home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/color.rs /home/tom/Projects/thinindex/target/debug/build/assert_cmd-3a8b119eaa1d6d8f/out/current_target.txt
+
+/home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/lib.rs:
+/home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/macros.rs:
+/home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/assert.rs:
+/home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/cargo.rs:
+/home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/cmd.rs:
+/home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/output.rs:
+/home/tom/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/assert_cmd-2.2.1/src/color.rs:
+/home/tom/Projects/thinindex/target/debug/build/assert_cmd-3a8b119eaa1d6d8f/out/current_target.txt:
+
+# env-dep:OUT_DIR=/home/tom/Projects/thinindex/target/debug/build/assert_cmd-3a8b119eaa1d6d8f/out

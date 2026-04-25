@@ -1,0 +1,2 @@
+class VisibleService:
+    pass
