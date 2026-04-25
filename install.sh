@@ -19,6 +19,7 @@ cargo build --release
 install -m 0755 target/release/build_index "$BIN_DIR/build_index"
 install -m 0755 target/release/wi "$BIN_DIR/wi"
 install -m 0755 target/release/wi-init "$BIN_DIR/wi-init"
+install -m 0755 target/release/wi-stats "$BIN_DIR/wi-stats"
 
 if ! command -v "$BIN_DIR/build_index" >/dev/null 2>&1; then
   "$BIN_DIR/build_index" --version >/dev/null
@@ -26,6 +27,7 @@ fi
 
 "$BIN_DIR/build_index" --version
 "$BIN_DIR/wi" --version
+"$BIN_DIR/wi-stats" --version
 
 case ":$PATH:" in
   *":$BIN_DIR:"*) ;;
@@ -39,3 +41,5 @@ esac
 echo "installed:"
 echo "  $BIN_DIR/build_index"
 echo "  $BIN_DIR/wi"
+echo "  $BIN_DIR/wi-init"
+echo "  $BIN_DIR/wi-stats"

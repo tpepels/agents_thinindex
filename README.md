@@ -7,6 +7,7 @@ Agents waste tokens when they explore a codebase by reading files blindly.
 - `build_index` — builds/updates `.dev_index/`
 - `wi` — searches the index and returns compact file/line results
 - `wi-init` — sets up a repo for agent use
+- `wi-stats` — shows usage stats and ASCII hit/miss graphs for 1/2/5/30-day windows
 
 No daemon. No embeddings. No vector database. No MCP. No background updater.
 
@@ -62,6 +63,7 @@ Check:
 build_index --version
 wi --version
 wi-init --version
+wi-stats --version
 ctags --version
 ```
 
@@ -130,6 +132,18 @@ For search terms that start with `--`:
 wi -- --paper-bg
 ```
 
+## Usage stats
+
+`wi-stats` shows usage, hits, misses, hit ratio, average results, and terminal hit/miss graphs for 1/2/5/30-day windows.
+
+Data is collected automatically each time `wi` is run, stored at `.dev_index/wi_usage.jsonl`.
+
+```bash
+wi-stats
+```
+
+There are no flags.
+
 ## What agents will do
 
 After `wi-init`, agents that follow `AGENTS.md` should:
@@ -169,7 +183,7 @@ Put it after the **“What gets indexed”** section and before **“Uninstall�
 
 `thinindex` respects normal `.gitignore` rules.
 
-For thinindex-only ignores, create `.thinindexignore` in the repo root. It uses gitignore-style patterns:
+`wi-init` writes a default `.thinindexignore` in the repo root using gitignore-style patterns. Edit or extend it to add thinindex-only ignores:
 
 ```text
 generated/

@@ -36,6 +36,14 @@ fn wi_bin() -> Command {
     Command::cargo_bin("wi").expect("wi binary")
 }
 
+fn wi_init_bin() -> Command {
+    Command::cargo_bin("wi-init").expect("wi-init binary")
+}
+
+fn wi_stats_bin() -> Command {
+    Command::cargo_bin("wi-stats").expect("wi-stats binary")
+}
+
 fn run_build(root: &Path) -> String {
     let output = build_index_bin()
         .current_dir(root)
@@ -813,5 +821,384 @@ fn fixture_gitignore_rules_are_respected() {
     assert!(
         kept.contains("generated/keep.py"),
         ".gitignore negation should keep generated/keep.py, got:\n{kept}"
+    );
+}
+
+#[test]
+fn wi_init_writes_thinindexignore() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    let ignore_path = root.join(".thinindexignore");
+    assert!(
+        ignore_path.exists(),
+        ".thinindexignore should exist after wi-init"
+    );
+
+    let contents = fs::read_to_string(&ignore_path).expect("read .thinindexignore");
+    assert!(
+        contents.contains("node_modules/"),
+        "expected bundled template content in .thinindexignore, got:\n{contents}"
+    );
+}
+
+#[test]
+fn wi_init_force_overwrites_thinindexignore() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    let ignore_path = root.join(".thinindexignore");
+    fs::write(&ignore_path, "garbage_only\n").expect("overwrite with garbage");
+
+    wi_init_bin()
+        .current_dir(root)
+        .arg("--force")
+        .assert()
+        .success();
+
+    let contents = fs::read_to_string(&ignore_path).expect("read .thinindexignore");
+    assert!(
+        contents.contains("node_modules/"),
+        "expected bundled template content after --force, got:\n{contents}"
+    );
+}
+
+#[test]
+fn build_index_respects_thinindexignore() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, ".thinindexignore", "secret/\n");
+    write_file(
+        root,
+        "secret/secret.py",
+        r#"
+class SecretSymbol:
+    pass
+"#,
+    );
+    write_file(
+        root,
+        "src/visible.py",
+        r#"
+class VisibleSymbol:
+    pass
+"#,
+    );
+
+    run_build(root);
+
+    let visible = run_wi(root, &["VisibleSymbol"]);
+    assert!(
+        visible.contains("src/visible.py"),
+        "expected visible symbol present, got:\n{visible}"
+    );
+
+    let secret = run_wi(root, &["SecretSymbol"]);
+    assert!(
+        secret.trim().is_empty(),
+        "secret symbol should be ignored via .thinindexignore, got:\n{secret}"
+    );
+}
+
+#[test]
+fn wi_appends_usage_log() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "src/main.py",
+        r#"
+class PromptService:
+    pass
+"#,
+    );
+
+    run_build(root);
+    run_wi(root, &["PromptService"]);
+
+    let log_path = root.join(".dev_index/wi_usage.jsonl");
+    assert!(log_path.exists(), "wi_usage.jsonl should exist after wi run");
+
+    let contents = fs::read_to_string(&log_path).expect("read usage log");
+    let first_line = contents
+        .lines()
+        .next()
+        .expect("at least one line in usage log");
+
+    let parsed: serde_json::Value =
+        serde_json::from_str(first_line).expect("parse usage log line as JSON");
+
+    assert!(
+        parsed.get("query").is_some(),
+        "missing 'query' field in usage event: {first_line}"
+    );
+    assert!(
+        parsed.get("result_count").is_some(),
+        "missing 'result_count' field in usage event: {first_line}"
+    );
+}
+
+#[test]
+fn wi_logs_miss_when_no_results() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "src/main.py",
+        r#"
+class PromptService:
+    pass
+"#,
+    );
+
+    run_build(root);
+    run_wi(root, &["NoSuchSymbolPleaseMissXYZ"]);
+
+    let log_path = root.join(".dev_index/wi_usage.jsonl");
+    let contents = fs::read_to_string(&log_path).expect("read usage log");
+    let last_line = contents
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .next_back()
+        .expect("at least one line in usage log");
+
+    let parsed: serde_json::Value =
+        serde_json::from_str(last_line).expect("parse usage log line as JSON");
+
+    assert_eq!(
+        parsed.get("hit").and_then(|v| v.as_bool()),
+        Some(false),
+        "expected hit=false in miss event: {last_line}"
+    );
+    assert_eq!(
+        parsed.get("result_count").and_then(|v| v.as_u64()),
+        Some(0),
+        "expected result_count=0 in miss event: {last_line}"
+    );
+}
+
+#[test]
+fn wi_stats_prints_all_windows() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "src/main.py",
+        r#"
+class PromptService:
+    pass
+"#,
+    );
+
+    run_build(root);
+    run_wi(root, &["PromptService"]);
+    run_wi(root, &["NoSuchSymbolMissA"]);
+
+    let output = wi_stats_bin()
+        .current_dir(root)
+        .output()
+        .expect("run wi-stats");
+
+    assert!(
+        output.status.success(),
+        "wi-stats failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    for needle in [
+        "WI usage",
+        "Window",
+        "1d",
+        "2d",
+        "5d",
+        "30d",
+        "Hit ratio",
+        "Avg results",
+        "Hit/miss graph",
+        "Recent misses",
+    ] {
+        assert!(
+            stdout.contains(needle),
+            "expected wi-stats stdout to contain '{needle}', got:\n{stdout}"
+        );
+    }
+}
+
+#[test]
+fn wi_stats_no_usage_message() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    let output = wi_stats_bin()
+        .current_dir(root)
+        .output()
+        .expect("run wi-stats");
+
+    assert!(
+        output.status.success(),
+        "wi-stats failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("No wi usage recorded yet"),
+        "expected 'No wi usage recorded yet' message, got:\n{stdout}"
+    );
+}
+
+#[test]
+fn wi_stats_recent_misses_section() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "src/main.py",
+        r#"
+class PromptService:
+    pass
+"#,
+    );
+
+    run_build(root);
+    run_wi(root, &["MissingQueryAlpha"]);
+    run_wi(root, &["MissingQueryBeta"]);
+
+    let output = wi_stats_bin()
+        .current_dir(root)
+        .output()
+        .expect("run wi-stats");
+
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        stdout.contains("Recent misses"),
+        "expected 'Recent misses' heading, got:\n{stdout}"
+    );
+
+    let after_heading = stdout
+        .split("Recent misses")
+        .nth(1)
+        .expect("Recent misses heading split");
+
+    assert!(
+        after_heading.contains("MissingQueryAlpha"),
+        "expected MissingQueryAlpha under Recent misses, got:\n{stdout}"
+    );
+    assert!(
+        after_heading.contains("MissingQueryBeta"),
+        "expected MissingQueryBeta under Recent misses, got:\n{stdout}"
+    );
+}
+
+#[test]
+fn wi_stats_recent_misses_none_when_only_hits() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "src/main.py",
+        r#"
+class PromptService:
+    pass
+"#,
+    );
+
+    run_build(root);
+    run_wi(root, &["PromptService"]);
+
+    let output = wi_stats_bin()
+        .current_dir(root)
+        .output()
+        .expect("run wi-stats");
+
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    let after_heading = stdout
+        .split("Recent misses")
+        .nth(1)
+        .expect("Recent misses heading split");
+
+    assert!(
+        after_heading.contains("None"),
+        "expected 'None' under Recent misses when no misses, got:\n{stdout}"
+    );
+}
+
+#[test]
+fn install_script_includes_wi_stats() {
+    let install_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("install.sh");
+    let contents = fs::read_to_string(&install_path).expect("read install.sh");
+    assert!(
+        contents.contains("wi-stats"),
+        "install.sh should reference wi-stats"
+    );
+}
+
+#[test]
+fn uninstall_script_includes_wi_stats() {
+    let uninstall_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("uninstall.sh");
+    let contents = fs::read_to_string(&uninstall_path).expect("read uninstall.sh");
+    assert!(
+        contents.contains("wi-stats"),
+        "uninstall.sh should reference wi-stats"
     );
 }

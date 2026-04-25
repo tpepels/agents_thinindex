@@ -4,7 +4,7 @@ set -euo pipefail
 PREFIX="${PREFIX:-$HOME/.local}"
 BIN_DIR="${BIN_DIR:-$PREFIX/bin}"
 
-BINARIES=("build_index" "wi" "wi-init")
+BINARIES=("build_index" "wi" "wi-init" "wi-stats")
 
 echo "Uninstalling from: $BIN_DIR"
 
