@@ -460,3 +460,132 @@ fn fixture_css_double_dash_query_requires_separator() {
         "expected css variable result, got:\n{variable_result}"
     );
 }
+
+#[test]
+fn wi_exact_symbol_match_beats_doc_or_path_match() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "docs/HeaderNavigation.md",
+        "# HeaderNavigation notes\n",
+    );
+    write_file(
+        root,
+        "src/header.py",
+        r#"
+class HeaderNavigation:
+    pass
+"#,
+    );
+
+    run_build(root);
+
+    let out = run_wi(root, &["HeaderNavigation", "-n", "1"]);
+    assert!(
+        out.contains("src/header.py"),
+        "exact symbol match should rank first, got:\n{out}"
+    );
+}
+
+#[test]
+fn wi_source_result_beats_test_when_match_quality_is_equal() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "tests/prompt_service.py",
+        r#"
+class PromptService:
+    pass
+"#,
+    );
+    write_file(
+        root,
+        "src/prompt_service.py",
+        r#"
+class PromptService:
+    pass
+"#,
+    );
+
+    run_build(root);
+
+    let out = run_wi(root, &["PromptService", "-n", "1"]);
+    assert!(
+        out.contains("src/prompt_service.py"),
+        "source file should rank before tests for equal match, got:\n{out}"
+    );
+}
+
+#[test]
+fn wi_prefix_match_beats_substring_match() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "src/service.py",
+        r#"
+class AlphaPrompt:
+    pass
+
+class PromptService:
+    pass
+"#,
+    );
+
+    run_build(root);
+
+    let out = run_wi(root, &["Prompt", "-n", "1"]);
+    assert!(
+        out.contains("PromptService"),
+        "prefix match should rank before substring match, got:\n{out}"
+    );
+}
+
+#[test]
+fn wi_limit_returns_highest_ranked_result() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "docs/prompt.md", "# PromptService\n");
+    write_file(
+        root,
+        "src/prompt_service.py",
+        r#"
+class PromptService:
+    pass
+"#,
+    );
+
+    run_build(root);
+
+    let out = run_wi(root, &["PromptService", "-n", "1"]);
+    assert!(
+        out.contains("src/prompt_service.py"),
+        "-n 1 should return the highest-ranked result, got:\n{out}"
+    );
+}

@@ -4,7 +4,7 @@ use anyhow::Result;
 use clap::Parser;
 use thinindex::{
     indexer::find_repo_root,
-    search::{format_result, search, SearchOptions},
+    search::{SearchOptions, format_result, search},
     stats::{self, UsageEvent},
 };
 

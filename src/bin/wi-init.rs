@@ -181,13 +181,14 @@ impl InitRollback {
             }
         }
 
-        if !self.dev_index_existed && self.dev_index_path.exists() {
-            if let Err(error) = fs::remove_dir_all(&self.dev_index_path) {
-                eprintln!(
-                    "warning: rollback failed for {}: {error:#}",
-                    self.dev_index_path.display()
-                );
-            }
+        if !self.dev_index_existed
+            && self.dev_index_path.exists()
+            && let Err(error) = fs::remove_dir_all(&self.dev_index_path)
+        {
+            eprintln!(
+                "warning: rollback failed for {}: {error:#}",
+                self.dev_index_path.display()
+            );
         }
     }
 }

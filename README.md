@@ -1,9 +1,10 @@
-````md
 # thinindex
 
 Agents waste tokens when they explore a codebase by reading files blindly.
 
-`thinindex` gives them a cheap repo-local index first. It installs:
+`thinindex` gives them a cheap repo-local structured index first. Agents use `wi` to get compact file/line targets before reading files.
+
+It installs:
 
 - `build_index` — builds/updates `.dev_index/`
 - `wi` — searches the index and returns compact file/line results
@@ -11,6 +12,19 @@ Agents waste tokens when they explore a codebase by reading files blindly.
 - `wi-stats` — shows usage stats and ASCII hit/miss graphs for 1/2/5/30-day windows
 
 No daemon. No embeddings. No vector database. No MCP. No background updater.
+
+## What agents will do
+
+After `wi-init`, agents that follow `AGENTS.md` should:
+
+1. Read `WI.md`.
+2. Run `build_index` before broad discovery.
+3. Use `wi <term>` to find files and line numbers.
+4. Read only the files returned by `wi`.
+5. Run `build_index` again after each implementation phase or structural code change.
+6. If `wi` returns nothing, rerun `build_index` once and retry before broader discovery.
+
+This gives agents a cheap first pass over the repo instead of burning tokens on blind file reads.
 
 ## Install
 
@@ -20,7 +34,7 @@ Arch Linux:
 
 ```bash
 sudo pacman -S rust universal-ctags
-````
+```
 
 Debian / Ubuntu:
 
@@ -77,14 +91,16 @@ wi-init
 
 This will:
 
-* create `WI.md`
-* add a short reference to `AGENTS.md`
-* run `build_index` once
-* create `.dev_index/`
+- create `WI.md`
+- create `.thinindexignore`
+- add a short reference to `AGENTS.md`
+- add `.dev_index/` to `.gitignore` if `.gitignore` exists and does not already ignore it
+- run `build_index` once
+- create `.dev_index/`
 
 It does not install cron or any background service.
 
-To overwrite `WI.md` from the bundled template:
+To overwrite `WI.md` and `.thinindexignore` from bundled templates:
 
 ```bash
 wi-init --force
@@ -94,6 +110,12 @@ To remove the index from a repo:
 
 ```bash
 wi-init --remove
+```
+
+To remove setup but keep the index:
+
+```bash
+wi-init --remove --keep-index
 ```
 
 ## Use
@@ -111,14 +133,17 @@ wi HeaderNavigation
 wi prompt -p app
 wi pixel -l css
 wi ranking -t function
+wi HeaderNavigation -n 10
+wi HeaderNavigation -v
 ```
 
-Useful options:
+Options:
 
 ```text
 -t <kind>   filter by kind/type
 -l <lang>   filter by language
 -p <path>   filter by path substring
+-s <source> filter by source
 -n <n>      result limit
 -v          verbose output
 ```
@@ -147,30 +172,17 @@ wi-stats
 
 There are no flags.
 
-## What agents will do
-
-After `wi-init`, agents that follow `AGENTS.md` should:
-
-1. Read `WI.md`.
-2. Run `build_index` before broad discovery.
-3. Use `wi <term>` to find files and line numbers.
-4. Read only the files returned by `wi`.
-5. Run `build_index` again after each implementation phase or structural code change.
-6. If `wi` returns nothing, rerun `build_index` once and retry before broader discovery.
-
-This gives agents a cheap first pass over the repo instead of burning tokens on blind file reads.
-
 ## What gets indexed
 
 Primary symbols come from Universal Ctags.
 
 Extra extraction includes:
 
-* CSS selectors and variables
-* HTML ids/classes/data attributes
-* Markdown headings/checklists/links
-* JSX component usage
-* TODO/FIXME markers
+- CSS selectors and variables
+- HTML ids/classes/data attributes
+- Markdown headings/checklists/links
+- JSX component usage
+- TODO/FIXME markers
 
 Index files live in:
 
@@ -180,6 +192,8 @@ Index files live in:
   index.jsonl
   wi_usage.jsonl
 ```
+
+If the index schema changes, `build_index` may delete and rebuild `.dev_index/`.
 
 ## Ignore extra paths
 
