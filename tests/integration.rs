@@ -943,7 +943,10 @@ class PromptService:
     run_wi(root, &["PromptService"]);
 
     let log_path = root.join(".dev_index/wi_usage.jsonl");
-    assert!(log_path.exists(), "wi_usage.jsonl should exist after wi run");
+    assert!(
+        log_path.exists(),
+        "wi_usage.jsonl should exist after wi run"
+    );
 
     let contents = fs::read_to_string(&log_path).expect("read usage log");
     let first_line = contents
@@ -990,8 +993,7 @@ class PromptService:
     let contents = fs::read_to_string(&log_path).expect("read usage log");
     let last_line = contents
         .lines()
-        .filter(|l| !l.trim().is_empty())
-        .next_back()
+        .rfind(|l| !l.trim().is_empty())
         .expect("at least one line in usage log");
 
     let parsed: serde_json::Value =
