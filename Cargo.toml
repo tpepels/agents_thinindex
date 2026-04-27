@@ -1,9 +1,9 @@
 [package]
 name = "thinindex"
-version = "0.1.0"
-edition = "2021"
+version = "0.1.2"
+edition = "2024"
 description = "Fast repo-local thin code index with compact CLI search"
-license = "MIT"
+license = "Paid-Premium"
 
 [dependencies]
 anyhow = "1"
