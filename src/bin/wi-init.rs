@@ -64,6 +64,7 @@ fn run() -> Result<()> {
 
     write_wi_md(&root, args.force)?;
     write_thinindexignore(&root, args.force)?;
+    update_gitignore(&root)?;
     update_agents_md(&root)?;
 
     let stats = build_index(&root)?;
@@ -119,6 +120,43 @@ fn write_thinindexignore(root: &Path, force: bool) -> Result<()> {
 
     fs::write(&path, THINDEXIGNORE_TEMPLATE)
         .with_context(|| format!("failed to write {}", path.display()))?;
+
+    Ok(())
+}
+
+fn update_gitignore(root: &Path) -> Result<()> {
+    let path = root.join(".gitignore");
+
+    if !path.exists() {
+        return Ok(());
+    }
+
+    let existing =
+        fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
+
+    let already_ignored = existing.lines().any(|line| {
+        let trimmed = line.trim();
+        trimmed == ".dev_index" || trimmed == ".dev_index/" || trimmed == "/.dev_index/"
+    });
+
+    if already_ignored {
+        return Ok(());
+    }
+
+    let mut file = OpenOptions::new()
+        .append(true)
+        .open(&path)
+        .with_context(|| format!("failed to open {}", path.display()))?;
+
+    if !existing.ends_with('\n') {
+        writeln!(file)?;
+    }
+
+    writeln!(file)?;
+    writeln!(file, "# thinindex")?;
+    writeln!(file, ".dev_index/")?;
+
+    println!("updated: {}", path.display());
 
     Ok(())
 }

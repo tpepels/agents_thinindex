@@ -60,6 +60,7 @@ pub fn index_with_ctags(root: &Path, files: &[PathBuf]) -> Result<Vec<IndexRecor
     command
         .current_dir(root)
         .arg("--output-format=json")
+        .arg("--fields=+nK") // ensure line and column fields are present
         .arg("-f")
         .arg("-");
 
@@ -135,6 +136,7 @@ fn record_from_ctags_value(root: &Path, value: Value) -> Result<Option<IndexReco
     }
 
     let line = value.get("line").and_then(Value::as_u64).unwrap_or(1) as usize;
+    let col = value.get("column").and_then(Value::as_u64).unwrap_or(1) as usize;
 
     let language = value
         .get("language")
@@ -156,7 +158,7 @@ fn record_from_ctags_value(root: &Path, value: Value) -> Result<Option<IndexReco
     Ok(Some(IndexRecord::new(
         relpath,
         line,
-        1,
+        col,
         language,
         normalized_kind,
         name,

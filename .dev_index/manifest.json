@@ -1,0 +1,173 @@
+{
+  "version": 1,
+  "files": {
+    ".gitignore": {
+      "mtime_ns": 1777114388954060246,
+      "size": 7
+    },
+    ".vscode/settings.json": {
+      "mtime_ns": 1777289455829723514,
+      "size": 114
+    },
+    "Cargo.lock": {
+      "mtime_ns": 1777111455082005109,
+      "size": 20549
+    },
+    "Cargo.toml": {
+      "mtime_ns": 1777131961977886115,
+      "size": 620
+    },
+    "Makefile": {
+      "mtime_ns": 1777108605216924616,
+      "size": 204
+    },
+    "README.md": {
+      "mtime_ns": 1777288625906099244,
+      "size": 3724
+    },
+    "docs/ROADMAP.md": {
+      "mtime_ns": 1777287735529958980,
+      "size": 29197
+    },
+    "install.sh": {
+      "mtime_ns": 1777150205948946923,
+      "size": 1052
+    },
+    "prompts/stats_ignore.md": {
+      "mtime_ns": 1777112325969223710,
+      "size": 6707
+    },
+    "src/bin/build_index.rs": {
+      "mtime_ns": 1777110766029355317,
+      "size": 1325
+    },
+    "src/bin/wi-init.rs": {
+      "mtime_ns": 1777289436660838415,
+      "size": 4993
+    },
+    "src/bin/wi-stats.rs": {
+      "mtime_ns": 1777131988272699709,
+      "size": 1734
+    },
+    "src/bin/wi.rs": {
+      "mtime_ns": 1777288448064372032,
+      "size": 2821
+    },
+    "src/ctags.rs": {
+      "mtime_ns": 1777289418122950403,
+      "size": 6775
+    },
+    "src/extras.rs": {
+      "mtime_ns": 1777110766039355281,
+      "size": 11283
+    },
+    "src/ignore.rs": {
+      "mtime_ns": 1777108584878549216,
+      "size": 0
+    },
+    "src/indexer.rs": {
+      "mtime_ns": 1777113385705341593,
+      "size": 5273
+    },
+    "src/lib.rs": {
+      "mtime_ns": 1777112069984342126,
+      "size": 109
+    },
+    "src/model.rs": {
+      "mtime_ns": 1777110766042355270,
+      "size": 1617
+    },
+    "src/search.rs": {
+      "mtime_ns": 1777110766044355263,
+      "size": 3433
+    },
+    "src/stats.rs": {
+      "mtime_ns": 1777131958048913993,
+      "size": 9340
+    },
+    "src/store.rs": {
+      "mtime_ns": 1777110766046355256,
+      "size": 4215
+    },
+    "templates/.thinindexignore": {
+      "mtime_ns": 1777113369260424849,
+      "size": 226
+    },
+    "templates/WI.md": {
+      "mtime_ns": 1777288779858167911,
+      "size": 492
+    },
+    "tests/fixtures/gitignore_repo/.gitignore": {
+      "mtime_ns": 1777111718629472792,
+      "size": 42
+    },
+    "tests/fixtures/gitignore_repo/generated/keep.py": {
+      "mtime_ns": 1777111646225901013,
+      "size": 37
+    },
+    "tests/fixtures/gitignore_repo/src/visible.py": {
+      "mtime_ns": 1777111646221964877,
+      "size": 40
+    },
+    "tests/fixtures/html_repo/frontend/pages/index.html": {
+      "mtime_ns": 1777111272964009290,
+      "size": 118
+    },
+    "tests/fixtures/html_repo/templates/base.html": {
+      "mtime_ns": 1777111272961009307,
+      "size": 254
+    },
+    "tests/fixtures/ignored_repo/.thinindexignore": {
+      "mtime_ns": 1777113374192399918,
+      "size": 226
+    },
+    "tests/fixtures/ignored_repo/src/real.py": {
+      "mtime_ns": 1777111269722026632,
+      "size": 28
+    },
+    "tests/fixtures/sample_repo/app/services/prompt_service.py": {
+      "mtime_ns": 1777111224012268824,
+      "size": 126
+    },
+    "tests/fixtures/sample_repo/docs/guide.md": {
+      "mtime_ns": 1777111224015268809,
+      "size": 83
+    },
+    "tests/fixtures/sample_repo/frontend/components/HeaderNavigation.tsx": {
+      "mtime_ns": 1777111224013268819,
+      "size": 184
+    },
+    "tests/fixtures/sample_repo/frontend/styles/header.css": {
+      "mtime_ns": 1777111224014268814,
+      "size": 175
+    },
+    "tests/fixtures/thinindexignore_repo/.thinindexignore": {
+      "mtime_ns": 1777111718628472798,
+      "size": 41
+    },
+    "tests/fixtures/thinindexignore_repo/generated/keep.py": {
+      "mtime_ns": 1777111646217017051,
+      "size": 37
+    },
+    "tests/fixtures/thinindexignore_repo/src/visible.py": {
+      "mtime_ns": 1777111646215013100,
+      "size": 31
+    },
+    "tests/fixtures/todo_repo/docs/notes.md": {
+      "mtime_ns": 1777111275693994672,
+      "size": 71
+    },
+    "tests/fixtures/todo_repo/src/work.py": {
+      "mtime_ns": 1777111275690994688,
+      "size": 154
+    },
+    "tests/integration.rs": {
+      "mtime_ns": 1777288185075548091,
+      "size": 28529
+    },
+    "uninstall.sh": {
+      "mtime_ns": 1777150209809920400,
+      "size": 849
+    }
+  }
+}

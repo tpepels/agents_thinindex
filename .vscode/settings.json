@@ -1,0 +1,6 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "rtk": true,
+        "./target/debug/build_index": true
+    }
+}
