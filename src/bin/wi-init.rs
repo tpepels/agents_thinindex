@@ -10,7 +10,7 @@ use clap::Parser;
 use thinindex::indexer::{build_index, find_repo_root};
 
 const WI_TEMPLATE: &str = include_str!("../../templates/WI.md");
-const THINDEXIGNORE_TEMPLATE: &str = include_str!("../../templates/.thinindexignore");
+const THININDEXIGNORE_TEMPLATE: &str = include_str!("../../templates/.thinindexignore");
 const AGENTS_MARKER: &str = "See WI.md for repository search/index usage.";
 
 #[derive(Debug, Parser)]
@@ -62,12 +62,20 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
+    let mut rollback = InitRollback::capture(&root)?;
+
     write_wi_md(&root, args.force)?;
     write_thinindexignore(&root, args.force)?;
     update_gitignore(&root)?;
     update_agents_md(&root)?;
 
+    if env::var_os("THININDEX_TEST_FAIL_WI_INIT_AFTER_WRITES").is_some() {
+        anyhow::bail!("test failure after wi-init writes");
+    }
+
     let stats = build_index(&root)?;
+
+    rollback.commit();
 
     println!("initialized: {}", root.display());
     println!("wrote: {}", root.join("WI.md").display());
@@ -76,6 +84,118 @@ fn run() -> Result<()> {
     println!("records: {}", stats.records);
 
     Ok(())
+}
+
+#[derive(Debug)]
+struct FileSnapshot {
+    path: PathBuf,
+    existed: bool,
+    content: Option<Vec<u8>>,
+}
+
+impl FileSnapshot {
+    fn capture(path: PathBuf) -> Result<Self> {
+        if path.exists() {
+            let content = fs::read(&path)
+                .with_context(|| format!("failed to snapshot {}", path.display()))?;
+
+            Ok(Self {
+                path,
+                existed: true,
+                content: Some(content),
+            })
+        } else {
+            Ok(Self {
+                path,
+                existed: false,
+                content: None,
+            })
+        }
+    }
+
+    fn restore(&self) -> Result<()> {
+        if self.existed {
+            fs::write(
+                &self.path,
+                self.content
+                    .as_ref()
+                    .expect("existing snapshot should have content"),
+            )
+            .with_context(|| format!("failed to restore {}", self.path.display()))?;
+        } else if self.path.exists() {
+            fs::remove_file(&self.path)
+                .with_context(|| format!("failed to remove {}", self.path.display()))?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+struct InitRollback {
+    snapshots: Vec<FileSnapshot>,
+    dev_index_existed: bool,
+    dev_index_path: PathBuf,
+    committed: bool,
+}
+
+impl InitRollback {
+    fn capture(root: &Path) -> Result<Self> {
+        let paths = ["WI.md", ".thinindexignore", "AGENTS.md", ".gitignore"]
+            .iter()
+            .map(|name| root.join(name))
+            .collect::<Vec<_>>();
+
+        let mut snapshots = Vec::new();
+
+        for path in paths {
+            snapshots.push(FileSnapshot::capture(path)?);
+        }
+
+        let dev_index_path = root.join(".dev_index");
+        let dev_index_existed = dev_index_path.exists();
+
+        Ok(Self {
+            snapshots,
+            dev_index_existed,
+            dev_index_path,
+            committed: false,
+        })
+    }
+
+    fn commit(&mut self) {
+        self.committed = true;
+    }
+
+    fn rollback(&self) {
+        if self.committed {
+            return;
+        }
+
+        for snapshot in self.snapshots.iter().rev() {
+            if let Err(error) = snapshot.restore() {
+                eprintln!(
+                    "warning: rollback failed for {}: {error:#}",
+                    snapshot.path.display()
+                );
+            }
+        }
+
+        if !self.dev_index_existed && self.dev_index_path.exists() {
+            if let Err(error) = fs::remove_dir_all(&self.dev_index_path) {
+                eprintln!(
+                    "warning: rollback failed for {}: {error:#}",
+                    self.dev_index_path.display()
+                );
+            }
+        }
+    }
+}
+
+impl Drop for InitRollback {
+    fn drop(&mut self) {
+        self.rollback();
+    }
 }
 
 fn remove_repo(root: &Path, keep_index: bool) -> Result<()> {
@@ -118,7 +238,7 @@ fn write_thinindexignore(root: &Path, force: bool) -> Result<()> {
         return Ok(());
     }
 
-    fs::write(&path, THINDEXIGNORE_TEMPLATE)
+    fs::write(&path, THININDEXIGNORE_TEMPLATE)
         .with_context(|| format!("failed to write {}", path.display()))?;
 
     Ok(())

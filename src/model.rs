@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+pub const INDEX_SCHEMA_VERSION: u32 = 2;
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IndexRecord {
     pub path: String,
@@ -21,14 +23,15 @@ pub struct FileMeta {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct Manifest {
-    pub version: u32,
+    #[serde(default, rename = "schema_version")]
+    pub schema_version: u32,
     pub files: BTreeMap<String, FileMeta>,
 }
 
 impl Manifest {
     pub fn new() -> Self {
         Self {
-            version: 1,
+            schema_version: INDEX_SCHEMA_VERSION,
             files: BTreeMap::new(),
         }
     }

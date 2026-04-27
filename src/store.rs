@@ -1,3 +1,25 @@
+/// Removes the entire .dev_index directory and recreates it.
+pub fn reset_dev_index(root: &Path) -> Result<()> {
+    let dir = index_dir(root);
+    if dir.exists() {
+        fs::remove_dir_all(&dir).with_context(|| format!("failed to remove {}", dir.display()))?;
+    }
+    fs::create_dir_all(&dir).with_context(|| format!("failed to create {}", dir.display()))?;
+    Ok(())
+}
+use crate::model::INDEX_SCHEMA_VERSION;
+pub fn is_manifest_stale(manifest: &Manifest) -> bool {
+    manifest.schema_version != INDEX_SCHEMA_VERSION
+}
+
+pub fn remove_index_files(root: &Path) -> Result<()> {
+    let index = index_path(root);
+    let manifest = manifest_path(root);
+    // Remove index.jsonl and manifest.json, but keep wi_usage.jsonl if present
+    let _ = fs::remove_file(&index);
+    let _ = fs::remove_file(&manifest);
+    Ok(())
+}
 use std::{
     fs::{self, File},
     io::{BufRead, BufReader, BufWriter, Write},
@@ -35,18 +57,20 @@ pub fn ensure_index_dir(root: &Path) -> Result<()> {
 
 pub fn load_manifest(root: &Path) -> Result<Manifest> {
     let path = manifest_path(root);
-
     if !path.exists() {
         return Ok(Manifest::new());
     }
-
-    let text = fs::read_to_string(&path)
-        .with_context(|| format!("failed to read manifest: {}", path.display()))?;
-
-    let manifest: Manifest = serde_json::from_str(&text)
-        .with_context(|| format!("failed to parse manifest: {}", path.display()))?;
-
-    Ok(manifest)
+    let text = match fs::read_to_string(&path) {
+        Ok(t) => t,
+        Err(_) => return Ok(Manifest::new()),
+    };
+    match serde_json::from_str::<Manifest>(&text) {
+        Ok(manifest) => Ok(manifest),
+        Err(_) => Ok(Manifest {
+            schema_version: 0,
+            files: Default::default(),
+        }),
+    }
 }
 
 pub fn save_manifest(root: &Path, manifest: &Manifest) -> Result<()> {

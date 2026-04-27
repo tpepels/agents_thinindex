@@ -11,10 +11,10 @@ use ignore::WalkBuilder;
 use crate::{
     ctags::{check_ctags, index_with_ctags},
     extras::index_extras,
-    model::FileMeta,
+    model::{FileMeta, Manifest},
     store::{
-        load_manifest, load_records, remove_records_for_paths, save_manifest, save_records,
-        sort_records,
+        is_manifest_stale, load_manifest, load_records, remove_records_for_paths, save_manifest,
+        save_records, sort_records,
     },
 };
 
@@ -49,6 +49,23 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
     let ctags_status = check_ctags()?;
 
     let mut manifest = load_manifest(&root)?;
+    let mut reset = false;
+    let mut reset_msg = None;
+    // If manifest is missing or malformed, or schema_version missing/mismatched, reset .dev_index
+    if manifest.schema_version == 0 {
+        reset = true;
+        reset_msg = Some("index manifest invalid; rebuilding .dev_index");
+    } else if is_manifest_stale(&manifest) {
+        reset = true;
+        reset_msg = Some("index schema changed; rebuilding .dev_index");
+    }
+    if reset {
+        crate::store::reset_dev_index(&root)?;
+        manifest = Manifest::new();
+        if let Some(msg) = reset_msg {
+            println!("{}", msg);
+        }
+    }
     let existing_records = load_records(&root)?;
 
     let files = discover_files(&root)?;
