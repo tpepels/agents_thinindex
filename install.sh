@@ -21,12 +21,16 @@ install -m 0755 target/release/wi "$BIN_DIR/wi"
 install -m 0755 target/release/wi-init "$BIN_DIR/wi-init"
 install -m 0755 target/release/wi-stats "$BIN_DIR/wi-stats"
 
-if ! command -v "$BIN_DIR/build_index" >/dev/null 2>&1; then
-  "$BIN_DIR/build_index" --version >/dev/null
-fi
+for bin in build_index wi wi-init wi-stats; do
+  if [[ ! -x "$BIN_DIR/$bin" ]]; then
+    echo "error: install failed: $BIN_DIR/$bin is not executable" >&2
+    exit 1
+  fi
+done
 
 "$BIN_DIR/build_index" --version
 "$BIN_DIR/wi" --version
+"$BIN_DIR/wi-init" --version
 "$BIN_DIR/wi-stats" --version
 
 case ":$PATH:" in
