@@ -2,9 +2,8 @@
 {"path":".vscode/settings.json","line":3,"col":1,"lang":"json","kind":"boolean","name":"rtk","text":"\"rtk\": true,","source":"ctags"}
 {"path":".vscode/settings.json","line":4,"col":1,"lang":"json","kind":"boolean","name":"./target/debug/build_index","text":"\".\\/target\\/debug\\/build_index\": true","source":"ctags"}
 {"path":"AGENTS.md","line":1,"col":1,"lang":"md","kind":"chapter","name":"AGENTS","text":"# AGENTS","source":"ctags"}
-{"path":"AGENTS.md","line":1,"col":1,"lang":"md","kind":"heading_1","name":"AGENTS","text":"# AGENTS","source":"extras"}
-{"path":"AGENTS.md","line":10,"col":1,"lang":"md","kind":"heading_2","name":"Repository search","text":"## Repository search","source":"extras"}
-{"path":"AGENTS.md","line":10,"col":1,"lang":"md","kind":"section","name":"Repository search","text":"## Repository search","source":"ctags"}
+{"path":"AGENTS.md","line":11,"col":1,"lang":"md","kind":"section","name":"Repository search","text":"## Repository search","source":"ctags"}
+{"path":"AGENTS.md","line":15,"col":1,"lang":"md","kind":"section","name":"Repository search","text":"## Repository search","source":"ctags"}
 {"path":"Makefile","line":3,"col":1,"lang":"text","kind":"target","name":"build","text":"build:","source":"ctags"}
 {"path":"Makefile","line":6,"col":1,"lang":"text","kind":"target","name":"test","text":"test:","source":"ctags"}
 {"path":"Makefile","line":9,"col":1,"lang":"text","kind":"target","name":"fmt","text":"fmt:","source":"ctags"}
@@ -12,413 +11,147 @@
 {"path":"Makefile","line":15,"col":1,"lang":"text","kind":"target","name":"install","text":"install:","source":"ctags"}
 {"path":"Makefile","line":18,"col":1,"lang":"text","kind":"target","name":"uninstall","text":"uninstall:","source":"ctags"}
 {"path":"README.md","line":1,"col":1,"lang":"md","kind":"chapter","name":"thinindex","text":"# thinindex","source":"ctags"}
-{"path":"README.md","line":1,"col":1,"lang":"md","kind":"heading_1","name":"thinindex","text":"# thinindex","source":"extras"}
-{"path":"README.md","line":16,"col":1,"lang":"md","kind":"heading_2","name":"What agents will do","text":"## What agents will do","source":"extras"}
 {"path":"README.md","line":16,"col":1,"lang":"md","kind":"section","name":"What agents will do","text":"## What agents will do","source":"ctags"}
-{"path":"README.md","line":29,"col":1,"lang":"md","kind":"heading_2","name":"Install","text":"## Install","source":"extras"}
 {"path":"README.md","line":29,"col":1,"lang":"md","kind":"section","name":"Install","text":"## Install","source":"ctags"}
-{"path":"README.md","line":35,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":37,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":41,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":44,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":48,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":50,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":54,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":56,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":60,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":62,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":66,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"README.md","line":68,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":74,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":80,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":84,"col":1,"lang":"md","kind":"heading_2","name":"Initialize a repo","text":"## Initialize a repo","source":"extras"}
 {"path":"README.md","line":84,"col":1,"lang":"md","kind":"section","name":"Initialize a repo","text":"## Initialize a repo","source":"ctags"}
-{"path":"README.md","line":88,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":90,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":105,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":107,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":111,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":113,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":117,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":119,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":121,"col":1,"lang":"md","kind":"heading_2","name":"Use","text":"## Use","source":"extras"}
 {"path":"README.md","line":121,"col":1,"lang":"md","kind":"section","name":"Use","text":"## Use","source":"ctags"}
-{"path":"README.md","line":125,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":127,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":131,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":138,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":142,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"README.md","line":149,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":153,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":155,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":157,"col":1,"lang":"md","kind":"heading_2","name":"Usage stats","text":"## Usage stats","source":"extras"}
 {"path":"README.md","line":157,"col":1,"lang":"md","kind":"section","name":"Usage stats","text":"## Usage stats","source":"ctags"}
-{"path":"README.md","line":163,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"README.md","line":165,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":169,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":171,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":175,"col":1,"lang":"md","kind":"heading_2","name":"What gets indexed","text":"## What gets indexed","source":"extras"}
 {"path":"README.md","line":175,"col":1,"lang":"md","kind":"section","name":"What gets indexed","text":"## What gets indexed","source":"ctags"}
 {"path":"README.md","line":185,"col":3,"lang":"md","kind":"todo","name":"TODO","text":"- TODO/FIXME markers","source":"extras"}
 {"path":"README.md","line":185,"col":8,"lang":"md","kind":"fixme","name":"FIXME","text":"- TODO/FIXME markers","source":"extras"}
-{"path":"README.md","line":189,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"README.md","line":194,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":198,"col":1,"lang":"md","kind":"heading_2","name":"Ignore extra paths","text":"## Ignore extra paths","source":"extras"}
 {"path":"README.md","line":198,"col":1,"lang":"md","kind":"section","name":"Ignore extra paths","text":"## Ignore extra paths","source":"ctags"}
-{"path":"README.md","line":204,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"README.md","line":209,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":213,"col":1,"lang":"md","kind":"heading_2","name":"Uninstall","text":"## Uninstall","source":"extras"}
 {"path":"README.md","line":213,"col":1,"lang":"md","kind":"section","name":"Uninstall","text":"## Uninstall","source":"ctags"}
-{"path":"README.md","line":217,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":219,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":223,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":225,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"README.md","line":229,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"README.md","line":232,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
 {"path":"WI.md","line":1,"col":1,"lang":"md","kind":"hashtag","name":"WI","text":"#WI.md","source":"ctags"}
-{"path":"WI.md","line":21,"col":1,"lang":"md","kind":"fixme","name":"FIXME","text":"Filter by indexed record kind. Common kinds: class, function, method, css_class, css_variable, html_id, html_class, htm…","source":"extras"}
-{"path":"WI.md","line":21,"col":1,"lang":"md","kind":"todo","name":"TODO","text":"Filter by indexed record kind. Common kinds: class, function, method, css_class, css_variable, html_id, html_class, htm…","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1,"col":1,"lang":"md","kind":"chapter","name":"Thinindex Product Roadmap","text":"# Thinindex Product Roadmap","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1,"col":1,"lang":"md","kind":"heading_1","name":"Thinindex Product Roadmap","text":"# Thinindex Product Roadmap","source":"extras"}
-{"path":"docs/ROADMAP.md","line":3,"col":1,"lang":"md","kind":"heading_2","name":"Product target","text":"## Product target","source":"extras"}
 {"path":"docs/ROADMAP.md","line":3,"col":1,"lang":"md","kind":"section","name":"Product target","text":"## Product target","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":26,"col":1,"lang":"md","kind":"heading_2","name":"Product constants","text":"## Product constants","source":"extras"}
 {"path":"docs/ROADMAP.md","line":26,"col":1,"lang":"md","kind":"section","name":"Product constants","text":"## Product constants","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":30,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":36,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":40,"col":1,"lang":"md","kind":"heading_2","name":"Non-negotiables","text":"## Non-negotiables","source":"extras"}
 {"path":"docs/ROADMAP.md","line":40,"col":1,"lang":"md","kind":"section","name":"Non-negotiables","text":"## Non-negotiables","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":59,"col":1,"lang":"md","kind":"chapter","name":"Product editions","text":"# Product editions","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":59,"col":1,"lang":"md","kind":"heading_1","name":"Product editions","text":"# Product editions","source":"extras"}
-{"path":"docs/ROADMAP.md","line":61,"col":1,"lang":"md","kind":"heading_2","name":"Free","text":"## Free","source":"extras"}
 {"path":"docs/ROADMAP.md","line":61,"col":1,"lang":"md","kind":"section","name":"Free","text":"## Free","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":77,"col":1,"lang":"md","kind":"heading_2","name":"Pro","text":"## Pro","source":"extras"}
 {"path":"docs/ROADMAP.md","line":77,"col":1,"lang":"md","kind":"section","name":"Pro","text":"## Pro","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":94,"col":1,"lang":"md","kind":"heading_2","name":"Team later","text":"## Team later","source":"extras"}
 {"path":"docs/ROADMAP.md","line":94,"col":1,"lang":"md","kind":"section","name":"Team later","text":"## Team later","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":106,"col":1,"lang":"md","kind":"chapter","name":"Free vs Pro boundary","text":"# Free vs Pro boundary","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":106,"col":1,"lang":"md","kind":"heading_1","name":"Free vs Pro boundary","text":"# Free vs Pro boundary","source":"extras"}
-{"path":"docs/ROADMAP.md","line":108,"col":1,"lang":"md","kind":"heading_2","name":"Limit model","text":"## Limit model","source":"extras"}
 {"path":"docs/ROADMAP.md","line":108,"col":1,"lang":"md","kind":"section","name":"Limit model","text":"## Limit model","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":112,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":120,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
 {"path":"docs/ROADMAP.md","line":137,"col":3,"lang":"md","kind":"todo","name":"TODO","text":"* TODO/FIXME marker","source":"extras"}
 {"path":"docs/ROADMAP.md","line":137,"col":8,"lang":"md","kind":"fixme","name":"FIXME","text":"* TODO/FIXME marker","source":"extras"}
-{"path":"docs/ROADMAP.md","line":146,"col":1,"lang":"md","kind":"heading_2","name":"Enforcement behavior","text":"## Enforcement behavior","source":"extras"}
 {"path":"docs/ROADMAP.md","line":146,"col":1,"lang":"md","kind":"section","name":"Enforcement behavior","text":"## Enforcement behavior","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":162,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":166,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":170,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":174,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":178,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":185,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":197,"col":1,"lang":"md","kind":"heading_2","name":"Local config rule","text":"## Local config rule","source":"extras"}
 {"path":"docs/ROADMAP.md","line":197,"col":1,"lang":"md","kind":"section","name":"Local config rule","text":"## Local config rule","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":201,"col":1,"lang":"md","kind":"code_fence","name":"toml","text":"```toml","source":"extras"}
-{"path":"docs/ROADMAP.md","line":204,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":210,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":213,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":217,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":225,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
 {"path":"docs/ROADMAP.md","line":229,"col":1,"lang":"md","kind":"chapter","name":"Parser backend decision","text":"# Parser backend decision","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":229,"col":1,"lang":"md","kind":"heading_1","name":"Parser backend decision","text":"# Parser backend decision","source":"extras"}
-{"path":"docs/ROADMAP.md","line":231,"col":1,"lang":"md","kind":"heading_2","name":"Decision","text":"## Decision","source":"extras"}
 {"path":"docs/ROADMAP.md","line":231,"col":1,"lang":"md","kind":"section","name":"Decision","text":"## Decision","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":237,"col":1,"lang":"md","kind":"heading_2","name":"Why tree-sitter","text":"## Why tree-sitter","source":"extras"}
 {"path":"docs/ROADMAP.md","line":237,"col":1,"lang":"md","kind":"section","name":"Why tree-sitter","text":"## Why tree-sitter","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":247,"col":1,"lang":"md","kind":"heading_2","name":"Ctags status","text":"## Ctags status","source":"extras"}
 {"path":"docs/ROADMAP.md","line":247,"col":1,"lang":"md","kind":"section","name":"Ctags status","text":"## Ctags status","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":264,"col":1,"lang":"md","kind":"heading_2","name":"Backend model","text":"## Backend model","source":"extras"}
 {"path":"docs/ROADMAP.md","line":264,"col":1,"lang":"md","kind":"section","name":"Backend model","text":"## Backend model","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":268,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":272,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":278,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":280,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":284,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":288,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
 {"path":"docs/ROADMAP.md","line":292,"col":1,"lang":"md","kind":"chapter","name":"Licensing and payment","text":"# Licensing and payment","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":292,"col":1,"lang":"md","kind":"heading_1","name":"Licensing and payment","text":"# Licensing and payment","source":"extras"}
-{"path":"docs/ROADMAP.md","line":294,"col":1,"lang":"md","kind":"heading_2","name":"Decision","text":"## Decision","source":"extras"}
 {"path":"docs/ROADMAP.md","line":294,"col":1,"lang":"md","kind":"section","name":"Decision","text":"## Decision","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":320,"col":1,"lang":"md","kind":"heading_2","name":"License commands","text":"## License commands","source":"extras"}
 {"path":"docs/ROADMAP.md","line":320,"col":1,"lang":"md","kind":"section","name":"License commands","text":"## License commands","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":324,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"docs/ROADMAP.md","line":329,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":333,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"docs/ROADMAP.md","line":335,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":339,"col":1,"lang":"md","kind":"heading_2","name":"Local license state","text":"## Local license state","source":"extras"}
 {"path":"docs/ROADMAP.md","line":339,"col":1,"lang":"md","kind":"section","name":"Local license state","text":"## Local license state","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":343,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":345,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":349,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":351,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":355,"col":1,"lang":"md","kind":"code_fence","name":"json","text":"```json","source":"extras"}
-{"path":"docs/ROADMAP.md","line":366,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":376,"col":1,"lang":"md","kind":"heading_2","name":"Network behavior","text":"## Network behavior","source":"extras"}
 {"path":"docs/ROADMAP.md","line":376,"col":1,"lang":"md","kind":"section","name":"Network behavior","text":"## Network behavior","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":380,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":388,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":397,"col":1,"lang":"md","kind":"heading_2","name":"License failure behavior","text":"## License failure behavior","source":"extras"}
 {"path":"docs/ROADMAP.md","line":397,"col":1,"lang":"md","kind":"section","name":"License failure behavior","text":"## License failure behavior","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":401,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":405,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":416,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":420,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":422,"col":1,"lang":"md","kind":"heading_2","name":"Security reality","text":"## Security reality","source":"extras"}
 {"path":"docs/ROADMAP.md","line":422,"col":1,"lang":"md","kind":"section","name":"Security reality","text":"## Security reality","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":445,"col":1,"lang":"md","kind":"chapter","name":"Phase 0 — Product cleanup before expansion","text":"# Phase 0 — Product cleanup before expansion","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":445,"col":1,"lang":"md","kind":"heading_1","name":"Phase 0 — Product cleanup before expansion","text":"# Phase 0 — Product cleanup before expansion","source":"extras"}
-{"path":"docs/ROADMAP.md","line":447,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":447,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":451,"col":1,"lang":"md","kind":"heading_2","name":"Work","text":"## Work","source":"extras"}
 {"path":"docs/ROADMAP.md","line":451,"col":1,"lang":"md","kind":"section","name":"Work","text":"## Work","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":476,"col":1,"lang":"md","kind":"heading_2","name":"Technical cleanup","text":"## Technical cleanup","source":"extras"}
 {"path":"docs/ROADMAP.md","line":476,"col":1,"lang":"md","kind":"section","name":"Technical cleanup","text":"## Technical cleanup","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":494,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":494,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":505,"col":1,"lang":"md","kind":"chapter","name":"Phase 1 — Robust local indexing","text":"# Phase 1 — Robust local indexing","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":505,"col":1,"lang":"md","kind":"heading_1","name":"Phase 1 — Robust local indexing","text":"# Phase 1 — Robust local indexing","source":"extras"}
-{"path":"docs/ROADMAP.md","line":507,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":507,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":511,"col":1,"lang":"md","kind":"heading_2","name":"Work","text":"## Work","source":"extras"}
 {"path":"docs/ROADMAP.md","line":511,"col":1,"lang":"md","kind":"section","name":"Work","text":"## Work","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":531,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"docs/ROADMAP.md","line":534,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":546,"col":1,"lang":"md","kind":"heading_2","name":"Ignore behavior","text":"## Ignore behavior","source":"extras"}
 {"path":"docs/ROADMAP.md","line":546,"col":1,"lang":"md","kind":"section","name":"Ignore behavior","text":"## Ignore behavior","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":559,"col":1,"lang":"md","kind":"heading_2","name":"Tests","text":"## Tests","source":"extras"}
 {"path":"docs/ROADMAP.md","line":559,"col":1,"lang":"md","kind":"section","name":"Tests","text":"## Tests","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":576,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":576,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":585,"col":1,"lang":"md","kind":"chapter","name":"Phase 2 — Parser backend abstraction","text":"# Phase 2 — Parser backend abstraction","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":585,"col":1,"lang":"md","kind":"heading_1","name":"Phase 2 — Parser backend abstraction","text":"# Phase 2 — Parser backend abstraction","source":"extras"}
-{"path":"docs/ROADMAP.md","line":587,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":587,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":591,"col":1,"lang":"md","kind":"heading_2","name":"Work","text":"## Work","source":"extras"}
 {"path":"docs/ROADMAP.md","line":591,"col":1,"lang":"md","kind":"section","name":"Work","text":"## Work","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":595,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":599,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":603,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":606,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":616,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":616,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":625,"col":1,"lang":"md","kind":"chapter","name":"Phase 3 — Native tree-sitter backend","text":"# Phase 3 — Native tree-sitter backend","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":625,"col":1,"lang":"md","kind":"heading_1","name":"Phase 3 — Native tree-sitter backend","text":"# Phase 3 — Native tree-sitter backend","source":"extras"}
-{"path":"docs/ROADMAP.md","line":627,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":627,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":631,"col":1,"lang":"md","kind":"heading_2","name":"First supported languages","text":"## First supported languages","source":"extras"}
 {"path":"docs/ROADMAP.md","line":631,"col":1,"lang":"md","kind":"section","name":"First supported languages","text":"## First supported languages","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":645,"col":1,"lang":"md","kind":"heading_2","name":"Extraction targets","text":"## Extraction targets","source":"extras"}
 {"path":"docs/ROADMAP.md","line":645,"col":1,"lang":"md","kind":"section","name":"Extraction targets","text":"## Extraction targets","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":705,"col":1,"lang":"md","kind":"heading_2","name":"Implementation","text":"## Implementation","source":"extras"}
 {"path":"docs/ROADMAP.md","line":705,"col":1,"lang":"md","kind":"section","name":"Implementation","text":"## Implementation","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":711,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":723,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
 {"path":"docs/ROADMAP.md","line":730,"col":3,"lang":"md","kind":"todo","name":"TODO","text":"* TODO/FIXME","source":"extras"}
 {"path":"docs/ROADMAP.md","line":730,"col":8,"lang":"md","kind":"fixme","name":"FIXME","text":"* TODO/FIXME","source":"extras"}
-{"path":"docs/ROADMAP.md","line":734,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":734,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":745,"col":1,"lang":"md","kind":"chapter","name":"Phase 4 — Free limit enforcement","text":"# Phase 4 — Free limit enforcement","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":745,"col":1,"lang":"md","kind":"heading_1","name":"Phase 4 — Free limit enforcement","text":"# Phase 4 — Free limit enforcement","source":"extras"}
-{"path":"docs/ROADMAP.md","line":747,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":747,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":751,"col":1,"lang":"md","kind":"heading_2","name":"Work","text":"## Work","source":"extras"}
 {"path":"docs/ROADMAP.md","line":751,"col":1,"lang":"md","kind":"section","name":"Work","text":"## Work","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":766,"col":1,"lang":"md","kind":"heading_2","name":"Tests","text":"## Tests","source":"extras"}
 {"path":"docs/ROADMAP.md","line":766,"col":1,"lang":"md","kind":"section","name":"Tests","text":"## Tests","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":779,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":779,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":788,"col":1,"lang":"md","kind":"chapter","name":"Phase 5 — Product-ready free CLI","text":"# Phase 5 — Product-ready free CLI","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":788,"col":1,"lang":"md","kind":"heading_1","name":"Phase 5 — Product-ready free CLI","text":"# Phase 5 — Product-ready free CLI","source":"extras"}
-{"path":"docs/ROADMAP.md","line":790,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":790,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":794,"col":1,"lang":"md","kind":"heading_2","name":"Work","text":"## Work","source":"extras"}
 {"path":"docs/ROADMAP.md","line":794,"col":1,"lang":"md","kind":"section","name":"Work","text":"## Work","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":800,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"docs/ROADMAP.md","line":802,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":810,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":810,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":820,"col":1,"lang":"md","kind":"chapter","name":"Phase 6 — Lemon Squeezy licensing client","text":"# Phase 6 — Lemon Squeezy licensing client","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":820,"col":1,"lang":"md","kind":"heading_1","name":"Phase 6 — Lemon Squeezy licensing client","text":"# Phase 6 — Lemon Squeezy licensing client","source":"extras"}
-{"path":"docs/ROADMAP.md","line":822,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":822,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":826,"col":1,"lang":"md","kind":"heading_2","name":"Work","text":"## Work","source":"extras"}
 {"path":"docs/ROADMAP.md","line":826,"col":1,"lang":"md","kind":"section","name":"Work","text":"## Work","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":841,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"docs/ROADMAP.md","line":843,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":847,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"docs/ROADMAP.md","line":852,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":854,"col":1,"lang":"md","kind":"heading_2","name":"Enforcement","text":"## Enforcement","source":"extras"}
 {"path":"docs/ROADMAP.md","line":854,"col":1,"lang":"md","kind":"section","name":"Enforcement","text":"## Enforcement","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":862,"col":1,"lang":"md","kind":"heading_2","name":"Tests","text":"## Tests","source":"extras"}
 {"path":"docs/ROADMAP.md","line":862,"col":1,"lang":"md","kind":"section","name":"Tests","text":"## Tests","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":874,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":874,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":883,"col":1,"lang":"md","kind":"chapter","name":"Phase 7 — Lemon Squeezy product setup","text":"# Phase 7 — Lemon Squeezy product setup","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":883,"col":1,"lang":"md","kind":"heading_1","name":"Phase 7 — Lemon Squeezy product setup","text":"# Phase 7 — Lemon Squeezy product setup","source":"extras"}
-{"path":"docs/ROADMAP.md","line":885,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":885,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":889,"col":1,"lang":"md","kind":"heading_2","name":"Work","text":"## Work","source":"extras"}
 {"path":"docs/ROADMAP.md","line":889,"col":1,"lang":"md","kind":"section","name":"Work","text":"## Work","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":909,"col":1,"lang":"md","kind":"heading_2","name":"Activation flow","text":"## Activation flow","source":"extras"}
 {"path":"docs/ROADMAP.md","line":909,"col":1,"lang":"md","kind":"section","name":"Activation flow","text":"## Activation flow","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":911,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"docs/ROADMAP.md","line":913,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":925,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"docs/ROADMAP.md","line":927,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":931,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"docs/ROADMAP.md","line":933,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":935,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":935,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":945,"col":1,"lang":"md","kind":"chapter","name":"Phase 8 — Cross-platform packaging","text":"# Phase 8 — Cross-platform packaging","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":945,"col":1,"lang":"md","kind":"heading_1","name":"Phase 8 — Cross-platform packaging","text":"# Phase 8 — Cross-platform packaging","source":"extras"}
-{"path":"docs/ROADMAP.md","line":947,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":947,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":951,"col":1,"lang":"md","kind":"heading_2","name":"Targets","text":"## Targets","source":"extras"}
 {"path":"docs/ROADMAP.md","line":951,"col":1,"lang":"md","kind":"section","name":"Targets","text":"## Targets","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":959,"col":1,"lang":"md","kind":"heading_2","name":"Deliverables","text":"## Deliverables","source":"extras"}
 {"path":"docs/ROADMAP.md","line":959,"col":1,"lang":"md","kind":"section","name":"Deliverables","text":"## Deliverables","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":978,"col":1,"lang":"md","kind":"heading_2","name":"Install behavior","text":"## Install behavior","source":"extras"}
 {"path":"docs/ROADMAP.md","line":978,"col":1,"lang":"md","kind":"section","name":"Install behavior","text":"## Install behavior","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":993,"col":1,"lang":"md","kind":"heading_2","name":"Code signing","text":"## Code signing","source":"extras"}
 {"path":"docs/ROADMAP.md","line":993,"col":1,"lang":"md","kind":"section","name":"Code signing","text":"## Code signing","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1000,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1000,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":1015,"col":1,"lang":"md","kind":"chapter","name":"Phase 9 — Agent integration packs","text":"# Phase 9 — Agent integration packs","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1015,"col":1,"lang":"md","kind":"heading_1","name":"Phase 9 — Agent integration packs","text":"# Phase 9 — Agent integration packs","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1017,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1017,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1021,"col":1,"lang":"md","kind":"heading_2","name":"Supported agents/editors","text":"## Supported agents/editors","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1021,"col":1,"lang":"md","kind":"section","name":"Supported agents/editors","text":"## Supported agents\\/editors","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1031,"col":1,"lang":"md","kind":"heading_2","name":"Work","text":"## Work","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1031,"col":1,"lang":"md","kind":"section","name":"Work","text":"## Work","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1035,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1040,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1052,"col":1,"lang":"md","kind":"heading_2","name":"Rules","text":"## Rules","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1052,"col":1,"lang":"md","kind":"section","name":"Rules","text":"## Rules","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1059,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1059,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":1067,"col":1,"lang":"md","kind":"chapter","name":"Phase 10 — Usage stats and proof of value","text":"# Phase 10 — Usage stats and proof of value","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1067,"col":1,"lang":"md","kind":"heading_1","name":"Phase 10 — Usage stats and proof of value","text":"# Phase 10 — Usage stats and proof of value","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1069,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1069,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1073,"col":1,"lang":"md","kind":"heading_2","name":"Current stats","text":"## Current stats","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1073,"col":1,"lang":"md","kind":"section","name":"Current stats","text":"## Current stats","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1088,"col":1,"lang":"md","kind":"heading_2","name":"Improve later","text":"## Improve later","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1088,"col":1,"lang":"md","kind":"section","name":"Improve later","text":"## Improve later","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1100,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1102,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1106,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1108,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1110,"col":1,"lang":"md","kind":"heading_2","name":"Do not do","text":"## Do not do","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1110,"col":1,"lang":"md","kind":"section","name":"Do not do","text":"## Do not do","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1116,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1116,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":1125,"col":1,"lang":"md","kind":"chapter","name":"Phase 11 — Configuration","text":"# Phase 11 — Configuration","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1125,"col":1,"lang":"md","kind":"heading_1","name":"Phase 11 — Configuration","text":"# Phase 11 — Configuration","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1127,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1127,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1131,"col":1,"lang":"md","kind":"heading_2","name":"Add optional config file","text":"## Add optional config file","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1131,"col":1,"lang":"md","kind":"section","name":"Add optional config file","text":"## Add optional config file","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1133,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1135,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1139,"col":1,"lang":"md","kind":"code_fence","name":"toml","text":"```toml","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1147,"col":1,"lang":"md","kind":"heading_1","name":"Optional local policy caps. Can only reduce, never raise product limits.","text":"# Optional local policy caps. Can only reduce, never raise product limits.","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1153,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1155,"col":1,"lang":"md","kind":"heading_2","name":"Rules","text":"## Rules","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1155,"col":1,"lang":"md","kind":"section","name":"Rules","text":"## Rules","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1163,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1163,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":1172,"col":1,"lang":"md","kind":"chapter","name":"Phase 12 — Search quality","text":"# Phase 12 — Search quality","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1172,"col":1,"lang":"md","kind":"heading_1","name":"Phase 12 — Search quality","text":"# Phase 12 — Search quality","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1174,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1174,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1178,"col":1,"lang":"md","kind":"heading_2","name":"Improvements","text":"## Improvements","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1178,"col":1,"lang":"md","kind":"section","name":"Improvements","text":"## Improvements","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1200,"col":1,"lang":"md","kind":"heading_2","name":"Do not add","text":"## Do not add","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1200,"col":1,"lang":"md","kind":"section","name":"Do not add","text":"## Do not add","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1207,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1207,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":1215,"col":1,"lang":"md","kind":"chapter","name":"Phase 13 — Security and privacy","text":"# Phase 13 — Security and privacy","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1215,"col":1,"lang":"md","kind":"heading_1","name":"Phase 13 — Security and privacy","text":"# Phase 13 — Security and privacy","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1217,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1217,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1221,"col":1,"lang":"md","kind":"heading_2","name":"Work","text":"## Work","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1221,"col":1,"lang":"md","kind":"section","name":"Work","text":"## Work","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1238,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1238,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":1248,"col":1,"lang":"md","kind":"chapter","name":"Phase 14 — Release automation","text":"# Phase 14 — Release automation","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1248,"col":1,"lang":"md","kind":"heading_1","name":"Phase 14 — Release automation","text":"# Phase 14 — Release automation","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1250,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1250,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1254,"col":1,"lang":"md","kind":"heading_2","name":"Work","text":"## Work","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1254,"col":1,"lang":"md","kind":"section","name":"Work","text":"## Work","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1276,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1276,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":1286,"col":1,"lang":"md","kind":"chapter","name":"Phase 15 — Website / landing page","text":"# Phase 15 — Website \\/ landing page","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1286,"col":1,"lang":"md","kind":"heading_1","name":"Phase 15 — Website / landing page","text":"# Phase 15 — Website / landing page","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1288,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1288,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1292,"col":1,"lang":"md","kind":"heading_2","name":"Page sections","text":"## Page sections","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1292,"col":1,"lang":"md","kind":"section","name":"Page sections","text":"## Page sections","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1327,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1327,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":1337,"col":1,"lang":"md","kind":"chapter","name":"Phase 16 — Monetization launch","text":"# Phase 16 — Monetization launch","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1337,"col":1,"lang":"md","kind":"heading_1","name":"Phase 16 — Monetization launch","text":"# Phase 16 — Monetization launch","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1339,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1339,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1343,"col":1,"lang":"md","kind":"heading_2","name":"Do not start here.","text":"## Do not start here.","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1343,"col":1,"lang":"md","kind":"section","name":"Do not start here.","text":"## Do not start here.","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1355,"col":1,"lang":"md","kind":"heading_2","name":"Pro features at launch","text":"## Pro features at launch","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1355,"col":1,"lang":"md","kind":"section","name":"Pro features at launch","text":"## Pro features at launch","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1369,"col":1,"lang":"md","kind":"heading_2","name":"Launch checks","text":"## Launch checks","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1369,"col":1,"lang":"md","kind":"section","name":"Launch checks","text":"## Launch checks","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1379,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1379,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":1389,"col":1,"lang":"md","kind":"chapter","name":"Phase 17 — Team/CI product","text":"# Phase 17 — Team\\/CI product","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1389,"col":1,"lang":"md","kind":"heading_1","name":"Phase 17 — Team/CI product","text":"# Phase 17 — Team/CI product","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1391,"col":1,"lang":"md","kind":"heading_2","name":"Goal","text":"## Goal","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1391,"col":1,"lang":"md","kind":"section","name":"Goal","text":"## Goal","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1395,"col":1,"lang":"md","kind":"heading_2","name":"Features","text":"## Features","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1395,"col":1,"lang":"md","kind":"section","name":"Features","text":"## Features","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1413,"col":1,"lang":"md","kind":"heading_2","name":"Acceptance","text":"## Acceptance","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1413,"col":1,"lang":"md","kind":"section","name":"Acceptance","text":"## Acceptance","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":1421,"col":1,"lang":"md","kind":"chapter","name":"Implementation plan sequence","text":"# Implementation plan sequence","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1421,"col":1,"lang":"md","kind":"heading_1","name":"Implementation plan sequence","text":"# Implementation plan sequence","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1423,"col":1,"lang":"md","kind":"heading_2","name":"Plan A — Clean current utility","text":"## Plan A — Clean current utility","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1423,"col":1,"lang":"md","kind":"section","name":"Plan A — Clean current utility","text":"## Plan A — Clean current utility","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1437,"col":1,"lang":"md","kind":"heading_2","name":"Plan B — Backend abstraction and tree-sitter","text":"## Plan B — Backend abstraction and tree-sitter","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1437,"col":1,"lang":"md","kind":"section","name":"Plan B — Backend abstraction and tree-sitter","text":"## Plan B — Backend abstraction and tree-sitter","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1450,"col":1,"lang":"md","kind":"heading_2","name":"Plan C — Free limits","text":"## Plan C — Free limits","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1450,"col":1,"lang":"md","kind":"section","name":"Plan C — Free limits","text":"## Plan C — Free limits","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1463,"col":1,"lang":"md","kind":"heading_2","name":"Plan D — Product-ready free CLI","text":"## Plan D — Product-ready free CLI","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1463,"col":1,"lang":"md","kind":"section","name":"Plan D — Product-ready free CLI","text":"## Plan D — Product-ready free CLI","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1473,"col":1,"lang":"md","kind":"heading_2","name":"Plan E — Windows support","text":"## Plan E — Windows support","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1473,"col":1,"lang":"md","kind":"section","name":"Plan E — Windows support","text":"## Plan E — Windows support","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1483,"col":1,"lang":"md","kind":"heading_2","name":"Plan F — Lemon Squeezy license client","text":"## Plan F — Lemon Squeezy license client","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1483,"col":1,"lang":"md","kind":"section","name":"Plan F — Lemon Squeezy license client","text":"## Plan F — Lemon Squeezy license client","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1495,"col":1,"lang":"md","kind":"heading_2","name":"Plan G — Lemon Squeezy product setup","text":"## Plan G — Lemon Squeezy product setup","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1495,"col":1,"lang":"md","kind":"section","name":"Plan G — Lemon Squeezy product setup","text":"## Plan G — Lemon Squeezy product setup","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1505,"col":1,"lang":"md","kind":"heading_2","name":"Plan H — Pro packaging","text":"## Plan H — Pro packaging","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1505,"col":1,"lang":"md","kind":"section","name":"Plan H — Pro packaging","text":"## Plan H — Pro packaging","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":1516,"col":1,"lang":"md","kind":"chapter","name":"Recommended immediate next phase","text":"# Recommended immediate next phase","source":"ctags"}
-{"path":"docs/ROADMAP.md","line":1516,"col":1,"lang":"md","kind":"heading_1","name":"Recommended immediate next phase","text":"# Recommended immediate next phase","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1531,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"docs/ROADMAP.md","line":1533,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"prompts/stats_ignore.md","line":36,"col":1,"lang":"md","kind":"code_fence","name":"gitignore","text":"```gitignore","source":"extras"}
-{"path":"prompts/stats_ignore.md","line":63,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"````","source":"extras"}
-{"path":"prompts/stats_ignore.md","line":93,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"prompts/stats_ignore.md","line":95,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"prompts/stats_ignore.md","line":101,"col":1,"lang":"md","kind":"code_fence","name":"rust","text":"```rust","source":"extras"}
-{"path":"prompts/stats_ignore.md","line":115,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"prompts/stats_ignore.md","line":168,"col":1,"lang":"md","kind":"code_fence","name":"toml","text":"```toml","source":"extras"}
-{"path":"prompts/stats_ignore.md","line":172,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"prompts/stats_ignore.md","line":176,"col":1,"lang":"md","kind":"code_fence","name":"bash","text":"```bash","source":"extras"}
-{"path":"prompts/stats_ignore.md","line":178,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"prompts/stats_ignore.md","line":194,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"prompts/stats_ignore.md","line":213,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
-{"path":"prompts/stats_ignore.md","line":217,"col":1,"lang":"md","kind":"code_fence","name":"text","text":"```text","source":"extras"}
-{"path":"prompts/stats_ignore.md","line":220,"col":1,"lang":"md","kind":"code_fence","name":"code","text":"```","source":"extras"}
 {"path":"src/bin/build_index.rs","line":13,"col":1,"lang":"rs","kind":"struct","name":"Args","text":"struct Args {","source":"ctags"}
 {"path":"src/bin/build_index.rs","line":18,"col":1,"lang":"rs","kind":"field","name":"path","text":"path: PathBuf,","source":"ctags"}
 {"path":"src/bin/build_index.rs","line":21,"col":1,"lang":"rs","kind":"field","name":"quiet","text":"quiet: bool,","source":"ctags"}
@@ -475,25 +208,32 @@
 {"path":"src/ctags.rs","line":196,"col":1,"lang":"rs","kind":"function","name":"language_from_path","text":"fn language_from_path(path: &str) -> String {","source":"ctags"}
 {"path":"src/ctags.rs","line":217,"col":1,"lang":"rs","kind":"function","name":"normalize_kind","text":"fn normalize_kind(value: &str) -> String {","source":"ctags"}
 {"path":"src/ctags.rs","line":239,"col":1,"lang":"rs","kind":"function","name":"clean_pattern","text":"fn clean_pattern(value: &str) -> String {","source":"ctags"}
-{"path":"src/extras.rs","line":5,"col":1,"lang":"rs","kind":"function","name":"index_extras","text":"pub fn index_extras(relpath: &str, text: &str) -> Vec<IndexRecord> {","source":"ctags"}
-{"path":"src/extras.rs","line":10,"col":1,"lang":"rs","kind":"todo","name":"TODO","text":"records.extend(index_todos(relpath, &lang, text));","source":"extras"}
-{"path":"src/extras.rs","line":23,"col":1,"lang":"rs","kind":"function","name":"index_todos","text":"fn index_todos(relpath: &str, lang: &str, text: &str) -> Vec<IndexRecord> {","source":"ctags"}
-{"path":"src/extras.rs","line":23,"col":1,"lang":"rs","kind":"todo","name":"TODO","text":"fn index_todos(relpath: &str, lang: &str, text: &str) -> Vec<IndexRecord> {","source":"extras"}
-{"path":"src/extras.rs","line":30,"col":28,"lang":"rs","kind":"todo","name":"TODO","text":"if upper.contains(\"TODO\") {","source":"extras"}
-{"path":"src/extras.rs","line":34,"col":34,"lang":"rs","kind":"todo","name":"TODO","text":"first_col(line, \"TODO\"),","source":"extras"}
-{"path":"src/extras.rs","line":36,"col":1,"lang":"rs","kind":"todo","name":"TODO","text":"\"todo\",","source":"extras"}
-{"path":"src/extras.rs","line":37,"col":18,"lang":"rs","kind":"todo","name":"TODO","text":"\"TODO\",","source":"extras"}
-{"path":"src/extras.rs","line":43,"col":28,"lang":"rs","kind":"fixme","name":"FIXME","text":"if upper.contains(\"FIXME\") {","source":"extras"}
-{"path":"src/extras.rs","line":47,"col":34,"lang":"rs","kind":"fixme","name":"FIXME","text":"first_col(line, \"FIXME\"),","source":"extras"}
-{"path":"src/extras.rs","line":49,"col":1,"lang":"rs","kind":"fixme","name":"FIXME","text":"\"fixme\",","source":"extras"}
-{"path":"src/extras.rs","line":50,"col":18,"lang":"rs","kind":"fixme","name":"FIXME","text":"\"FIXME\",","source":"extras"}
-{"path":"src/extras.rs","line":60,"col":1,"lang":"rs","kind":"function","name":"index_css","text":"fn index_css(relpath: &str, text: &str) -> Vec<IndexRecord> {","source":"ctags"}
-{"path":"src/extras.rs","line":131,"col":1,"lang":"rs","kind":"function","name":"index_html","text":"fn index_html(relpath: &str, text: &str) -> Vec<IndexRecord> {","source":"ctags"}
-{"path":"src/extras.rs","line":212,"col":1,"lang":"rs","kind":"function","name":"index_markdown","text":"fn index_markdown(relpath: &str, text: &str) -> Vec<IndexRecord> {","source":"ctags"}
-{"path":"src/extras.rs","line":293,"col":1,"lang":"rs","kind":"function","name":"index_jsx_usage","text":"fn index_jsx_usage(relpath: &str, lang: &str, text: &str) -> Vec<IndexRecord> {","source":"ctags"}
-{"path":"src/extras.rs","line":354,"col":1,"lang":"rs","kind":"function","name":"first_col","text":"fn first_col(line: &str, needle: &str) -> usize {","source":"ctags"}
-{"path":"src/extras.rs","line":358,"col":1,"lang":"rs","kind":"function","name":"language_from_path","text":"fn language_from_path(path: &str) -> String {","source":"ctags"}
-{"path":"src/extras.rs","line":380,"col":1,"lang":"rs","kind":"function","name":"is_landmark_tag","text":"fn is_landmark_tag(name: &str) -> bool {","source":"ctags"}
+{"path":"src/extras.rs","line":3,"col":1,"lang":"rs","kind":"constant","name":"EXTRA_SOURCE","text":"const EXTRA_SOURCE: &str = \"extras\";","source":"ctags"}
+{"path":"src/extras.rs","line":6,"col":1,"lang":"rs","kind":"struct","name":"LineContext","text":"struct LineContext<'a> {","source":"ctags"}
+{"path":"src/extras.rs","line":7,"col":1,"lang":"rs","kind":"field","name":"path","text":"path: &'a str,","source":"ctags"}
+{"path":"src/extras.rs","line":8,"col":1,"lang":"rs","kind":"field","name":"lang","text":"lang: &'a str,","source":"ctags"}
+{"path":"src/extras.rs","line":9,"col":1,"lang":"rs","kind":"field","name":"line_no","text":"line_no: usize,","source":"ctags"}
+{"path":"src/extras.rs","line":10,"col":1,"lang":"rs","kind":"field","name":"text","text":"text: &'a str,","source":"ctags"}
+{"path":"src/extras.rs","line":13,"col":1,"lang":"rs","kind":"function","name":"index_extras","text":"pub fn index_extras(path: &str, text: &str) -> Vec<IndexRecord> {","source":"ctags"}
+{"path":"src/extras.rs","line":42,"col":1,"lang":"rs","kind":"function","name":"lang_from_path","text":"fn lang_from_path(path: &str) -> &str {","source":"ctags"}
+{"path":"src/extras.rs","line":48,"col":1,"lang":"rs","kind":"function","name":"push_record","text":"fn push_record(","source":"ctags"}
+{"path":"src/extras.rs","line":67,"col":1,"lang":"rs","kind":"function","name":"index_todos","text":"fn index_todos(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {","source":"ctags"}
+{"path":"src/extras.rs","line":68,"col":21,"lang":"rs","kind":"todo","name":"TODO","text":"for marker in [\"TODO\", \"FIXME\"] {","source":"extras"}
+{"path":"src/extras.rs","line":68,"col":29,"lang":"rs","kind":"fixme","name":"FIXME","text":"for marker in [\"TODO\", \"FIXME\"] {","source":"extras"}
+{"path":"src/extras.rs","line":81,"col":1,"lang":"rs","kind":"function","name":"index_css_line","text":"fn index_css_line(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {","source":"ctags"}
+{"path":"src/extras.rs","line":111,"col":1,"lang":"rs","kind":"function","name":"css_tokens","text":"fn css_tokens(line: &str) -> Vec<(usize, String)> {","source":"ctags"}
+{"path":"src/extras.rs","line":145,"col":1,"lang":"rs","kind":"function","name":"index_html_line","text":"fn index_html_line(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {","source":"ctags"}
+{"path":"src/extras.rs","line":177,"col":1,"lang":"rs","kind":"function","name":"index_html_attributes","text":"fn index_html_attributes(","source":"ctags"}
+{"path":"src/extras.rs","line":228,"col":1,"lang":"rs","kind":"function","name":"index_jsx_line","text":"fn index_jsx_line(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {","source":"ctags"}
+{"path":"src/extras.rs","line":260,"col":1,"lang":"rs","kind":"function","name":"index_markdown_line","text":"fn index_markdown_line(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {","source":"ctags"}
+{"path":"src/extras.rs","line":306,"col":1,"lang":"rs","kind":"function","name":"push_class_records","text":"fn push_class_records(","source":"ctags"}
+{"path":"src/extras.rs","line":336,"col":1,"lang":"rs","kind":"function","name":"attribute_value","text":"fn attribute_value(attrs: &str, after_name: usize) -> Option<(usize, &str)> {","source":"ctags"}
+{"path":"src/extras.rs","line":359,"col":1,"lang":"rs","kind":"function","name":"is_attribute_boundary","text":"fn is_attribute_boundary(attrs: &str, start: usize, len: usize) -> bool {","source":"ctags"}
+{"path":"src/extras.rs","line":371,"col":1,"lang":"rs","kind":"function","name":"take_identifier","text":"fn take_identifier(value: &str) -> String {","source":"ctags"}
+{"path":"src/extras.rs","line":375,"col":1,"lang":"rs","kind":"function","name":"scan_identifier","text":"fn scan_identifier(line: &str, start: usize) -> usize {","source":"ctags"}
+{"path":"src/extras.rs","line":389,"col":1,"lang":"rs","kind":"function","name":"is_ident_start","text":"fn is_ident_start(ch: char) -> bool {","source":"ctags"}
+{"path":"src/extras.rs","line":393,"col":1,"lang":"rs","kind":"function","name":"is_ident_char","text":"fn is_ident_char(ch: char) -> bool {","source":"ctags"}
+{"path":"src/extras.rs","line":397,"col":1,"lang":"rs","kind":"function","name":"is_html_tag_name","text":"fn is_html_tag_name(name: &str) -> bool {","source":"ctags"}
 {"path":"src/indexer.rs","line":21,"col":1,"lang":"rs","kind":"constant","name":"IGNORE_DIRS","text":"const IGNORE_DIRS: &[&str] = &[\".git\", \".dev_index\"];","source":"ctags"}
 {"path":"src/indexer.rs","line":24,"col":1,"lang":"rs","kind":"struct","name":"BuildStats","text":"pub struct BuildStats {","source":"ctags"}
 {"path":"src/indexer.rs","line":25,"col":1,"lang":"rs","kind":"field","name":"root","text":"pub root: PathBuf,","source":"ctags"}
@@ -504,11 +244,15 @@
 {"path":"src/indexer.rs","line":30,"col":1,"lang":"rs","kind":"field","name":"ctags_universal","text":"pub ctags_universal: bool,","source":"ctags"}
 {"path":"src/indexer.rs","line":33,"col":1,"lang":"rs","kind":"function","name":"find_repo_root","text":"pub fn find_repo_root(start: &Path) -> Result<PathBuf> {","source":"ctags"}
 {"path":"src/indexer.rs","line":47,"col":1,"lang":"rs","kind":"function","name":"build_index","text":"pub fn build_index(start: &Path) -> Result<BuildStats> {","source":"ctags"}
-{"path":"src/indexer.rs","line":131,"col":1,"lang":"rs","kind":"function","name":"reset_reason","text":"fn reset_reason(manifest: &Manifest) -> Option<&'static str> {","source":"ctags"}
-{"path":"src/indexer.rs","line":145,"col":1,"lang":"rs","kind":"function","name":"discover_files","text":"fn discover_files(root: &Path) -> Result<Vec<PathBuf>> {","source":"ctags"}
-{"path":"src/indexer.rs","line":188,"col":1,"lang":"rs","kind":"function","name":"should_always_ignore_path","text":"fn should_always_ignore_path(rel: &Path) -> bool {","source":"ctags"}
-{"path":"src/indexer.rs","line":195,"col":1,"lang":"rs","kind":"function","name":"relpath","text":"fn relpath(root: &Path, path: &Path) -> Result<String> {","source":"ctags"}
-{"path":"src/indexer.rs","line":209,"col":1,"lang":"rs","kind":"function","name":"file_meta","text":"fn file_meta(path: &Path) -> Result<FileMeta> {","source":"ctags"}
+{"path":"src/indexer.rs","line":133,"col":1,"lang":"rs","kind":"function","name":"dedupe_records_by_location","text":"fn dedupe_records_by_location(records: &mut Vec<IndexRecord>) {","source":"ctags"}
+{"path":"src/indexer.rs","line":141,"col":1,"lang":"rs","kind":"function","name":"record_location_preference_key","text":"fn record_location_preference_key(record: &IndexRecord) -> (usize, String, usize, usize, String)/","source":"ctags"}
+{"path":"src/indexer.rs","line":151,"col":1,"lang":"rs","kind":"function","name":"record_location_preference_rank","text":"fn record_location_preference_rank(record: &IndexRecord) -> usize {","source":"ctags"}
+{"path":"src/indexer.rs","line":187,"col":1,"lang":"rs","kind":"function","name":"debug_assert_unique_record_locations","text":"fn debug_assert_unique_record_locations(records: &[IndexRecord]) {","source":"ctags"}
+{"path":"src/indexer.rs","line":206,"col":1,"lang":"rs","kind":"function","name":"reset_reason","text":"fn reset_reason(manifest: &Manifest) -> Option<&'static str> {","source":"ctags"}
+{"path":"src/indexer.rs","line":220,"col":1,"lang":"rs","kind":"function","name":"discover_files","text":"fn discover_files(root: &Path) -> Result<Vec<PathBuf>> {","source":"ctags"}
+{"path":"src/indexer.rs","line":263,"col":1,"lang":"rs","kind":"function","name":"should_always_ignore_path","text":"fn should_always_ignore_path(rel: &Path) -> bool {","source":"ctags"}
+{"path":"src/indexer.rs","line":270,"col":1,"lang":"rs","kind":"function","name":"relpath","text":"fn relpath(root: &Path, path: &Path) -> Result<String> {","source":"ctags"}
+{"path":"src/indexer.rs","line":284,"col":1,"lang":"rs","kind":"function","name":"file_meta","text":"fn file_meta(path: &Path) -> Result<FileMeta> {","source":"ctags"}
 {"path":"src/lib.rs","line":1,"col":1,"lang":"rs","kind":"module","name":"ctags","text":"pub mod ctags;","source":"ctags"}
 {"path":"src/lib.rs","line":2,"col":1,"lang":"rs","kind":"module","name":"extras","text":"pub mod extras;","source":"ctags"}
 {"path":"src/lib.rs","line":3,"col":1,"lang":"rs","kind":"module","name":"indexer","text":"pub mod indexer;","source":"ctags"}
@@ -549,30 +293,31 @@
 {"path":"src/search.rs","line":19,"col":1,"lang":"rs","kind":"field","name":"record","text":"pub record: IndexRecord,","source":"ctags"}
 {"path":"src/search.rs","line":20,"col":1,"lang":"rs","kind":"field","name":"score","text":"pub score: usize,","source":"ctags"}
 {"path":"src/search.rs","line":24,"col":1,"lang":"rs","kind":"struct","name":"RankKey","text":"struct RankKey {","source":"ctags"}
-{"path":"src/search.rs","line":25,"col":1,"lang":"rs","kind":"field","name":"match_rank","text":"match_rank: usize,","source":"ctags"}
-{"path":"src/search.rs","line":26,"col":1,"lang":"rs","kind":"field","name":"kind_rank","text":"kind_rank: usize,","source":"ctags"}
-{"path":"src/search.rs","line":27,"col":1,"lang":"rs","kind":"field","name":"path_penalty","text":"path_penalty: usize,","source":"ctags"}
-{"path":"src/search.rs","line":28,"col":1,"lang":"rs","kind":"field","name":"path_depth","text":"path_depth: usize,","source":"ctags"}
-{"path":"src/search.rs","line":29,"col":1,"lang":"rs","kind":"field","name":"text_len","text":"text_len: usize,","source":"ctags"}
-{"path":"src/search.rs","line":30,"col":1,"lang":"rs","kind":"field","name":"path","text":"path: String,","source":"ctags"}
-{"path":"src/search.rs","line":31,"col":1,"lang":"rs","kind":"field","name":"line","text":"line: usize,","source":"ctags"}
-{"path":"src/search.rs","line":32,"col":1,"lang":"rs","kind":"field","name":"col","text":"col: usize,","source":"ctags"}
-{"path":"src/search.rs","line":33,"col":1,"lang":"rs","kind":"field","name":"kind","text":"kind: String,","source":"ctags"}
-{"path":"src/search.rs","line":34,"col":1,"lang":"rs","kind":"field","name":"name","text":"name: String,","source":"ctags"}
-{"path":"src/search.rs","line":35,"col":1,"lang":"rs","kind":"field","name":"source","text":"source: String,","source":"ctags"}
-{"path":"src/search.rs","line":38,"col":1,"lang":"rs","kind":"function","name":"search","text":"pub fn search(root: &Path, query: &str, options: &SearchOptions) -> Result<Vec<SearchResult>> {","source":"ctags"}
-{"path":"src/search.rs","line":64,"col":1,"lang":"rs","kind":"function","name":"matches_filters","text":"fn matches_filters(record: &IndexRecord, options: &SearchOptions) -> bool {","source":"ctags"}
-{"path":"src/search.rs","line":100,"col":1,"lang":"rs","kind":"function","name":"score_record","text":"fn score_record(record: IndexRecord, query: &str) -> Option<SearchResult> {","source":"ctags"}
-{"path":"src/search.rs","line":110,"col":1,"lang":"rs","kind":"function","name":"rank_key","text":"fn rank_key(result: &SearchResult) -> RankKey {","source":"ctags"}
-{"path":"src/search.rs","line":128,"col":1,"lang":"rs","kind":"function","name":"match_rank","text":"fn match_rank(query: &str, record: &IndexRecord) -> usize {","source":"ctags"}
-{"path":"src/search.rs","line":182,"col":1,"lang":"rs","kind":"function","name":"kind_rank","text":"fn kind_rank(kind: &str) -> usize {","source":"ctags"}
-{"path":"src/search.rs","line":190,"col":1,"lang":"rs","kind":"fixme","name":"FIXME","text":"\"todo\" | \"fixme\" | \"checklist\" | \"link\" => 6,","source":"extras"}
-{"path":"src/search.rs","line":190,"col":1,"lang":"rs","kind":"todo","name":"TODO","text":"\"todo\" | \"fixme\" | \"checklist\" | \"link\" => 6,","source":"extras"}
-{"path":"src/search.rs","line":196,"col":1,"lang":"rs","kind":"function","name":"path_penalty","text":"fn path_penalty(path: &str) -> usize {","source":"ctags"}
-{"path":"src/search.rs","line":230,"col":1,"lang":"rs","kind":"function","name":"path_depth","text":"fn path_depth(path: &str) -> usize {","source":"ctags"}
-{"path":"src/search.rs","line":237,"col":1,"lang":"rs","kind":"function","name":"word_boundary_match","text":"fn word_boundary_match(haystack: &str, needle: &str) -> bool {","source":"ctags"}
-{"path":"src/search.rs","line":247,"col":1,"lang":"rs","kind":"function","name":"camel_case_match","text":"fn camel_case_match(value: &str, query: &str) -> bool {","source":"ctags"}
-{"path":"src/search.rs","line":263,"col":1,"lang":"rs","kind":"function","name":"format_result","text":"pub fn format_result(result: &SearchResult, verbose: bool) -> String {","source":"ctags"}
+{"path":"src/search.rs","line":25,"col":1,"lang":"rs","kind":"field","name":"exact_rank","text":"exact_rank: usize,","source":"ctags"}
+{"path":"src/search.rs","line":26,"col":1,"lang":"rs","kind":"field","name":"path_penalty","text":"path_penalty: usize,","source":"ctags"}
+{"path":"src/search.rs","line":27,"col":1,"lang":"rs","kind":"field","name":"match_rank","text":"match_rank: usize,","source":"ctags"}
+{"path":"src/search.rs","line":28,"col":1,"lang":"rs","kind":"field","name":"kind_rank","text":"kind_rank: usize,","source":"ctags"}
+{"path":"src/search.rs","line":29,"col":1,"lang":"rs","kind":"field","name":"path_depth","text":"path_depth: usize,","source":"ctags"}
+{"path":"src/search.rs","line":30,"col":1,"lang":"rs","kind":"field","name":"text_len","text":"text_len: usize,","source":"ctags"}
+{"path":"src/search.rs","line":31,"col":1,"lang":"rs","kind":"field","name":"path","text":"path: String,","source":"ctags"}
+{"path":"src/search.rs","line":32,"col":1,"lang":"rs","kind":"field","name":"line","text":"line: usize,","source":"ctags"}
+{"path":"src/search.rs","line":33,"col":1,"lang":"rs","kind":"field","name":"col","text":"col: usize,","source":"ctags"}
+{"path":"src/search.rs","line":34,"col":1,"lang":"rs","kind":"field","name":"kind","text":"kind: String,","source":"ctags"}
+{"path":"src/search.rs","line":35,"col":1,"lang":"rs","kind":"field","name":"name","text":"name: String,","source":"ctags"}
+{"path":"src/search.rs","line":36,"col":1,"lang":"rs","kind":"field","name":"source","text":"source: String,","source":"ctags"}
+{"path":"src/search.rs","line":39,"col":1,"lang":"rs","kind":"function","name":"search","text":"pub fn search(root: &Path, query: &str, options: &SearchOptions) -> Result<Vec<SearchResult>> {","source":"ctags"}
+{"path":"src/search.rs","line":66,"col":1,"lang":"rs","kind":"function","name":"matches_filters","text":"fn matches_filters(record: &IndexRecord, options: &SearchOptions) -> bool {","source":"ctags"}
+{"path":"src/search.rs","line":102,"col":1,"lang":"rs","kind":"function","name":"score_record","text":"fn score_record(record: IndexRecord, query: &str) -> Option<SearchResult> {","source":"ctags"}
+{"path":"src/search.rs","line":112,"col":1,"lang":"rs","kind":"function","name":"rank_key","text":"fn rank_key(result: &SearchResult) -> RankKey {","source":"ctags"}
+{"path":"src/search.rs","line":131,"col":1,"lang":"rs","kind":"function","name":"exact_rank","text":"fn exact_rank(match_rank: usize) -> usize {","source":"ctags"}
+{"path":"src/search.rs","line":138,"col":1,"lang":"rs","kind":"function","name":"match_rank","text":"fn match_rank(query: &str, record: &IndexRecord) -> usize {","source":"ctags"}
+{"path":"src/search.rs","line":181,"col":1,"lang":"rs","kind":"function","name":"text_is_searchable","text":"fn text_is_searchable(record: &IndexRecord) -> bool {","source":"ctags"}
+{"path":"src/search.rs","line":188,"col":1,"lang":"rs","kind":"function","name":"kind_rank","text":"fn kind_rank(kind: &str) -> usize {","source":"ctags"}
+{"path":"src/search.rs","line":204,"col":1,"lang":"rs","kind":"function","name":"path_penalty","text":"fn path_penalty(path: &str) -> usize {","source":"ctags"}
+{"path":"src/search.rs","line":238,"col":1,"lang":"rs","kind":"function","name":"path_depth","text":"fn path_depth(path: &str) -> usize {","source":"ctags"}
+{"path":"src/search.rs","line":245,"col":1,"lang":"rs","kind":"function","name":"word_boundary_match","text":"fn word_boundary_match(haystack: &str, needle: &str) -> bool {","source":"ctags"}
+{"path":"src/search.rs","line":255,"col":1,"lang":"rs","kind":"function","name":"camel_case_match","text":"fn camel_case_match(value: &str, query: &str) -> bool {","source":"ctags"}
+{"path":"src/search.rs","line":271,"col":1,"lang":"rs","kind":"function","name":"format_result","text":"pub fn format_result(result: &SearchResult, verbose: bool) -> String {","source":"ctags"}
 {"path":"src/stats.rs","line":13,"col":1,"lang":"rs","kind":"constant","name":"USAGE_FILE","text":"pub const USAGE_FILE: &str = \"wi_usage.jsonl\";","source":"ctags"}
 {"path":"src/stats.rs","line":16,"col":1,"lang":"rs","kind":"struct","name":"UsageEvent","text":"pub struct UsageEvent {","source":"ctags"}
 {"path":"src/stats.rs","line":17,"col":1,"lang":"rs","kind":"field","name":"ts","text":"pub ts: u64,","source":"ctags"}
@@ -631,23 +376,22 @@
 {"path":"src/store.rs","line":132,"col":1,"lang":"rs","kind":"function","name":"save_records","text":"pub fn save_records(root: &Path, records: &[IndexRecord]) -> Result<()> {","source":"ctags"}
 {"path":"src/store.rs","line":164,"col":1,"lang":"rs","kind":"function","name":"remove_records_for_paths","text":"pub fn remove_records_for_paths(records: Vec<IndexRecord>, paths: &[String]) -> Vec<IndexRecord>/","source":"ctags"}
 {"path":"src/store.rs","line":171,"col":1,"lang":"rs","kind":"function","name":"sort_records","text":"pub fn sort_records(records: &mut [IndexRecord]) {","source":"ctags"}
-{"path":"src/wi_cli.rs","line":27,"col":1,"lang":"rs","kind":"struct","name":"WiArgs","text":"pub struct WiArgs {","source":"ctags"}
-{"path":"src/wi_cli.rs","line":29,"col":1,"lang":"rs","kind":"field","name":"query","text":"pub query: String,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":34,"col":1,"lang":"rs","kind":"fixme","name":"FIXME","text":"help = \"Filter by indexed record kind. Common kinds: class, function, method, css_class, css_variable, html_id, html_cl…","source":"extras"}
-{"path":"src/wi_cli.rs","line":34,"col":1,"lang":"rs","kind":"todo","name":"TODO","text":"help = \"Filter by indexed record kind. Common kinds: class, function, method, css_class, css_variable, html_id, html_cl…","source":"extras"}
-{"path":"src/wi_cli.rs","line":36,"col":1,"lang":"rs","kind":"field","name":"kind","text":"pub kind: Option<String>,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":43,"col":1,"lang":"rs","kind":"field","name":"lang","text":"pub lang: Option<String>,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":50,"col":1,"lang":"rs","kind":"field","name":"path","text":"pub path: Option<String>,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":57,"col":1,"lang":"rs","kind":"field","name":"source","text":"pub source: Option<String>,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":60,"col":1,"lang":"rs","kind":"field","name":"limit","text":"pub limit: Option<usize>,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":66,"col":1,"lang":"rs","kind":"field","name":"verbose","text":"pub verbose: bool,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":74,"col":1,"lang":"rs","kind":"field","name":"repo","text":"pub repo: PathBuf,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":77,"col":1,"lang":"rs","kind":"function","name":"wi_help_text","text":"pub fn wi_help_text() -> String {","source":"ctags"}
+{"path":"src/wi_cli.rs","line":26,"col":1,"lang":"rs","kind":"struct","name":"WiArgs","text":"pub struct WiArgs {","source":"ctags"}
+{"path":"src/wi_cli.rs","line":28,"col":1,"lang":"rs","kind":"field","name":"query","text":"pub query: String,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":35,"col":1,"lang":"rs","kind":"field","name":"kind","text":"pub kind: Option<String>,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":42,"col":1,"lang":"rs","kind":"field","name":"lang","text":"pub lang: Option<String>,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":49,"col":1,"lang":"rs","kind":"field","name":"path","text":"pub path: Option<String>,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":56,"col":1,"lang":"rs","kind":"field","name":"source","text":"pub source: Option<String>,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":59,"col":1,"lang":"rs","kind":"field","name":"limit","text":"pub limit: Option<usize>,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":65,"col":1,"lang":"rs","kind":"field","name":"verbose","text":"pub verbose: bool,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":73,"col":1,"lang":"rs","kind":"field","name":"repo","text":"pub repo: PathBuf,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":76,"col":1,"lang":"rs","kind":"function","name":"wi_help_text","text":"pub fn wi_help_text() -> String {","source":"ctags"}
 {"path":"tests/build_index.rs","line":1,"col":1,"lang":"rs","kind":"module","name":"common","text":"mod common;","source":"ctags"}
 {"path":"tests/build_index.rs","line":8,"col":1,"lang":"rs","kind":"function","name":"build_creates_index_files","text":"fn build_creates_index_files() {","source":"ctags"}
 {"path":"tests/build_index.rs","line":41,"col":1,"lang":"rs","kind":"function","name":"unchanged_files_are_skipped_on_second_build","text":"fn unchanged_files_are_skipped_on_second_build() {","source":"ctags"}
 {"path":"tests/build_index.rs","line":69,"col":1,"lang":"rs","kind":"function","name":"changed_files_are_reindexed","text":"fn changed_files_are_reindexed() {","source":"ctags"}
 {"path":"tests/build_index.rs","line":112,"col":1,"lang":"rs","kind":"function","name":"deleted_files_are_removed_from_index","text":"fn deleted_files_are_removed_from_index() {","source":"ctags"}
+{"path":"tests/build_index.rs","line":152,"col":1,"lang":"rs","kind":"function","name":"build_index_does_not_emit_duplicate_records_at_same_location","text":"fn build_index_does_not_emit_duplicate_records_at_same_location() {","source":"ctags"}
 {"path":"tests/common/mod.rs","line":8,"col":1,"lang":"rs","kind":"function","name":"has_ctags","text":"pub fn has_ctags() -> bool {","source":"ctags"}
 {"path":"tests/common/mod.rs","line":16,"col":1,"lang":"rs","kind":"function","name":"temp_repo","text":"pub fn temp_repo() -> TempDir {","source":"ctags"}
 {"path":"tests/common/mod.rs","line":22,"col":1,"lang":"rs","kind":"function","name":"write_file","text":"pub fn write_file(root: &Path, relpath: &str, text: &str) {","source":"ctags"}
@@ -663,13 +407,10 @@
 {"path":"tests/fixtures/gitignore_repo/src/visible.py","line":1,"col":1,"lang":"py","kind":"class","name":"VisibleGitignoreService","text":"class VisibleGitignoreService:","source":"ctags"}
 {"path":"tests/fixtures/html_repo/frontend/pages/index.html","line":1,"col":2,"lang":"html","kind":"html_tag","name":"section","text":"<section class=\"heroPanel\" data-page=\"home\">","source":"extras"}
 {"path":"tests/fixtures/html_repo/frontend/pages/index.html","line":1,"col":17,"lang":"html","kind":"html_class","name":".heroPanel","text":"<section class=\"heroPanel\" data-page=\"home\">","source":"extras"}
-{"path":"tests/fixtures/html_repo/frontend/pages/index.html","line":1,"col":28,"lang":"html","kind":"data_attribute","name":"data-page","text":"<section class=\"heroPanel\" data-page=\"home\">","source":"extras"}
 {"path":"tests/fixtures/html_repo/frontend/pages/index.html","line":2,"col":1,"lang":"html","kind":"id","name":"startButton","text":"<button id=\"startButton\" class=\"pixelButton\">Start<\\/button>","source":"ctags"}
-{"path":"tests/fixtures/html_repo/frontend/pages/index.html","line":2,"col":4,"lang":"html","kind":"html_tag","name":"button","text":"<button id=\"startButton\" class=\"pixelButton\">Start</button>","source":"extras"}
 {"path":"tests/fixtures/html_repo/frontend/pages/index.html","line":2,"col":4,"lang":"html","kind":"html_tag","name":"button","text":"<button id=\"startButton\" class=\"pixelButton\">Start</button>","source":"extras"}
 {"path":"tests/fixtures/html_repo/frontend/pages/index.html","line":2,"col":15,"lang":"html","kind":"html_id","name":"#startButton","text":"<button id=\"startButton\" class=\"pixelButton\">Start</button>","source":"extras"}
 {"path":"tests/fixtures/html_repo/frontend/pages/index.html","line":2,"col":35,"lang":"html","kind":"html_class","name":".pixelButton","text":"<button id=\"startButton\" class=\"pixelButton\">Start</button>","source":"extras"}
-{"path":"tests/fixtures/html_repo/frontend/pages/index.html","line":3,"col":3,"lang":"html","kind":"html_tag","name":"section","text":"</section>","source":"extras"}
 {"path":"tests/fixtures/html_repo/templates/base.html","line":2,"col":2,"lang":"html","kind":"html_tag","name":"html","text":"<html>","source":"extras"}
 {"path":"tests/fixtures/html_repo/templates/base.html","line":3,"col":4,"lang":"html","kind":"html_tag","name":"body","text":"<body>","source":"extras"}
 {"path":"tests/fixtures/html_repo/templates/base.html","line":4,"col":1,"lang":"html","kind":"id","name":"mainHeader","text":"<header id=\"mainHeader\" class=\"siteHeader sticky\" data-testid=\"main-header\">","source":"ctags"}
@@ -678,41 +419,31 @@
 {"path":"tests/fixtures/html_repo/templates/base.html","line":4,"col":36,"lang":"html","kind":"html_class","name":".siteHeader","text":"<header id=\"mainHeader\" class=\"siteHeader sticky\" data-testid=\"main-header\">","source":"extras"}
 {"path":"tests/fixtures/html_repo/templates/base.html","line":4,"col":47,"lang":"html","kind":"html_class","name":".sticky","text":"<header id=\"mainHeader\" class=\"siteHeader sticky\" data-testid=\"main-header\">","source":"extras"}
 {"path":"tests/fixtures/html_repo/templates/base.html","line":4,"col":55,"lang":"html","kind":"data_attribute","name":"data-testid","text":"<header id=\"mainHeader\" class=\"siteHeader sticky\" data-testid=\"main-header\">","source":"extras"}
-{"path":"tests/fixtures/html_repo/templates/base.html","line":4,"col":68,"lang":"html","kind":"html_id","name":"#main-header","text":"<header id=\"mainHeader\" class=\"siteHeader sticky\" data-testid=\"main-header\">","source":"extras"}
-{"path":"tests/fixtures/html_repo/templates/base.html","line":5,"col":8,"lang":"html","kind":"html_tag","name":"nav","text":"<nav class=\"primaryNav\" data-role=\"navigation\"></nav>","source":"extras"}
 {"path":"tests/fixtures/html_repo/templates/base.html","line":5,"col":8,"lang":"html","kind":"html_tag","name":"nav","text":"<nav class=\"primaryNav\" data-role=\"navigation\"></nav>","source":"extras"}
 {"path":"tests/fixtures/html_repo/templates/base.html","line":5,"col":19,"lang":"html","kind":"html_class","name":".primaryNav","text":"<nav class=\"primaryNav\" data-role=\"navigation\"></nav>","source":"extras"}
-{"path":"tests/fixtures/html_repo/templates/base.html","line":5,"col":31,"lang":"html","kind":"data_attribute","name":"data-role","text":"<nav class=\"primaryNav\" data-role=\"navigation\"></nav>","source":"extras"}
-{"path":"tests/fixtures/html_repo/templates/base.html","line":6,"col":7,"lang":"html","kind":"html_tag","name":"header","text":"</header>","source":"extras"}
 {"path":"tests/fixtures/html_repo/templates/base.html","line":7,"col":1,"lang":"html","kind":"id","name":"content","text":"<main id=\"content\" class=\"pageShell\"><\\/main>","source":"ctags"}
-{"path":"tests/fixtures/html_repo/templates/base.html","line":7,"col":6,"lang":"html","kind":"html_tag","name":"main","text":"<main id=\"content\" class=\"pageShell\"></main>","source":"extras"}
 {"path":"tests/fixtures/html_repo/templates/base.html","line":7,"col":6,"lang":"html","kind":"html_tag","name":"main","text":"<main id=\"content\" class=\"pageShell\"></main>","source":"extras"}
 {"path":"tests/fixtures/html_repo/templates/base.html","line":7,"col":15,"lang":"html","kind":"html_id","name":"#content","text":"<main id=\"content\" class=\"pageShell\"></main>","source":"extras"}
 {"path":"tests/fixtures/html_repo/templates/base.html","line":7,"col":31,"lang":"html","kind":"html_class","name":".pageShell","text":"<main id=\"content\" class=\"pageShell\"></main>","source":"extras"}
-{"path":"tests/fixtures/html_repo/templates/base.html","line":8,"col":5,"lang":"html","kind":"html_tag","name":"body","text":"</body>","source":"extras"}
-{"path":"tests/fixtures/html_repo/templates/base.html","line":9,"col":3,"lang":"html","kind":"html_tag","name":"html","text":"</html>","source":"extras"}
 {"path":"tests/fixtures/ignored_repo/src/real.py","line":1,"col":1,"lang":"py","kind":"class","name":"RealService","text":"class RealService:","source":"ctags"}
 {"path":"tests/fixtures/sample_repo/app/services/prompt_service.py","line":1,"col":1,"lang":"py","kind":"class","name":"PromptService","text":"class PromptService:","source":"ctags"}
 {"path":"tests/fixtures/sample_repo/app/services/prompt_service.py","line":2,"col":1,"lang":"py","kind":"member","name":"build_prompt","text":"def build_prompt(self):","source":"ctags"}
 {"path":"tests/fixtures/sample_repo/app/services/prompt_service.py","line":5,"col":1,"lang":"py","kind":"function","name":"create_prompt_service","text":"def create_prompt_service():","source":"ctags"}
 {"path":"tests/fixtures/sample_repo/docs/guide.md","line":1,"col":1,"lang":"md","kind":"chapter","name":"Guide","text":"# Guide","source":"ctags"}
-{"path":"tests/fixtures/sample_repo/docs/guide.md","line":1,"col":1,"lang":"md","kind":"heading_1","name":"Guide","text":"# Guide","source":"extras"}
 {"path":"tests/fixtures/sample_repo/docs/guide.md","line":3,"col":7,"lang":"md","kind":"checklist","name":"Add ctags integration","text":"- [ ] Add ctags integration","source":"extras"}
 {"path":"tests/fixtures/sample_repo/docs/guide.md","line":4,"col":7,"lang":"md","kind":"checklist","name":"Add search","text":"- [x] Add search","source":"extras"}
-{"path":"tests/fixtures/sample_repo/docs/guide.md","line":6,"col":6,"lang":"md","kind":"link","name":"README","text":"../README.md","source":"extras"}
+{"path":"tests/fixtures/sample_repo/docs/guide.md","line":6,"col":14,"lang":"md","kind":"link","name":"../README.md","text":"See [README](../README.md).","source":"extras"}
+{"path":"tests/fixtures/sample_repo/frontend/components/HeaderNavigation.tsx","line":2,"col":11,"lang":"tsx","kind":"html_tag","name":"header","text":"return <header className=\"headerNavigation\" data-testid=\"header-nav\">Header</header>;","source":"extras"}
 {"path":"tests/fixtures/sample_repo/frontend/components/HeaderNavigation.tsx","line":2,"col":29,"lang":"tsx","kind":"jsx_class","name":".headerNavigation","text":"return <header className=\"headerNavigation\" data-testid=\"header-nav\">Header</header>;","source":"extras"}
 {"path":"tests/fixtures/sample_repo/frontend/components/HeaderNavigation.tsx","line":2,"col":47,"lang":"tsx","kind":"data_attribute","name":"data-testid","text":"return <header className=\"headerNavigation\" data-testid=\"header-nav\">Header</header>;","source":"extras"}
 {"path":"tests/fixtures/sample_repo/frontend/styles/header.css","line":1,"col":1,"lang":"css","kind":"selector","name":":root","text":":root {","source":"ctags"}
 {"path":"tests/fixtures/sample_repo/frontend/styles/header.css","line":2,"col":3,"lang":"css","kind":"css_variable","name":"--paper-bg","text":"--paper-bg: white;","source":"extras"}
-{"path":"tests/fixtures/sample_repo/frontend/styles/header.css","line":5,"col":1,"lang":"css","kind":"class","name":".headerNavigation","text":".headerNavigation {","source":"ctags"}
 {"path":"tests/fixtures/sample_repo/frontend/styles/header.css","line":5,"col":1,"lang":"css","kind":"css_class","name":".headerNavigation","text":".headerNavigation {","source":"extras"}
 {"path":"tests/fixtures/sample_repo/frontend/styles/header.css","line":9,"col":1,"lang":"css","kind":"css_id","name":"#mainHeader","text":"#mainHeader {","source":"extras"}
-{"path":"tests/fixtures/sample_repo/frontend/styles/header.css","line":9,"col":1,"lang":"css","kind":"id","name":"#mainHeader","text":"#mainHeader {","source":"ctags"}
 {"path":"tests/fixtures/sample_repo/frontend/styles/header.css","line":13,"col":12,"lang":"css","kind":"keyframes","name":"fadeIn","text":"@keyframes fadeIn {","source":"extras"}
 {"path":"tests/fixtures/thinindexignore_repo/generated/keep.py","line":1,"col":1,"lang":"py","kind":"class","name":"KeptGeneratedService","text":"class KeptGeneratedService:","source":"ctags"}
 {"path":"tests/fixtures/thinindexignore_repo/src/visible.py","line":1,"col":1,"lang":"py","kind":"class","name":"VisibleService","text":"class VisibleService:","source":"ctags"}
 {"path":"tests/fixtures/todo_repo/docs/notes.md","line":1,"col":1,"lang":"md","kind":"chapter","name":"Notes","text":"# Notes","source":"ctags"}
-{"path":"tests/fixtures/todo_repo/docs/notes.md","line":1,"col":1,"lang":"md","kind":"heading_1","name":"Notes","text":"# Notes","source":"extras"}
 {"path":"tests/fixtures/todo_repo/docs/notes.md","line":3,"col":1,"lang":"md","kind":"todo","name":"TODO","text":"TODO: document WI setup","source":"extras"}
 {"path":"tests/fixtures/todo_repo/docs/notes.md","line":4,"col":1,"lang":"md","kind":"fixme","name":"FIXME","text":"FIXME: remove stale agent instruction","source":"extras"}
 {"path":"tests/fixtures/todo_repo/src/work.py","line":1,"col":3,"lang":"py","kind":"todo","name":"TODO","text":"# TODO: replace temporary prompt implementation","source":"extras"}
@@ -726,6 +457,14 @@
 {"path":"tests/ignore_rules.rs","line":111,"col":1,"lang":"rs","kind":"function","name":"build_index_respects_thinindexignore","text":"fn build_index_respects_thinindexignore() {","source":"ctags"}
 {"path":"tests/install_scripts.rs","line":4,"col":1,"lang":"rs","kind":"function","name":"install_script_includes_wi_stats","text":"fn install_script_includes_wi_stats() {","source":"ctags"}
 {"path":"tests/install_scripts.rs","line":14,"col":1,"lang":"rs","kind":"function","name":"uninstall_script_includes_wi_stats","text":"fn uninstall_script_includes_wi_stats() {","source":"ctags"}
+{"path":"tests/local_index.rs","line":10,"col":1,"lang":"rs","kind":"variable","name":"LOCAL_INDEX","text":"static LOCAL_INDEX: OnceLock<String> = OnceLock::new();","source":"ctags"}
+{"path":"tests/local_index.rs","line":12,"col":1,"lang":"rs","kind":"function","name":"repo_root","text":"fn repo_root() -> &'static Path {","source":"ctags"}
+{"path":"tests/local_index.rs","line":16,"col":1,"lang":"rs","kind":"function","name":"local_index_path","text":"fn local_index_path() -> PathBuf {","source":"ctags"}
+{"path":"tests/local_index.rs","line":20,"col":1,"lang":"rs","kind":"function","name":"rebuilt_local_index","text":"fn rebuilt_local_index() -> &'static str {","source":"ctags"}
+{"path":"tests/local_index.rs","line":53,"col":1,"lang":"rs","kind":"function","name":"local_index_has_no_duplicate_locations","text":"fn local_index_has_no_duplicate_locations() {","source":"ctags"}
+{"path":"tests/local_index.rs","line":95,"col":1,"lang":"rs","kind":"function","name":"local_index_has_required_fields_for_every_record","text":"fn local_index_has_required_fields_for_every_record() {","source":"ctags"}
+{"path":"tests/local_index.rs","line":122,"col":1,"lang":"rs","kind":"function","name":"local_index_does_not_include_dev_index_itself","text":"fn local_index_does_not_include_dev_index_itself() {","source":"ctags"}
+{"path":"tests/local_index.rs","line":139,"col":1,"lang":"rs","kind":"function","name":"local_index_has_expected_thinindex_landmarks","text":"fn local_index_has_expected_thinindex_landmarks() {","source":"ctags"}
 {"path":"tests/schema_version.rs","line":1,"col":1,"lang":"rs","kind":"module","name":"common","text":"mod common;","source":"ctags"}
 {"path":"tests/schema_version.rs","line":8,"col":1,"lang":"rs","kind":"function","name":"index_schema_version_missing_triggers_rebuild","text":"fn index_schema_version_missing_triggers_rebuild() {","source":"ctags"}
 {"path":"tests/schema_version.rs","line":68,"col":1,"lang":"rs","kind":"function","name":"index_schema_version_mismatch_triggers_rebuild","text":"fn index_schema_version_mismatch_triggers_rebuild() {","source":"ctags"}
@@ -746,15 +485,10 @@
 {"path":"tests/wi.rs","line":321,"col":1,"lang":"rs","kind":"function","name":"fixture_repo_indexes_markdown_extras","text":"fn fixture_repo_indexes_markdown_extras() {","source":"ctags"}
 {"path":"tests/wi.rs","line":352,"col":1,"lang":"rs","kind":"function","name":"fixture_repo_indexes_jsx_extras","text":"fn fixture_repo_indexes_jsx_extras() {","source":"ctags"}
 {"path":"tests/wi.rs","line":378,"col":1,"lang":"rs","kind":"function","name":"fixture_html_repo_indexes_html_extras","text":"fn fixture_html_repo_indexes_html_extras() {","source":"ctags"}
-{"path":"tests/wi.rs","line":415,"col":1,"lang":"rs","kind":"fixme","name":"FIXME","text":"fn fixture_todo_repo_indexes_todos_and_fixmes() {","source":"extras"}
 {"path":"tests/wi.rs","line":415,"col":1,"lang":"rs","kind":"function","name":"fixture_todo_repo_indexes_todos_and_fixmes","text":"fn fixture_todo_repo_indexes_todos_and_fixmes() {","source":"ctags"}
-{"path":"tests/wi.rs","line":415,"col":1,"lang":"rs","kind":"todo","name":"TODO","text":"fn fixture_todo_repo_indexes_todos_and_fixmes() {","source":"extras"}
-{"path":"tests/wi.rs","line":421,"col":1,"lang":"rs","kind":"todo","name":"TODO","text":"let repo = fixture_repo(\"todo_repo\");","source":"extras"}
 {"path":"tests/wi.rs","line":426,"col":32,"lang":"rs","kind":"todo","name":"TODO","text":"let todo = run_wi(root, &[\"TODO\", \"-t\", \"todo\"]);","source":"extras"}
-{"path":"tests/wi.rs","line":428,"col":1,"lang":"rs","kind":"todo","name":"TODO","text":"todo.contains(\"src/work.py\") || todo.contains(\"docs/notes.md\"),","source":"extras"}
 {"path":"tests/wi.rs","line":429,"col":19,"lang":"rs","kind":"todo","name":"TODO","text":"\"expected TODO result, got:\\n{todo}\"","source":"extras"}
 {"path":"tests/wi.rs","line":432,"col":33,"lang":"rs","kind":"fixme","name":"FIXME","text":"let fixme = run_wi(root, &[\"FIXME\", \"-t\", \"fixme\"]);","source":"extras"}
-{"path":"tests/wi.rs","line":434,"col":1,"lang":"rs","kind":"fixme","name":"FIXME","text":"fixme.contains(\"src/work.py\") || fixme.contains(\"docs/notes.md\"),","source":"extras"}
 {"path":"tests/wi.rs","line":435,"col":19,"lang":"rs","kind":"fixme","name":"FIXME","text":"\"expected FIXME result, got:\\n{fixme}\"","source":"extras"}
 {"path":"tests/wi.rs","line":441,"col":28,"lang":"rs","kind":"fixme","name":"FIXME","text":"\"expected specific FIXME text result, got:\\n{specific}\"","source":"extras"}
 {"path":"tests/wi.rs","line":446,"col":1,"lang":"rs","kind":"function","name":"fixture_css_double_dash_query_requires_separator","text":"fn fixture_css_double_dash_query_requires_separator() {","source":"ctags"}

@@ -22,9 +22,10 @@ pub struct SearchResult {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct RankKey {
+    exact_rank: usize,
+    path_penalty: usize,
     match_rank: usize,
     kind_rank: usize,
-    path_penalty: usize,
     path_depth: usize,
     text_len: usize,
     path: String,
@@ -56,6 +57,7 @@ pub fn search(root: &Path, query: &str, options: &SearchOptions) -> Result<Vec<S
     } else {
         options.limit
     };
+
     results.truncate(limit);
 
     Ok(results)
@@ -111,9 +113,10 @@ fn rank_key(result: &SearchResult) -> RankKey {
     let record = &result.record;
 
     RankKey {
+        exact_rank: exact_rank(result.score),
+        path_penalty: path_penalty(&record.path),
         match_rank: result.score,
         kind_rank: kind_rank(&record.kind),
-        path_penalty: path_penalty(&record.path),
         path_depth: path_depth(&record.path),
         text_len: record.text.chars().count(),
         path: record.path.clone(),
@@ -125,13 +128,16 @@ fn rank_key(result: &SearchResult) -> RankKey {
     }
 }
 
+fn exact_rank(match_rank: usize) -> usize {
+    match match_rank {
+        0 | 1 => 0,
+        _ => 1,
+    }
+}
+
 fn match_rank(query: &str, record: &IndexRecord) -> usize {
     let query_lower = query.to_ascii_lowercase();
     let name_lower = record.name.to_ascii_lowercase();
-    let text_lower = record.text.to_ascii_lowercase();
-    let path_lower = record.path.to_ascii_lowercase();
-    let kind_lower = record.kind.to_ascii_lowercase();
-    let source_lower = record.source.to_ascii_lowercase();
 
     if record.name == query {
         return 0;
@@ -141,42 +147,42 @@ fn match_rank(query: &str, record: &IndexRecord) -> usize {
         return 1;
     }
 
-    if text_lower == query_lower {
+    if name_lower.starts_with(&query_lower) {
         return 2;
     }
 
-    if name_lower.starts_with(&query_lower) {
+    if word_boundary_match(&name_lower, &query_lower) || camel_case_match(&record.name, query) {
         return 3;
     }
 
-    if word_boundary_match(&name_lower, &query_lower)
-        || camel_case_match(&record.name, query)
-        || word_boundary_match(&text_lower, &query_lower)
-    {
+    if name_lower.contains(&query_lower) {
         return 4;
     }
 
-    if name_lower.contains(&query_lower) {
-        return 5;
-    }
+    if text_is_searchable(record) {
+        let text_lower = record.text.to_ascii_lowercase();
 
-    if text_lower.contains(&query_lower) {
-        return 6;
-    }
+        if text_lower == query_lower {
+            return 20;
+        }
 
-    if path_lower.contains(&query_lower) {
-        return 7;
-    }
+        if word_boundary_match(&text_lower, &query_lower) {
+            return 21;
+        }
 
-    if kind_lower.contains(&query_lower) {
-        return 8;
-    }
-
-    if source_lower.contains(&query_lower) {
-        return 9;
+        if text_lower.contains(&query_lower) {
+            return 30;
+        }
     }
 
     usize::MAX
+}
+
+fn text_is_searchable(record: &IndexRecord) -> bool {
+    matches!(
+        record.kind.as_str(),
+        "todo" | "fixme" | "checklist" | "link" | "section" | "heading" | "markdown_heading"
+    )
 }
 
 fn kind_rank(kind: &str) -> usize {
@@ -184,25 +190,19 @@ fn kind_rank(kind: &str) -> usize {
         "function" | "class" | "method" | "component" | "component_def" => 0,
         "interface" | "type" | "struct" | "enum" | "trait" => 1,
         "const" | "constant" | "variable" | "module" | "import" | "export" => 2,
-        "css_id" | "css_class" | "css_variable" | "keyframes" => 3,
-        "html_id" | "html_class" | "html_tag" | "data_attribute" => 4,
-        "heading" | "markdown_heading" => 5,
-        "todo" | "fixme" | "checklist" | "link" => 6,
-        "component_usage" => 7,
+        "target" | "make_target" => 3,
+        "css_id" | "css_class" | "css_variable" | "keyframes" => 4,
+        "jsx_class" | "component_usage" => 5,
+        "html_id" | "html_class" | "html_tag" | "data_attribute" | "id" => 6,
+        "todo" | "fixme" => 7,
+        "heading" | "markdown_heading" | "section" => 8,
+        "checklist" | "link" => 9,
         _ => 99,
     }
 }
 
 fn path_penalty(path: &str) -> usize {
     let normalized = path.replace('\\', "/").to_ascii_lowercase();
-
-    if normalized.contains("/tests/")
-        || normalized.starts_with("tests/")
-        || normalized.contains("/test/")
-        || normalized.starts_with("test/")
-    {
-        return 10;
-    }
 
     if normalized.contains("/fixtures/")
         || normalized.starts_with("fixtures/")
@@ -213,7 +213,15 @@ fn path_penalty(path: &str) -> usize {
         || normalized.contains("/example/")
         || normalized.starts_with("example/")
     {
-        return 20;
+        return 25;
+    }
+
+    if normalized.contains("/tests/")
+        || normalized.starts_with("tests/")
+        || normalized.contains("/test/")
+        || normalized.starts_with("test/")
+    {
+        return 10;
     }
 
     if normalized.contains("/docs/")
@@ -221,7 +229,7 @@ fn path_penalty(path: &str) -> usize {
         || normalized.ends_with(".md")
         || normalized.ends_with(".mdx")
     {
-        return 30;
+        return 15;
     }
 
     0
@@ -241,7 +249,7 @@ fn word_boundary_match(haystack: &str, needle: &str) -> bool {
 
     haystack
         .split(|ch: char| !(ch.is_ascii_alphanumeric() || ch == '_'))
-        .any(|word| word == needle || word.starts_with(needle))
+        .any(|word| word == needle)
 }
 
 fn camel_case_match(value: &str, query: &str) -> bool {

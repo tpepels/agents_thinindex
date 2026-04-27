@@ -11,7 +11,7 @@ use ignore::WalkBuilder;
 use crate::{
     ctags::{check_ctags, index_with_ctags},
     extras::index_extras,
-    model::{FileMeta, Manifest},
+    model::{FileMeta, IndexRecord, Manifest},
     store::{
         is_manifest_stale, load_manifest, load_records, remove_records_for_paths, save_manifest,
         save_records, sort_records,
@@ -113,6 +113,8 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
         }
     }
 
+    dedupe_records_by_location(&mut records);
+    debug_assert_unique_record_locations(&records);
     sort_records(&mut records);
 
     save_records(&root, &records)?;
@@ -126,6 +128,79 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
         records: records.len(),
         ctags_universal: ctags_status.is_universal,
     })
+}
+
+fn dedupe_records_by_location(records: &mut Vec<IndexRecord>) {
+    records.sort_by_key(record_location_preference_key);
+
+    let mut seen_locations = BTreeSet::new();
+
+    records.retain(|record| seen_locations.insert((record.path.clone(), record.line, record.col)));
+}
+
+fn record_location_preference_key(record: &IndexRecord) -> (usize, String, usize, usize, String) {
+    (
+        record_location_preference_rank(record),
+        record.path.clone(),
+        record.line,
+        record.col,
+        record.name.clone(),
+    )
+}
+
+fn record_location_preference_rank(record: &IndexRecord) -> usize {
+    match (record.source.as_str(), record.kind.as_str()) {
+        ("ctags", "section") => 0,
+
+        ("extras", "css_id")
+        | ("extras", "css_class")
+        | ("extras", "css_variable")
+        | ("extras", "keyframes")
+        | ("extras", "html_id")
+        | ("extras", "html_class")
+        | ("extras", "html_tag")
+        | ("extras", "data_attribute")
+        | ("extras", "jsx_class")
+        | ("extras", "component_usage")
+        | ("extras", "todo")
+        | ("extras", "fixme")
+        | ("extras", "checklist")
+        | ("extras", "link") => 0,
+
+        ("ctags", _) => 1,
+
+        ("extras", "section") => 2,
+
+        ("extras", "heading")
+        | ("extras", "markdown_heading")
+        | ("extras", "heading_1")
+        | ("extras", "heading_2")
+        | ("extras", "heading_3")
+        | ("extras", "heading_4")
+        | ("extras", "heading_5")
+        | ("extras", "heading_6") => 3,
+
+        _ => 9,
+    }
+}
+
+fn debug_assert_unique_record_locations(records: &[IndexRecord]) {
+    let mut seen = BTreeSet::new();
+
+    for record in records {
+        let key = (record.path.clone(), record.line, record.col);
+
+        debug_assert!(
+            seen.insert(key),
+            "duplicate index location: path={} line={} col={} kind={} name={} source={}",
+            record.path,
+            record.line,
+            record.col,
+            record.kind,
+            record.name,
+            record.source
+        );
+    }
 }
 
 fn reset_reason(manifest: &Manifest) -> Option<&'static str> {

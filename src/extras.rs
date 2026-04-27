@@ -1,401 +1,401 @@
-use regex::Regex;
-
 use crate::model::IndexRecord;
 
-pub fn index_extras(relpath: &str, text: &str) -> Vec<IndexRecord> {
-    let lang = language_from_path(relpath);
+const EXTRA_SOURCE: &str = "extras";
 
-    let mut records = Vec::new();
-
-    records.extend(index_todos(relpath, &lang, text));
-
-    match lang.as_str() {
-        "css" => records.extend(index_css(relpath, text)),
-        "html" => records.extend(index_html(relpath, text)),
-        "md" | "mdx" => records.extend(index_markdown(relpath, text)),
-        "tsx" | "jsx" => records.extend(index_jsx_usage(relpath, &lang, text)),
-        _ => {}
-    }
-
-    records
+#[derive(Debug, Clone, Copy)]
+struct LineContext<'a> {
+    path: &'a str,
+    lang: &'a str,
+    line_no: usize,
+    text: &'a str,
 }
 
-fn index_todos(relpath: &str, lang: &str, text: &str) -> Vec<IndexRecord> {
+pub fn index_extras(path: &str, text: &str) -> Vec<IndexRecord> {
+    let lang = lang_from_path(path);
     let mut records = Vec::new();
 
-    for (idx, line) in text.lines().enumerate() {
-        let line_no = idx + 1;
-        let upper = line.to_ascii_uppercase();
+    for (line_index, line) in text.lines().enumerate() {
+        let ctx = LineContext {
+            path,
+            lang,
+            line_no: line_index + 1,
+            text: line,
+        };
 
-        if upper.contains("TODO") {
-            records.push(IndexRecord::new(
-                relpath,
-                line_no,
-                first_col(line, "TODO"),
-                lang,
-                "todo",
-                "TODO",
-                line.trim(),
-                "extras",
-            ));
-        }
+        index_todos(&ctx, &mut records);
 
-        if upper.contains("FIXME") {
-            records.push(IndexRecord::new(
-                relpath,
-                line_no,
-                first_col(line, "FIXME"),
-                lang,
-                "fixme",
-                "FIXME",
-                line.trim(),
-                "extras",
-            ));
-        }
-    }
-
-    records
-}
-
-fn index_css(relpath: &str, text: &str) -> Vec<IndexRecord> {
-    let class_re = Regex::new(r"\.(-?[_a-zA-Z]+[_a-zA-Z0-9-]*)").unwrap();
-    let id_re = Regex::new(r"#(-?[_a-zA-Z]+[_a-zA-Z0-9-]*)").unwrap();
-    let var_re = Regex::new(r"(--[_a-zA-Z]+[_a-zA-Z0-9-]*)\s*:").unwrap();
-    let keyframes_re = Regex::new(r"@keyframes\s+([_a-zA-Z][_a-zA-Z0-9-]*)").unwrap();
-
-    let mut records = Vec::new();
-
-    for (idx, line) in text.lines().enumerate() {
-        let line_no = idx + 1;
-
-        for caps in class_re.captures_iter(line) {
-            let full = caps.get(0).unwrap().as_str();
-            records.push(IndexRecord::new(
-                relpath,
-                line_no,
-                first_col(line, full),
-                "css",
-                "css_class",
-                full,
-                line.trim(),
-                "extras",
-            ));
-        }
-
-        for caps in id_re.captures_iter(line) {
-            let full = caps.get(0).unwrap().as_str();
-            records.push(IndexRecord::new(
-                relpath,
-                line_no,
-                first_col(line, full),
-                "css",
-                "css_id",
-                full,
-                line.trim(),
-                "extras",
-            ));
-        }
-
-        for caps in var_re.captures_iter(line) {
-            let name = caps.get(1).unwrap().as_str();
-            records.push(IndexRecord::new(
-                relpath,
-                line_no,
-                first_col(line, name),
-                "css",
-                "css_variable",
-                name,
-                line.trim(),
-                "extras",
-            ));
-        }
-
-        for caps in keyframes_re.captures_iter(line) {
-            let name = caps.get(1).unwrap().as_str();
-            records.push(IndexRecord::new(
-                relpath,
-                line_no,
-                first_col(line, name),
-                "css",
-                "keyframes",
-                name,
-                line.trim(),
-                "extras",
-            ));
-        }
-    }
-
-    records
-}
-
-fn index_html(relpath: &str, text: &str) -> Vec<IndexRecord> {
-    let id_re = Regex::new(r#"id=["']([^"']+)["']"#).unwrap();
-    let class_re = Regex::new(r#"class=["']([^"']+)["']"#).unwrap();
-    let data_re = Regex::new(r#"\b(data-[a-zA-Z0-9_-]+)(?:=["'][^"']*["'])?"#).unwrap();
-    let tag_re = Regex::new(r"</?\s*([a-zA-Z][a-zA-Z0-9-]*)").unwrap();
-
-    let mut records = Vec::new();
-
-    for (idx, line) in text.lines().enumerate() {
-        let line_no = idx + 1;
-
-        for caps in id_re.captures_iter(line) {
-            let raw = caps.get(1).unwrap().as_str();
-
-            for id in raw.split_whitespace() {
-                records.push(IndexRecord::new(
-                    relpath,
-                    line_no,
-                    first_col(line, id),
-                    "html",
-                    "html_id",
-                    format!("#{id}"),
-                    line.trim(),
-                    "extras",
-                ));
+        match lang {
+            "css" => index_css_line(&ctx, &mut records),
+            "html" => index_html_line(&ctx, &mut records),
+            "tsx" | "jsx" => {
+                index_html_line(&ctx, &mut records);
+                index_jsx_line(&ctx, &mut records);
             }
-        }
-
-        for caps in class_re.captures_iter(line) {
-            let raw = caps.get(1).unwrap().as_str();
-
-            for class_name in raw.split_whitespace() {
-                records.push(IndexRecord::new(
-                    relpath,
-                    line_no,
-                    first_col(line, class_name),
-                    "html",
-                    "html_class",
-                    format!(".{class_name}"),
-                    line.trim(),
-                    "extras",
-                ));
-            }
-        }
-
-        for caps in data_re.captures_iter(line) {
-            let name = caps.get(1).unwrap().as_str();
-
-            records.push(IndexRecord::new(
-                relpath,
-                line_no,
-                first_col(line, name),
-                "html",
-                "data_attribute",
-                name,
-                line.trim(),
-                "extras",
-            ));
-        }
-
-        for caps in tag_re.captures_iter(line) {
-            let name = caps.get(1).unwrap().as_str();
-
-            if is_landmark_tag(name) {
-                records.push(IndexRecord::new(
-                    relpath,
-                    line_no,
-                    first_col(line, name),
-                    "html",
-                    "html_tag",
-                    name,
-                    line.trim(),
-                    "extras",
-                ));
-            }
+            "md" | "markdown" => index_markdown_line(&ctx, &mut records),
+            _ => {}
         }
     }
 
     records
 }
 
-fn index_markdown(relpath: &str, text: &str) -> Vec<IndexRecord> {
-    let heading_re = Regex::new(r"^(#{1,6})\s+(.+)$").unwrap();
-    let checklist_re = Regex::new(r"^\s*[-*]\s+\[[ xX]\]\s+(.+)$").unwrap();
-    let link_re = Regex::new(r"\[([^\]]+)\]\(([^)]+)\)").unwrap();
-    let fence_re = Regex::new(r"^```([A-Za-z0-9_-]+)?").unwrap();
-
-    let mut records = Vec::new();
-
-    for (idx, line) in text.lines().enumerate() {
-        let line_no = idx + 1;
-
-        if let Some(caps) = heading_re.captures(line) {
-            let level = caps.get(1).unwrap().as_str().len();
-            let name = caps.get(2).unwrap().as_str().trim();
-
-            records.push(IndexRecord::new(
-                relpath,
-                line_no,
-                1,
-                "md",
-                format!("heading_{level}"),
-                name,
-                line.trim(),
-                "extras",
-            ));
-        }
-
-        if let Some(caps) = checklist_re.captures(line) {
-            let name = caps.get(1).unwrap().as_str().trim();
-
-            records.push(IndexRecord::new(
-                relpath,
-                line_no,
-                first_col(line, name),
-                "md",
-                "checklist",
-                name,
-                line.trim(),
-                "extras",
-            ));
-        }
-
-        for caps in link_re.captures_iter(line) {
-            let name = caps.get(1).unwrap().as_str().trim();
-            let target = caps.get(2).unwrap().as_str().trim();
-
-            records.push(IndexRecord::new(
-                relpath,
-                line_no,
-                first_col(line, name),
-                "md",
-                "link",
-                name,
-                target,
-                "extras",
-            ));
-        }
-
-        if let Some(caps) = fence_re.captures(line) {
-            let name = caps
-                .get(1)
-                .map(|value| value.as_str())
-                .unwrap_or("code")
-                .trim();
-
-            records.push(IndexRecord::new(
-                relpath,
-                line_no,
-                1,
-                "md",
-                "code_fence",
-                name,
-                line.trim(),
-                "extras",
-            ));
-        }
-    }
-
-    records
-}
-
-fn index_jsx_usage(relpath: &str, lang: &str, text: &str) -> Vec<IndexRecord> {
-    let component_tag_re = Regex::new(r"</?\s*([A-Z][A-Za-z0-9_.]*)").unwrap();
-    let class_name_re = Regex::new(r#"className=["']([^"']+)["']"#).unwrap();
-    let data_re = Regex::new(r#"\b(data-[a-zA-Z0-9_-]+)(?:=["'][^"']*["'])?"#).unwrap();
-
-    let mut records = Vec::new();
-
-    for (idx, line) in text.lines().enumerate() {
-        let line_no = idx + 1;
-
-        for caps in component_tag_re.captures_iter(line) {
-            let name = caps.get(1).unwrap().as_str();
-
-            records.push(IndexRecord::new(
-                relpath,
-                line_no,
-                first_col(line, name),
-                lang,
-                "jsx_component_usage",
-                name,
-                line.trim(),
-                "extras",
-            ));
-        }
-
-        for caps in class_name_re.captures_iter(line) {
-            let raw = caps.get(1).unwrap().as_str();
-
-            for class_name in raw.split_whitespace() {
-                records.push(IndexRecord::new(
-                    relpath,
-                    line_no,
-                    first_col(line, class_name),
-                    lang,
-                    "jsx_class",
-                    format!(".{class_name}"),
-                    line.trim(),
-                    "extras",
-                ));
-            }
-        }
-
-        for caps in data_re.captures_iter(line) {
-            let name = caps.get(1).unwrap().as_str();
-
-            records.push(IndexRecord::new(
-                relpath,
-                line_no,
-                first_col(line, name),
-                lang,
-                "data_attribute",
-                name,
-                line.trim(),
-                "extras",
-            ));
-        }
-    }
-
-    records
-}
-
-fn first_col(line: &str, needle: &str) -> usize {
-    line.find(needle).map(|idx| idx + 1).unwrap_or(1)
-}
-
-fn language_from_path(path: &str) -> String {
-    match path
-        .rsplit_once('.')
+fn lang_from_path(path: &str) -> &str {
+    path.rsplit_once('.')
         .map(|(_, ext)| ext)
-        .unwrap_or("")
-        .to_ascii_lowercase()
-        .as_str()
-    {
-        "py" => "py".to_string(),
-        "ts" => "ts".to_string(),
-        "tsx" => "tsx".to_string(),
-        "js" => "js".to_string(),
-        "jsx" => "jsx".to_string(),
-        "css" => "css".to_string(),
-        "html" | "htm" => "html".to_string(),
-        "md" => "md".to_string(),
-        "mdx" => "mdx".to_string(),
-        other if !other.is_empty() => other.to_string(),
-        _ => "text".to_string(),
+        .unwrap_or("unknown")
+}
+
+fn push_record(
+    records: &mut Vec<IndexRecord>,
+    ctx: &LineContext<'_>,
+    col: usize,
+    kind: &str,
+    name: impl Into<String>,
+) {
+    records.push(IndexRecord {
+        path: ctx.path.to_string(),
+        line: ctx.line_no,
+        col,
+        lang: ctx.lang.to_string(),
+        kind: kind.to_string(),
+        name: name.into(),
+        text: ctx.text.trim().to_string(),
+        source: EXTRA_SOURCE.to_string(),
+    });
+}
+
+fn index_todos(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {
+    for marker in ["TODO", "FIXME"] {
+        if let Some(index) = ctx.text.find(marker) {
+            push_record(
+                records,
+                ctx,
+                index + 1,
+                &marker.to_ascii_lowercase(),
+                marker,
+            );
+        }
     }
 }
 
-fn is_landmark_tag(name: &str) -> bool {
-    matches!(
-        name.to_ascii_lowercase().as_str(),
-        "html"
-            | "head"
-            | "body"
-            | "main"
-            | "header"
-            | "footer"
-            | "nav"
-            | "section"
-            | "article"
-            | "aside"
-            | "form"
-            | "button"
-            | "input"
-            | "textarea"
-            | "select"
-            | "dialog"
-            | "template"
-    )
+fn index_css_line(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {
+    for (index, token) in css_tokens(ctx.text) {
+        let kind = if token.starts_with('.') {
+            "css_class"
+        } else if token.starts_with('#') {
+            "css_id"
+        } else if token.starts_with("--") {
+            "css_variable"
+        } else {
+            continue;
+        };
+
+        push_record(records, ctx, index + 1, kind, token);
+    }
+
+    if let Some(keyframes_index) = ctx.text.find("@keyframes") {
+        let after = keyframes_index + "@keyframes".len();
+        let rest = &ctx.text[after..];
+
+        if let Some(offset) = rest.find(|ch: char| !ch.is_whitespace()) {
+            let name_start = after + offset;
+            let name = take_identifier(&ctx.text[name_start..]);
+
+            if !name.is_empty() {
+                push_record(records, ctx, name_start + 1, "keyframes", name);
+            }
+        }
+    }
+}
+
+fn css_tokens(line: &str) -> Vec<(usize, String)> {
+    let mut tokens = Vec::new();
+    let bytes = line.as_bytes();
+    let mut index = 0;
+
+    while index < bytes.len() {
+        let ch = bytes[index] as char;
+
+        if (ch == '.' || ch == '#')
+            && index + 1 < bytes.len()
+            && is_ident_start(bytes[index + 1] as char)
+        {
+            let end = scan_identifier(line, index + 1);
+            tokens.push((index, line[index..end].to_string()));
+            index = end;
+            continue;
+        }
+
+        if ch == '-' && index + 1 < bytes.len() && bytes[index + 1] as char == '-' {
+            let end = scan_identifier(line, index + 2);
+
+            if end > index + 2 {
+                tokens.push((index, line[index..end].to_string()));
+                index = end;
+                continue;
+            }
+        }
+
+        index += 1;
+    }
+
+    tokens
+}
+
+fn index_html_line(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {
+    let mut search_start = 0;
+
+    while let Some(relative_open) = ctx.text[search_start..].find('<') {
+        let open = search_start + relative_open;
+
+        if ctx.text[open..].starts_with("</") || ctx.text[open..].starts_with("<!--") {
+            search_start = open + 1;
+            continue;
+        }
+
+        let tag_start = open + 1;
+        let tag_name = take_identifier(&ctx.text[tag_start..]);
+
+        if !tag_name.is_empty() && is_html_tag_name(&tag_name) {
+            push_record(records, ctx, tag_start + 1, "html_tag", tag_name);
+        }
+
+        let tag_end = ctx.text[open..]
+            .find('>')
+            .map(|offset| open + offset)
+            .unwrap_or(ctx.text.len());
+
+        let attrs = &ctx.text[tag_start..tag_end];
+        let attrs_base = tag_start;
+
+        index_html_attributes(ctx, attrs, attrs_base, records);
+
+        search_start = tag_end.saturating_add(1);
+    }
+}
+
+fn index_html_attributes(
+    ctx: &LineContext<'_>,
+    attrs: &str,
+    attrs_base: usize,
+    records: &mut Vec<IndexRecord>,
+) {
+    for attr in ["id", "class", "className", "data-testid"] {
+        let mut search_start = 0;
+
+        while let Some(relative_index) = attrs[search_start..].find(attr) {
+            let attr_index = search_start + relative_index;
+
+            if !is_attribute_boundary(attrs, attr_index, attr.len()) {
+                search_start = attr_index + attr.len();
+                continue;
+            }
+
+            let absolute_attr_col = attrs_base + attr_index + 1;
+
+            if attr.starts_with("data-") {
+                push_record(records, ctx, absolute_attr_col, "data_attribute", attr);
+            }
+
+            if let Some((value_start, value)) = attribute_value(attrs, attr_index + attr.len()) {
+                let absolute_value_start = attrs_base + value_start;
+
+                match attr {
+                    "id" if !value.is_empty() => {
+                        push_record(
+                            records,
+                            ctx,
+                            absolute_value_start + 1,
+                            "html_id",
+                            format!("#{value}"),
+                        );
+                    }
+                    "class" => {
+                        push_class_records(records, ctx, "html_class", absolute_value_start, value);
+                    }
+                    "className" => {
+                        push_class_records(records, ctx, "jsx_class", absolute_value_start, value);
+                    }
+                    _ => {}
+                }
+            }
+
+            search_start = attr_index + attr.len();
+        }
+    }
+}
+
+fn index_jsx_line(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {
+    let mut search_start = 0;
+
+    while let Some(relative_open) = ctx.text[search_start..].find('<') {
+        let open = search_start + relative_open;
+
+        if ctx.text[open..].starts_with("</") {
+            search_start = open + 1;
+            continue;
+        }
+
+        let component_start = open + 1;
+        let component = take_identifier(&ctx.text[component_start..]);
+
+        if component
+            .chars()
+            .next()
+            .is_some_and(|ch| ch.is_ascii_uppercase())
+        {
+            push_record(
+                records,
+                ctx,
+                component_start + 1,
+                "component_usage",
+                component,
+            );
+        }
+
+        search_start = open + 1;
+    }
+}
+
+fn index_markdown_line(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {
+    let trimmed = ctx.text.trim_start();
+    let leading_spaces = ctx.text.len() - trimmed.len();
+
+    if trimmed.starts_with("- [ ] ")
+        || trimmed.starts_with("- [x] ")
+        || trimmed.starts_with("- [X] ")
+    {
+        let item_start = leading_spaces + 6;
+        let name = ctx.text[item_start..].trim();
+
+        if !name.is_empty() {
+            push_record(records, ctx, item_start + 1, "checklist", name);
+        }
+    }
+
+    let mut search_start = 0;
+
+    while let Some(relative_open) = ctx.text[search_start..].find('[') {
+        let open = search_start + relative_open;
+
+        let Some(close_relative) = ctx.text[open..].find(']') else {
+            break;
+        };
+        let close = open + close_relative;
+
+        if !ctx.text[close..].starts_with("](") {
+            search_start = open + 1;
+            continue;
+        }
+
+        let target_start = close + 2;
+        let Some(target_close_relative) = ctx.text[target_start..].find(')') else {
+            break;
+        };
+        let target_close = target_start + target_close_relative;
+        let target = &ctx.text[target_start..target_close];
+
+        if !target.is_empty() {
+            push_record(records, ctx, target_start + 1, "link", target);
+        }
+
+        search_start = target_close + 1;
+    }
+}
+
+fn push_class_records(
+    records: &mut Vec<IndexRecord>,
+    ctx: &LineContext<'_>,
+    kind: &str,
+    value_start: usize,
+    value: &str,
+) {
+    let mut offset = 0;
+
+    for class_name in value.split_whitespace() {
+        if class_name.is_empty() {
+            continue;
+        }
+
+        if let Some(relative_index) = value[offset..].find(class_name) {
+            let class_start = value_start + offset + relative_index;
+
+            push_record(
+                records,
+                ctx,
+                class_start + 1,
+                kind,
+                format!(".{class_name}"),
+            );
+
+            offset += relative_index + class_name.len();
+        }
+    }
+}
+
+fn attribute_value(attrs: &str, after_name: usize) -> Option<(usize, &str)> {
+    let after_name_slice = &attrs[after_name..];
+    let equals_relative = after_name_slice.find('=')?;
+    let equals = after_name + equals_relative;
+
+    let after_equals = attrs[equals + 1..].trim_start();
+    let leading_spaces = attrs[equals + 1..].len() - after_equals.len();
+    let value_open = equals + 1 + leading_spaces;
+
+    let quote = attrs[value_open..].chars().next()?;
+
+    if quote != '"' && quote != '\'' {
+        return None;
+    }
+
+    let value_start = value_open + quote.len_utf8();
+    let value_rest = &attrs[value_start..];
+    let value_end_relative = value_rest.find(quote)?;
+    let value_end = value_start + value_end_relative;
+
+    Some((value_start, &attrs[value_start..value_end]))
+}
+
+fn is_attribute_boundary(attrs: &str, start: usize, len: usize) -> bool {
+    let before = attrs[..start].chars().next_back();
+    let after = attrs[start + len..].chars().next();
+
+    let valid_before =
+        before.is_none_or(|ch| !(ch.is_ascii_alphanumeric() || ch == '-' || ch == '_'));
+    let valid_after =
+        after.is_none_or(|ch| !(ch.is_ascii_alphanumeric() || ch == '-' || ch == '_'));
+
+    valid_before && valid_after
+}
+
+fn take_identifier(value: &str) -> String {
+    value.chars().take_while(|ch| is_ident_char(*ch)).collect()
+}
+
+fn scan_identifier(line: &str, start: usize) -> usize {
+    let mut end = start;
+
+    for (offset, ch) in line[start..].char_indices() {
+        if !is_ident_char(ch) {
+            break;
+        }
+
+        end = start + offset + ch.len_utf8();
+    }
+
+    end
+}
+
+fn is_ident_start(ch: char) -> bool {
+    ch.is_ascii_alphabetic() || ch == '_' || ch == '-'
+}
+
+fn is_ident_char(ch: char) -> bool {
+    ch.is_ascii_alphanumeric() || ch == '_' || ch == '-'
+}
+
+fn is_html_tag_name(name: &str) -> bool {
+    name.chars()
+        .next()
+        .is_some_and(|ch| ch.is_ascii_lowercase())
 }

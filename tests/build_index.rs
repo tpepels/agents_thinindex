@@ -148,3 +148,87 @@ class DeletedService:
         "deleted symbol should not remain in index:\n{after}"
     );
 }
+#[test]
+fn build_index_does_not_emit_duplicate_records_at_same_location() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    use std::collections::BTreeSet;
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "docs/guide.md",
+        r#"
+# Guide
+
+## Tests
+
+Content.
+"#,
+    );
+
+    write_file(
+        root,
+        "frontend/page.html",
+        r#"
+<header id="mainHeader" class="siteHeader sticky" data-testid="main-header">
+  Hello
+</header>
+"#,
+    );
+
+    write_file(
+        root,
+        "src/service.py",
+        r#"
+class PromptService:
+    pass
+
+def build_prompt():
+    return "ok"
+"#,
+    );
+
+    run_build(root);
+
+    let index = fs::read_to_string(root.join(".dev_index/index.jsonl")).expect("read index");
+
+    let mut seen = BTreeSet::new();
+    let mut duplicates = Vec::new();
+
+    for line in index.lines().filter(|line| !line.trim().is_empty()) {
+        let record: serde_json::Value =
+            serde_json::from_str(line).expect("parse index record JSON");
+
+        let key = (
+            record
+                .get("path")
+                .and_then(|value| value.as_str())
+                .unwrap_or("")
+                .to_string(),
+            record
+                .get("line")
+                .and_then(|value| value.as_u64())
+                .unwrap_or(0),
+            record
+                .get("col")
+                .and_then(|value| value.as_u64())
+                .unwrap_or(0),
+        );
+
+        if !seen.insert(key) {
+            duplicates.push(line.to_string());
+        }
+    }
+
+    assert!(
+        duplicates.is_empty(),
+        "index should not contain duplicate path+line+col records:\n{}",
+        duplicates.join("\n")
+    );
+}

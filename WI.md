@@ -7,7 +7,6 @@ Agent usage:
   Read only returned files unless insufficient.
   For search terms starting with `-`, use `wi -- <term>`, e.g. `wi -- --css-variable`
 
-
 Search the repo-local thin code index and return file/line landmarks
 
 Usage: wi [OPTIONS] <QUERY>

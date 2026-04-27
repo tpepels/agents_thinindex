@@ -14,8 +14,8 @@
       "size": 114
     },
     "AGENTS.md": {
-      "mtime_ns": 1777294083582013955,
-      "size": 658
+      "mtime_ns": 1777300738919422938,
+      "size": 845
     },
     "Cargo.toml": {
       "mtime_ns": 1777294069134060809,
@@ -30,8 +30,8 @@
       "size": 4171
     },
     "WI.md": {
-      "mtime_ns": 1777298552333239894,
-      "size": 1407
+      "mtime_ns": 1777300834460018374,
+      "size": 1406
     },
     "docs/ROADMAP.md": {
       "mtime_ns": 1777294041839172422,
@@ -41,9 +41,9 @@
       "mtime_ns": 1777293001249658510,
       "size": 1147
     },
-    "prompts/stats_ignore.md": {
-      "mtime_ns": 1777112325969223710,
-      "size": 6707
+    "prompts/local_repo_test.md": {
+      "mtime_ns": 1777299819064862757,
+      "size": 3687
     },
     "src/bin/build_index.rs": {
       "mtime_ns": 1777110766029355317,
@@ -66,16 +66,16 @@
       "size": 6775
     },
     "src/extras.rs": {
-      "mtime_ns": 1777110766039355281,
-      "size": 11283
+      "mtime_ns": 1777300455455591752,
+      "size": 11330
     },
     "src/ignore.rs": {
       "mtime_ns": 1777108584878549216,
       "size": 0
     },
     "src/indexer.rs": {
-      "mtime_ns": 1777294454144570262,
-      "size": 5973
+      "mtime_ns": 1777300508453377621,
+      "size": 8141
     },
     "src/lib.rs": {
       "mtime_ns": 1777295076944160782,
@@ -86,8 +86,8 @@
       "size": 1741
     },
     "src/search.rs": {
-      "mtime_ns": 1777293939673451093,
-      "size": 6743
+      "mtime_ns": 1777300817758089400,
+      "size": 6903
     },
     "src/stats.rs": {
       "mtime_ns": 1777131958048913993,
@@ -98,16 +98,16 @@
       "size": 5089
     },
     "src/wi_cli.rs": {
-      "mtime_ns": 1777298540966299204,
-      "size": 2497
+      "mtime_ns": 1777298601535983499,
+      "size": 2496
     },
     "templates/.thinindexignore": {
       "mtime_ns": 1777113369260424849,
       "size": 226
     },
     "tests/build_index.rs": {
-      "mtime_ns": 1777292664530672768,
-      "size": 2956
+      "mtime_ns": 1777299463469641184,
+      "size": 4730
     },
     "tests/common/mod.rs": {
       "mtime_ns": 1777292829421544693,
@@ -184,6 +184,10 @@
     "tests/install_scripts.rs": {
       "mtime_ns": 1777292664530970180,
       "size": 675
+    },
+    "tests/local_index.rs": {
+      "mtime_ns": 1777300703350572395,
+      "size": 4353
     },
     "tests/schema_version.rs": {
       "mtime_ns": 1777292769247657874,
