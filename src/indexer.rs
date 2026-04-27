@@ -49,23 +49,13 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
     let ctags_status = check_ctags()?;
 
     let mut manifest = load_manifest(&root)?;
-    let mut reset = false;
-    let mut reset_msg = None;
-    // If manifest is missing or malformed, or schema_version missing/mismatched, reset .dev_index
-    if manifest.schema_version == 0 {
-        reset = true;
-        reset_msg = Some("index manifest invalid; rebuilding .dev_index");
-    } else if is_manifest_stale(&manifest) {
-        reset = true;
-        reset_msg = Some("index schema changed; rebuilding .dev_index");
-    }
-    if reset {
+
+    if let Some(message) = reset_reason(&manifest) {
         crate::store::reset_dev_index(&root)?;
         manifest = Manifest::new();
-        if let Some(msg) = reset_msg {
-            println!("{}", msg);
-        }
+        println!("{message}");
     }
+
     let existing_records = load_records(&root)?;
 
     let files = discover_files(&root)?;
@@ -136,6 +126,20 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
         records: records.len(),
         ctags_universal: ctags_status.is_universal,
     })
+}
+
+fn reset_reason(manifest: &Manifest) -> Option<&'static str> {
+    // `load_manifest` should return `Manifest::new()` for a missing manifest in a fresh repo.
+    // It should return schema_version 0 only for malformed/legacy manifests that require reset.
+    if manifest.schema_version == 0 {
+        return Some("index manifest invalid; rebuilding .dev_index");
+    }
+
+    if is_manifest_stale(manifest) {
+        return Some("index schema changed; rebuilding .dev_index");
+    }
+
+    None
 }
 
 fn discover_files(root: &Path) -> Result<Vec<PathBuf>> {

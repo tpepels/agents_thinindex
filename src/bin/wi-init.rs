@@ -8,8 +8,8 @@ use std::{
 use anyhow::{Context, Result};
 use clap::Parser;
 use thinindex::indexer::{build_index, find_repo_root};
+use thinindex::wi_cli::wi_help_text;
 
-const WI_TEMPLATE: &str = include_str!("../../templates/WI.md");
 const THININDEXIGNORE_TEMPLATE: &str = include_str!("../../templates/.thinindexignore");
 const AGENTS_MARKER: &str = "See WI.md for repository search/index usage.";
 
@@ -32,10 +32,7 @@ struct Args {
     #[arg(long, help = "With --remove, keep .dev_index")]
     keep_index: bool,
 
-    #[arg(
-        long,
-        help = "Overwrite WI.md and .thinindexignore even if they already exist"
-    )]
+    #[arg(long, help = "Overwrite .thinindexignore even if it exist")]
     force: bool,
 }
 
@@ -218,15 +215,15 @@ fn remove_repo(root: &Path, keep_index: bool) -> Result<()> {
     Ok(())
 }
 
-fn write_wi_md(root: &Path, force: bool) -> Result<()> {
+fn render_wi_md() -> String {
+    wi_help_text()
+}
+
+fn write_wi_md(root: &Path, _force: bool) -> Result<()> {
     let path = root.join("WI.md");
 
-    if path.exists() && !force {
-        println!("exists: {} (use --force to overwrite)", path.display());
-        return Ok(());
-    }
-
-    fs::write(&path, WI_TEMPLATE).with_context(|| format!("failed to write {}", path.display()))?;
+    fs::write(&path, render_wi_md())
+        .with_context(|| format!("failed to write {}", path.display()))?;
 
     Ok(())
 }

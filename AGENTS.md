@@ -6,3 +6,7 @@
 - Use `Result` for recoverable errors; reserve panics/unwraps for tests or impossible invariants.
 - Keep CLI output stable and test-visible when behavior changes.
 - Add or update tests, and if needed fixtures, with every bug fix or feature.
+
+## Repository search
+
+See WI.md for repository search/index usage.

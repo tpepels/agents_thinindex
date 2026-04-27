@@ -1,9 +1,43 @@
 mod common;
 
-use std::fs;
+use std::{fs, path::Path};
 
 use assert_cmd::prelude::*;
 use common::*;
+use thinindex::wi_cli::wi_help_text;
+
+fn assert_generated_wi_md(wi: &str) {
+    let help = wi_help_text();
+
+    assert_eq!(
+        wi, help,
+        "WI.md does not exactly match wi_help_text()\nWI.md:\n{wi}\nHelp:\n{help}"
+    );
+
+    for required in [
+        "Agent usage:",
+        "Run `build_index` before discovery",
+        "Use `wi <term>` before reading files",
+        "Usage:",
+        "-t",
+        "-l",
+        "-p",
+        "-s",
+        "-n",
+        "-v",
+    ] {
+        assert!(
+            help.contains(required),
+            "wi_help_text() missing required text: {required}\nHelp:\n{help}"
+        );
+    }
+}
+
+#[test]
+fn wi_md_template_is_removed() {
+    let template = Path::new(env!("CARGO_MANIFEST_DIR")).join("templates/WI.md");
+    assert!(!template.exists(), "templates/WI.md should not exist");
+}
 
 #[test]
 fn wi_init_writes_wi_and_agents_files() {
@@ -27,15 +61,30 @@ class PromptService:
     wi_init_bin().current_dir(root).assert().success();
 
     let wi = fs::read_to_string(root.join("WI.md")).expect("read WI.md");
-    assert!(
-        wi.contains("Run `build_index` before discovery"),
-        "unexpected WI.md content:\n{wi}"
-    );
+    assert_generated_wi_md(&wi);
 
     let agents = fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
     assert!(agents.contains("See WI.md for repository search/index usage."));
 
     assert!(root.join(".dev_index/index.jsonl").exists());
+}
+
+#[test]
+fn wi_init_refreshes_wi_md_without_force() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "WI.md", "garbage\n");
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    let wi = fs::read_to_string(root.join("WI.md")).expect("read WI.md");
+    assert_generated_wi_md(&wi);
 }
 
 #[test]
@@ -88,27 +137,6 @@ fn wi_init_force_overwrites_thinindexignore() {
     assert!(
         contents.contains("node_modules/"),
         "expected bundled template content after --force, got:\n{contents}"
-    );
-}
-
-#[test]
-fn wi_init_force_overwrites_wi_md() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-    let repo = temp_repo();
-    let root = repo.path();
-    write_file(root, "WI.md", "garbage\n");
-    wi_init_bin()
-        .current_dir(root)
-        .arg("--force")
-        .assert()
-        .success();
-    let wi = fs::read_to_string(root.join("WI.md")).unwrap();
-    assert!(
-        wi.contains("Run `build_index` before discovery"),
-        "WI.md should be overwritten with template, got:\n{wi}"
     );
 }
 
@@ -278,17 +306,21 @@ fn wi_init_remove_leaves_repo_files_alone() {
         eprintln!("skipping: ctags unavailable");
         return;
     }
+
     let repo = temp_repo();
     let root = repo.path();
+
     write_file(root, "WI.md", "original WI\n");
     write_file(root, ".thinindexignore", "original ignore\n");
     write_file(root, "AGENTS.md", "original AGENTS\n");
     write_file(root, ".gitignore", "original .gitignore\n");
+
     wi_init_bin()
         .current_dir(root)
         .arg("--remove")
         .assert()
         .success();
+
     assert_eq!(
         fs::read_to_string(root.join("WI.md")).unwrap(),
         "original WI\n"

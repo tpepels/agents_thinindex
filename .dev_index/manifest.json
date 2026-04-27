@@ -1,37 +1,45 @@
 {
-  "version": 1,
+  "schema_version": 2,
   "files": {
     ".gitignore": {
-      "mtime_ns": 1777114388954060246,
-      "size": 7
+      "mtime_ns": 1777294083582013955,
+      "size": 32
+    },
+    ".thinindexignore": {
+      "mtime_ns": 1777294083582013955,
+      "size": 226
     },
     ".vscode/settings.json": {
       "mtime_ns": 1777289455829723514,
       "size": 114
     },
-    "Cargo.lock": {
-      "mtime_ns": 1777111455082005109,
-      "size": 20549
+    "AGENTS.md": {
+      "mtime_ns": 1777294083582013955,
+      "size": 658
     },
     "Cargo.toml": {
-      "mtime_ns": 1777131961977886115,
-      "size": 620
+      "mtime_ns": 1777294069134060809,
+      "size": 629
     },
     "Makefile": {
       "mtime_ns": 1777108605216924616,
       "size": 204
     },
     "README.md": {
-      "mtime_ns": 1777288625906099244,
-      "size": 3724
+      "mtime_ns": 1777293749217297624,
+      "size": 4171
+    },
+    "WI.md": {
+      "mtime_ns": 1777298552333239894,
+      "size": 1407
     },
     "docs/ROADMAP.md": {
-      "mtime_ns": 1777287735529958980,
+      "mtime_ns": 1777294041839172422,
       "size": 29197
     },
     "install.sh": {
-      "mtime_ns": 1777150205948946923,
-      "size": 1052
+      "mtime_ns": 1777293001249658510,
+      "size": 1147
     },
     "prompts/stats_ignore.md": {
       "mtime_ns": 1777112325969223710,
@@ -42,19 +50,19 @@
       "size": 1325
     },
     "src/bin/wi-init.rs": {
-      "mtime_ns": 1777289436660838415,
-      "size": 4993
+      "mtime_ns": 1777298007215135042,
+      "size": 7883
     },
     "src/bin/wi-stats.rs": {
       "mtime_ns": 1777131988272699709,
       "size": 1734
     },
     "src/bin/wi.rs": {
-      "mtime_ns": 1777288448064372032,
-      "size": 2821
+      "mtime_ns": 1777295205878568937,
+      "size": 1638
     },
     "src/ctags.rs": {
-      "mtime_ns": 1777289418122950403,
+      "mtime_ns": 1777293910104531893,
       "size": 6775
     },
     "src/extras.rs": {
@@ -66,36 +74,44 @@
       "size": 0
     },
     "src/indexer.rs": {
-      "mtime_ns": 1777113385705341593,
-      "size": 5273
+      "mtime_ns": 1777294454144570262,
+      "size": 5973
     },
     "src/lib.rs": {
-      "mtime_ns": 1777112069984342126,
-      "size": 109
+      "mtime_ns": 1777295076944160782,
+      "size": 125
     },
     "src/model.rs": {
-      "mtime_ns": 1777110766042355270,
-      "size": 1617
+      "mtime_ns": 1777291086016371202,
+      "size": 1741
     },
     "src/search.rs": {
-      "mtime_ns": 1777110766044355263,
-      "size": 3433
+      "mtime_ns": 1777293939673451093,
+      "size": 6743
     },
     "src/stats.rs": {
       "mtime_ns": 1777131958048913993,
       "size": 9340
     },
     "src/store.rs": {
-      "mtime_ns": 1777110766046355256,
-      "size": 4215
+      "mtime_ns": 1777292953517931670,
+      "size": 5089
+    },
+    "src/wi_cli.rs": {
+      "mtime_ns": 1777298540966299204,
+      "size": 2497
     },
     "templates/.thinindexignore": {
       "mtime_ns": 1777113369260424849,
       "size": 226
     },
-    "templates/WI.md": {
-      "mtime_ns": 1777288779858167911,
-      "size": 492
+    "tests/build_index.rs": {
+      "mtime_ns": 1777292664530672768,
+      "size": 2956
+    },
+    "tests/common/mod.rs": {
+      "mtime_ns": 1777292829421544693,
+      "size": 2799
     },
     "tests/fixtures/gitignore_repo/.gitignore": {
       "mtime_ns": 1777111718629472792,
@@ -161,9 +177,29 @@
       "mtime_ns": 1777111275690994688,
       "size": 154
     },
-    "tests/integration.rs": {
-      "mtime_ns": 1777288185075548091,
-      "size": 28529
+    "tests/ignore_rules.rs": {
+      "mtime_ns": 1777292664530890592,
+      "size": 3612
+    },
+    "tests/install_scripts.rs": {
+      "mtime_ns": 1777292664530970180,
+      "size": 675
+    },
+    "tests/schema_version.rs": {
+      "mtime_ns": 1777292769247657874,
+      "size": 6103
+    },
+    "tests/wi.rs": {
+      "mtime_ns": 1777293903330549918,
+      "size": 13534
+    },
+    "tests/wi_init.rs": {
+      "mtime_ns": 1777298227916947675,
+      "size": 9974
+    },
+    "tests/wi_stats.rs": {
+      "mtime_ns": 1777292664530860276,
+      "size": 6005
     },
     "uninstall.sh": {
       "mtime_ns": 1777150209809920400,

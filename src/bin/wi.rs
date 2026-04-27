@@ -1,57 +1,13 @@
-use std::{env, path::PathBuf};
+use std::env;
 
 use anyhow::Result;
 use clap::Parser;
+use thinindex::wi_cli::WiArgs;
 use thinindex::{
     indexer::find_repo_root,
     search::{SearchOptions, format_result, search},
     stats::{self, UsageEvent},
 };
-
-#[derive(Debug, Parser)]
-#[command(name = "wi", version, about = "Search the repo-local thin code index")]
-struct Args {
-    #[arg(help = "Search query")]
-    query: String,
-
-    #[arg(
-        short = 't',
-        value_name = "KIND",
-        help = "Filter by record kind, e.g. function, class, css_class"
-    )]
-    kind: Option<String>,
-
-    #[arg(
-        short = 'l',
-        value_name = "LANG",
-        help = "Filter by language, e.g. py, ts, tsx, js, jsx, css, html, md"
-    )]
-    lang: Option<String>,
-
-    #[arg(short = 'p', value_name = "PATH", help = "Filter by path substring")]
-    path: Option<String>,
-
-    #[arg(
-        short = 's',
-        value_name = "SOURCE",
-        help = "Filter by source, e.g. ctags or extras"
-    )]
-    source: Option<String>,
-
-    #[arg(short = 'n', value_name = "N", help = "Maximum number of results")]
-    limit: Option<usize>,
-
-    #[arg(short = 'v', help = "Print verbose results")]
-    verbose: bool,
-
-    #[arg(
-        short = 'r',
-        value_name = "REPO",
-        default_value = ".",
-        help = "Directory inside the repository"
-    )]
-    repo: PathBuf,
-}
 
 fn main() {
     if let Err(error) = run() {
@@ -61,15 +17,10 @@ fn main() {
 }
 
 fn run() -> Result<()> {
-    let args = Args::parse();
-
-    let start = if args.repo.is_absolute() {
-        args.repo
-    } else {
-        env::current_dir()?.join(args.repo)
-    };
-
-    let root = find_repo_root(&start)?;
+    let args = WiArgs::parse();
+    let query = args.query.clone();
+    let repo = env::current_dir()?;
+    let root = find_repo_root(&repo)?;
 
     let used_type = args.kind.is_some();
     let used_lang = args.lang.is_some();
@@ -86,7 +37,7 @@ fn run() -> Result<()> {
         verbose: args.verbose,
     };
 
-    let results = search(&root, &args.query, &options)?;
+    let results = search(&root, &query, &options)?;
     let result_count = results.len();
 
     for result in &results {
@@ -95,8 +46,8 @@ fn run() -> Result<()> {
 
     let event = UsageEvent {
         ts: stats::current_unix_seconds(),
-        query: args.query.clone(),
-        query_len: args.query.chars().count(),
+        query: query.clone(),
+        query_len: query.chars().count(),
         result_count,
         hit: result_count > 0,
         used_type,
