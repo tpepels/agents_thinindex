@@ -1,3 +1,4 @@
+````md
 # thinindex
 
 Agents waste tokens when they explore a codebase by reading files blindly.
@@ -11,9 +12,6 @@ Agents waste tokens when they explore a codebase by reading files blindly.
 
 No daemon. No embeddings. No vector database. No MCP. No background updater.
 
-Replace the install section with:
-
-````md
 ## Install
 
 Requires Rust/Cargo and Universal Ctags.
@@ -69,7 +67,6 @@ ctags --version
 
 `ctags --version` should mention Universal Ctags.
 
-
 ## Initialize a repo
 
 Run this inside a repository:
@@ -111,22 +108,22 @@ Search:
 
 ```bash
 wi HeaderNavigation
-wi prompt --path app
-wi pixel --lang css
-wi ranking --type function
+wi prompt -p app
+wi pixel -l css
+wi ranking -t function
 ```
 
-Useful filters:
+Useful options:
 
-```bash
---type <kind>
---lang <lang>
---path <substring>
---limit <n>
---verbose
+```text
+-t <kind>   filter by kind/type
+-l <lang>   filter by language
+-p <path>   filter by path substring
+-n <n>      result limit
+-v          verbose output
 ```
 
-For search terms that start with `--`:
+For search terms that start with `-`:
 
 ```bash
 wi -- --paper-bg
@@ -136,7 +133,13 @@ wi -- --paper-bg
 
 `wi-stats` shows usage, hits, misses, hit ratio, average results, and terminal hit/miss graphs for 1/2/5/30-day windows.
 
-Data is collected automatically each time `wi` is run, stored at `.dev_index/wi_usage.jsonl`.
+Data is collected automatically each time `wi` is run, stored at:
+
+```text
+.dev_index/wi_usage.jsonl
+```
+
+Run:
 
 ```bash
 wi-stats
@@ -175,9 +178,8 @@ Index files live in:
 .dev_index/
   manifest.json
   index.jsonl
+  wi_usage.jsonl
 ```
-
-Put it after the **“What gets indexed”** section and before **“Uninstall”**.
 
 ## Ignore extra paths
 

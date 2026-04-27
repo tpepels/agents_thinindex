@@ -15,31 +15,38 @@ struct Args {
     query: String,
 
     #[arg(
-        long = "type",
+        short = 't',
+        value_name = "KIND",
         help = "Filter by record kind, e.g. function, class, css_class"
     )]
     kind: Option<String>,
 
     #[arg(
-        long,
+        short = 'l',
+        value_name = "LANG",
         help = "Filter by language, e.g. py, ts, tsx, js, jsx, css, html, md"
     )]
     lang: Option<String>,
 
-    #[arg(long, help = "Filter by path substring")]
+    #[arg(short = 'p', value_name = "PATH", help = "Filter by path substring")]
     path: Option<String>,
 
-    #[arg(long, help = "Filter by source, e.g. ctags or extras")]
+    #[arg(
+        short = 's',
+        value_name = "SOURCE",
+        help = "Filter by source, e.g. ctags or extras"
+    )]
     source: Option<String>,
 
-    #[arg(long, help = "Maximum number of results")]
+    #[arg(short = 'n', value_name = "N", help = "Maximum number of results")]
     limit: Option<usize>,
 
-    #[arg(short, long, help = "Print verbose results")]
+    #[arg(short = 'v', help = "Print verbose results")]
     verbose: bool,
 
     #[arg(
-        long = "repo",
+        short = 'r',
+        value_name = "REPO",
         default_value = ".",
         help = "Directory inside the repository"
     )]
