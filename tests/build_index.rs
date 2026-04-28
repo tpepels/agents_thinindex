@@ -223,6 +223,59 @@ def build_prompt():
 }
 
 #[test]
+fn binary_files_are_skipped() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "src/service.py",
+        r#"
+class PromptService:
+    pass
+"#,
+    );
+
+    // A blob with NUL bytes — the canonical "this is binary" signal.
+    fs::create_dir_all(root.join("assets")).expect("create assets dir");
+    fs::write(
+        root.join("assets/icon.bin"),
+        b"\x00\x01\x02PNG\x00\x00garbage",
+    )
+    .expect("write binary fixture");
+
+    // Build must succeed even though a binary file is present.
+    run_build(root);
+
+    let index = fs::read_to_string(root.join(".dev_index/index.jsonl")).expect("read index");
+
+    // The text file is indexed.
+    assert!(
+        index.contains("src/service.py"),
+        "expected text file to be indexed, got:\n{index}"
+    );
+
+    // The binary file is not.
+    assert!(
+        !index.contains("assets/icon.bin"),
+        "binary file must not be indexed, got:\n{index}"
+    );
+
+    // Manifest also excludes it — otherwise we'd re-attempt it every build.
+    let manifest =
+        fs::read_to_string(root.join(".dev_index/manifest.json")).expect("read manifest");
+    assert!(
+        !manifest.contains("assets/icon.bin"),
+        "binary file must not be tracked in manifest, got:\n{manifest}"
+    );
+}
+
+#[test]
 fn markdown_heading_is_canonicalized_to_section() {
     if !has_ctags() {
         eprintln!("skipping: ctags unavailable");

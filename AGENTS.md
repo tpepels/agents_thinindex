@@ -10,8 +10,4 @@
 
 ## Repository search
 
-See `WI.md` for repository search/index usage.
-
-## Repository search
-
-See WI.md for repository search/index usage.
+Before broad repository discovery, run `build_index`, then use `wi <term>` to find file:line landmarks from the repo-local thin index. Use `wi` before grep/find/ls/Read when locating code. Read only files returned by `wi` unless the result is insufficient. If `wi` returns no useful result, rerun `build_index` once and retry before falling back to grep/find/Read. See `WI.md` for filters and examples (`-t KIND`, `-l EXT`, `-p PATH`, `-s SOURCE`, `-n N`, `-v`).

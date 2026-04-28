@@ -170,7 +170,10 @@ fn index_html_line(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {
 
         index_html_attributes(ctx, attrs, attrs_base, records);
 
-        search_start = tag_end.saturating_add(1);
+        // When no closing `>` is on this line (JSX often splits a tag across
+        // lines), `tag_end == ctx.text.len()`. Clamp so the next iteration's
+        // slice stays in bounds; `find` on an empty slice ends the loop.
+        search_start = tag_end.saturating_add(1).min(ctx.text.len());
     }
 }
 
@@ -398,4 +401,27 @@ fn is_html_tag_name(name: &str) -> bool {
     name.chars()
         .next()
         .is_some_and(|ch| ch.is_ascii_lowercase())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Regression: a `<` with no matching `>` on the same line (a JSX tag split
+    // across lines, e.g. `<SpecArchiveScreen\n   props />`) used to panic with
+    // `start byte index N is out of bounds` on the next loop iteration.
+    #[test]
+    fn jsx_tag_without_closing_bracket_does_not_panic() {
+        let line = "            <SpecArchiveScreen";
+        let records = index_extras("Component.tsx", line);
+        assert!(records.iter().any(|r| r.name == "SpecArchiveScreen"));
+    }
+
+    #[test]
+    fn html_open_bracket_at_end_of_line_does_not_panic() {
+        // `<` is the last byte; tag_end == text.len(); next iteration must
+        // not slice past the end.
+        let _ = index_extras("page.html", "abc<");
+        let _ = index_extras("page.html", "<");
+    }
 }

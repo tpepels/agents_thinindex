@@ -1,24 +1,28 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "files": {
     ".gitignore": {
       "mtime_ns": 1777367087388092166,
       "size": 113
     },
     ".thinindexignore": {
-      "mtime_ns": 1777367528633580949,
-      "size": 226
+      "mtime_ns": 1777367545642831326,
+      "size": 238
     },
     ".vscode/settings.json": {
       "mtime_ns": 1777289455829723514,
       "size": 114
     },
     "AGENTS.md": {
-      "mtime_ns": 1777300738919422938,
-      "size": 845
+      "mtime_ns": 1777400252495528360,
+      "size": 1193
+    },
+    "CLAUDE.md": {
+      "mtime_ns": 1777390200552297376,
+      "size": 18
     },
     "Cargo.toml": {
-      "mtime_ns": 1777294069134060809,
+      "mtime_ns": 1777389890748386985,
       "size": 629
     },
     "Makefile": {
@@ -30,8 +34,8 @@
       "size": 4171
     },
     "WI.md": {
-      "mtime_ns": 1777367528633580949,
-      "size": 2537
+      "mtime_ns": 1777400252495528360,
+      "size": 1507
     },
     "docs/ROADMAP.md": {
       "mtime_ns": 1777294041839172422,
@@ -50,8 +54,8 @@
       "size": 1325
     },
     "src/bin/wi-init.rs": {
-      "mtime_ns": 1777298007215135042,
-      "size": 7883
+      "mtime_ns": 1777390200551736824,
+      "size": 11358
     },
     "src/bin/wi-stats.rs": {
       "mtime_ns": 1777131988272699709,
@@ -62,27 +66,27 @@
       "size": 1638
     },
     "src/ctags.rs": {
-      "mtime_ns": 1777293910104531893,
+      "mtime_ns": 1777387421184386481,
       "size": 6775
     },
     "src/extras.rs": {
-      "mtime_ns": 1777300455455591752,
-      "size": 11330
+      "mtime_ns": 1777387421184386481,
+      "size": 12408
     },
     "src/ignore.rs": {
       "mtime_ns": 1777108584878549216,
       "size": 0
     },
     "src/indexer.rs": {
-      "mtime_ns": 1777300508453377621,
-      "size": 8141
+      "mtime_ns": 1777385189852783321,
+      "size": 8857
     },
     "src/lib.rs": {
       "mtime_ns": 1777295076944160782,
       "size": 125
     },
     "src/model.rs": {
-      "mtime_ns": 1777291086016371202,
+      "mtime_ns": 1777385227946400812,
       "size": 1741
     },
     "src/search.rs": {
@@ -98,16 +102,16 @@
       "size": 5089
     },
     "src/wi_cli.rs": {
-      "mtime_ns": 1777367519144869093,
-      "size": 3627
+      "mtime_ns": 1777389537550497326,
+      "size": 2718
     },
     "templates/.thinindexignore": {
       "mtime_ns": 1777113369260424849,
       "size": 226
     },
     "tests/build_index.rs": {
-      "mtime_ns": 1777367042565672523,
-      "size": 4844
+      "mtime_ns": 1777385251061553145,
+      "size": 6250
     },
     "tests/common/mod.rs": {
       "mtime_ns": 1777366999659471627,
@@ -202,8 +206,8 @@
       "size": 13534
     },
     "tests/wi_init.rs": {
-      "mtime_ns": 1777298227916947675,
-      "size": 9974
+      "mtime_ns": 1777390200551262451,
+      "size": 17728
     },
     "tests/wi_stats.rs": {
       "mtime_ns": 1777292664530860276,

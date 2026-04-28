@@ -6,6 +6,17 @@ use assert_cmd::prelude::*;
 use common::*;
 use thinindex::wi_cli::wi_help_text;
 
+const AGENTS_REPOSITORY_SEARCH_HEADING: &str = "## Repository search";
+const AGENTS_REPOSITORY_SEARCH_BLOCK: &str = "\
+## Repository search
+
+- Before broad repository discovery, run `build_index`.
+- Use `wi <term>` before grep/find/ls/Read to locate code.
+- Read only files returned by `wi` unless the result is insufficient.
+- If `wi` returns no useful result, rerun `build_index` once and retry.
+- Fall back to grep/find/Read only after that retry fails.
+- See `WI.md` for filters and examples: `-t KIND`, `-l EXT`, `-p PATH`, `-s SOURCE`, `-n N`, `-v`.";
+
 fn assert_generated_wi_md(wi: &str) {
     let help = wi_help_text();
 
@@ -15,10 +26,12 @@ fn assert_generated_wi_md(wi: &str) {
     );
 
     for required in [
-        "AGENT RULE",
-        "Run `build_index`",
-        "run `wi <term>` first",
-        "Workflow:",
+        "# WI",
+        "Repository search rules:",
+        "Run `build_index` before broad discovery",
+        "Use `wi <term>` before grep/find/ls/Read",
+        "If `wi` misses, rerun `build_index` once",
+        "Examples:",
         "Usage:",
         "-t",
         "-l",
@@ -32,6 +45,33 @@ fn assert_generated_wi_md(wi: &str) {
             "wi_help_text() missing required text: {required}\nHelp:\n{help}"
         );
     }
+}
+
+fn assert_agents_has_canonical_repository_search_block(agents: &str) {
+    assert!(
+        agents.contains(AGENTS_REPOSITORY_SEARCH_BLOCK),
+        "AGENTS.md should contain canonical repository search block, got:\n{agents}"
+    );
+
+    let heading_count = agents
+        .lines()
+        .filter(|line| line.trim() == AGENTS_REPOSITORY_SEARCH_HEADING)
+        .count();
+
+    assert_eq!(
+        heading_count, 1,
+        "AGENTS.md should contain exactly one repository search heading, got:\n{agents}"
+    );
+
+    assert!(
+        !agents.contains("See WI.md for repository search/index usage."),
+        "AGENTS.md should not contain old unbackticked weak marker, got:\n{agents}"
+    );
+
+    assert!(
+        !agents.contains("See `WI.md` for repository search/index usage."),
+        "AGENTS.md should not contain old backticked weak marker, got:\n{agents}"
+    );
 }
 
 #[test]
@@ -65,7 +105,7 @@ class PromptService:
     assert_generated_wi_md(&wi);
 
     let agents = fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
-    assert!(agents.contains("See WI.md for repository search/index usage."));
+    assert_agents_has_canonical_repository_search_block(&agents);
 
     assert!(root.join(".dev_index/index.jsonl").exists());
 }
@@ -86,6 +126,222 @@ fn wi_init_refreshes_wi_md_without_force() {
 
     let wi = fs::read_to_string(root.join("WI.md")).expect("read WI.md");
     assert_generated_wi_md(&wi);
+}
+
+#[test]
+fn wi_init_appends_canonical_agents_block_to_existing_file() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "AGENTS.md", "# AGENTS\n\n- Existing rule.\n");
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    let agents = fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
+
+    assert!(
+        agents.contains("- Existing rule."),
+        "existing AGENTS.md content should be preserved, got:\n{agents}"
+    );
+    assert_agents_has_canonical_repository_search_block(&agents);
+}
+
+#[test]
+fn wi_init_normalizes_legacy_agents_marker() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "AGENTS.md",
+        "# AGENTS\n\n## Repository search\n\nSee WI.md for repository search/index usage.\n",
+    );
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    let agents = fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
+    assert_agents_has_canonical_repository_search_block(&agents);
+}
+
+#[test]
+fn wi_init_normalizes_backticked_legacy_agents_marker() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "AGENTS.md",
+        "# AGENTS\n\n## Repository search\n\nSee `WI.md` for repository search/index usage.\n",
+    );
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    let agents = fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
+    assert_agents_has_canonical_repository_search_block(&agents);
+}
+
+#[test]
+fn wi_init_normalizes_at_wi_marker_in_agents_md() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "AGENTS.md", "# AGENTS\n\n@WI.md\n");
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    let agents = fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
+
+    assert!(
+        !agents.lines().any(|line| line.trim() == "@WI.md"),
+        "AGENTS.md should not rely on @WI.md as the only repository-search instruction, got:\n{agents}"
+    );
+    assert_agents_has_canonical_repository_search_block(&agents);
+}
+
+#[test]
+fn wi_init_does_not_duplicate_agents_repository_search_block() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "AGENTS.md",
+        &format!("# AGENTS\n\n{AGENTS_REPOSITORY_SEARCH_BLOCK}\n"),
+    );
+
+    wi_init_bin().current_dir(root).assert().success();
+    wi_init_bin().current_dir(root).assert().success();
+
+    let agents = fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
+    assert_agents_has_canonical_repository_search_block(&agents);
+
+    let block_count = agents.matches(AGENTS_REPOSITORY_SEARCH_BLOCK).count();
+    assert_eq!(
+        block_count, 1,
+        "canonical repository search block should appear exactly once, got:\n{agents}"
+    );
+}
+
+#[test]
+fn wi_init_updates_existing_claude_md() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "CLAUDE.md", "@AGENTS.md\n");
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    let claude = fs::read_to_string(root.join("CLAUDE.md")).expect("read CLAUDE.md");
+    assert!(
+        claude.contains("@AGENTS.md"),
+        "existing CLAUDE.md content should be preserved, got:\n{claude}"
+    );
+    assert!(
+        claude.lines().any(|line| line.trim() == "@WI.md"),
+        "CLAUDE.md should reference @WI.md after wi-init, got:\n{claude}"
+    );
+}
+
+#[test]
+fn wi_init_does_not_create_claude_md() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    assert!(
+        !root.join("CLAUDE.md").exists(),
+        "wi-init must not create CLAUDE.md when it does not already exist"
+    );
+}
+
+#[test]
+fn wi_init_does_not_duplicate_claude_md_marker() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "CLAUDE.md", "@AGENTS.md\n@WI.md\n");
+
+    wi_init_bin().current_dir(root).assert().success();
+    wi_init_bin().current_dir(root).assert().success();
+
+    let claude = fs::read_to_string(root.join("CLAUDE.md")).expect("read CLAUDE.md");
+    let count = claude
+        .lines()
+        .filter(|line| line.trim() == "@WI.md")
+        .count();
+
+    assert_eq!(
+        count, 1,
+        "@WI.md should appear exactly once, got:\n{claude}"
+    );
+}
+
+#[test]
+fn wi_init_rolls_back_existing_claude_md_on_failure() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "CLAUDE.md", "@AGENTS.md\n");
+
+    let output = wi_init_bin()
+        .current_dir(root)
+        .env("THININDEX_TEST_FAIL_WI_INIT_AFTER_WRITES", "1")
+        .output()
+        .expect("run wi-init with failure injection");
+
+    assert!(!output.status.success(), "wi-init should fail");
+
+    assert_eq!(
+        fs::read_to_string(root.join("CLAUDE.md")).unwrap(),
+        "@AGENTS.md\n",
+        "CLAUDE.md should be restored to its pre-init contents on rollback"
+    );
 }
 
 #[test]
@@ -201,6 +457,7 @@ fn wi_init_rolls_back_existing_files_on_failure() {
     write_file(root, "WI.md", "original WI\n");
     write_file(root, ".thinindexignore", "original ignore\n");
     write_file(root, "AGENTS.md", "original AGENTS\n");
+    write_file(root, "CLAUDE.md", "original CLAUDE\n");
     write_file(root, ".gitignore", "original .gitignore\n");
 
     let dev_index = root.join(".dev_index");
@@ -229,6 +486,10 @@ fn wi_init_rolls_back_existing_files_on_failure() {
         "original AGENTS\n"
     );
     assert_eq!(
+        fs::read_to_string(root.join("CLAUDE.md")).unwrap(),
+        "original CLAUDE\n"
+    );
+    assert_eq!(
         fs::read_to_string(root.join(".gitignore")).unwrap(),
         "original .gitignore\n"
     );
@@ -249,7 +510,13 @@ fn wi_init_rolls_back_new_files_on_failure() {
     let repo = temp_repo();
     let root = repo.path();
 
-    for name in ["WI.md", ".thinindexignore", "AGENTS.md", ".gitignore"] {
+    for name in [
+        "WI.md",
+        ".thinindexignore",
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".gitignore",
+    ] {
         let path = root.join(name);
         if path.exists() {
             fs::remove_file(path).unwrap();
@@ -272,6 +539,7 @@ fn wi_init_rolls_back_new_files_on_failure() {
     assert!(!root.join("WI.md").exists());
     assert!(!root.join(".thinindexignore").exists());
     assert!(!root.join("AGENTS.md").exists());
+    assert!(!root.join("CLAUDE.md").exists());
     assert!(!root.join(".gitignore").exists());
     assert!(!dev_index.exists());
 }
@@ -314,6 +582,7 @@ fn wi_init_remove_leaves_repo_files_alone() {
     write_file(root, "WI.md", "original WI\n");
     write_file(root, ".thinindexignore", "original ignore\n");
     write_file(root, "AGENTS.md", "original AGENTS\n");
+    write_file(root, "CLAUDE.md", "original CLAUDE\n");
     write_file(root, ".gitignore", "original .gitignore\n");
 
     wi_init_bin()
@@ -333,6 +602,10 @@ fn wi_init_remove_leaves_repo_files_alone() {
     assert_eq!(
         fs::read_to_string(root.join("AGENTS.md")).unwrap(),
         "original AGENTS\n"
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("CLAUDE.md")).unwrap(),
+        "original CLAUDE\n"
     );
     assert_eq!(
         fs::read_to_string(root.join(".gitignore")).unwrap(),

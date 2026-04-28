@@ -11,7 +11,18 @@ use thinindex::indexer::{build_index, find_repo_root};
 use thinindex::wi_cli::wi_help_text;
 
 const THININDEXIGNORE_TEMPLATE: &str = include_str!("../../templates/.thinindexignore");
-const AGENTS_MARKER: &str = "See WI.md for repository search/index usage.";
+const CLAUDE_MARKER: &str = "@WI.md";
+
+const AGENTS_REPOSITORY_SEARCH_HEADING: &str = "## Repository search";
+const AGENTS_REPOSITORY_SEARCH_BLOCK: &str = "\
+## Repository search
+
+- Before broad repository discovery, run `build_index`.
+- Use `wi <term>` before grep/find/ls/Read to locate code.
+- Read only files returned by `wi` unless the result is insufficient.
+- If `wi` returns no useful result, rerun `build_index` once and retry.
+- Fall back to grep/find/Read only after that retry fails.
+- See `WI.md` for filters and examples: `-t KIND`, `-l EXT`, `-p PATH`, `-s SOURCE`, `-n N`, `-v`.";
 
 #[derive(Debug, Parser)]
 #[command(
@@ -32,7 +43,7 @@ struct Args {
     #[arg(long, help = "With --remove, keep .dev_index")]
     keep_index: bool,
 
-    #[arg(long, help = "Overwrite .thinindexignore even if it exist")]
+    #[arg(long, help = "Overwrite .thinindexignore even if it exists")]
     force: bool,
 }
 
@@ -61,10 +72,11 @@ fn run() -> Result<()> {
 
     let mut rollback = InitRollback::capture(&root)?;
 
-    write_wi_md(&root, args.force)?;
+    write_wi_md(&root)?;
     write_thinindexignore(&root, args.force)?;
     update_gitignore(&root)?;
     update_agents_md(&root)?;
+    update_claude_md(&root)?;
 
     if env::var_os("THININDEX_TEST_FAIL_WI_INIT_AFTER_WRITES").is_some() {
         anyhow::bail!("test failure after wi-init writes");
@@ -138,10 +150,16 @@ struct InitRollback {
 
 impl InitRollback {
     fn capture(root: &Path) -> Result<Self> {
-        let paths = ["WI.md", ".thinindexignore", "AGENTS.md", ".gitignore"]
-            .iter()
-            .map(|name| root.join(name))
-            .collect::<Vec<_>>();
+        let paths = [
+            "WI.md",
+            ".thinindexignore",
+            "AGENTS.md",
+            "CLAUDE.md",
+            ".gitignore",
+        ]
+        .iter()
+        .map(|name| root.join(name))
+        .collect::<Vec<_>>();
 
         let mut snapshots = Vec::new();
 
@@ -215,14 +233,10 @@ fn remove_repo(root: &Path, keep_index: bool) -> Result<()> {
     Ok(())
 }
 
-fn render_wi_md() -> String {
-    wi_help_text()
-}
-
-fn write_wi_md(root: &Path, _force: bool) -> Result<()> {
+fn write_wi_md(root: &Path) -> Result<()> {
     let path = root.join("WI.md");
 
-    fs::write(&path, render_wi_md())
+    fs::write(&path, wi_help_text())
         .with_context(|| format!("failed to write {}", path.display()))?;
 
     Ok(())
@@ -285,30 +299,131 @@ fn update_agents_md(root: &Path) -> Result<()> {
     if path.exists() {
         let existing = fs::read_to_string(&path)
             .with_context(|| format!("failed to read {}", path.display()))?;
+        let updated = normalize_agents_md(&existing);
 
-        if existing.contains(AGENTS_MARKER) {
+        if updated == existing {
             return Ok(());
         }
 
-        let mut file = OpenOptions::new()
-            .append(true)
-            .open(&path)
-            .with_context(|| format!("failed to open {}", path.display()))?;
-
-        if !existing.ends_with('\n') {
-            writeln!(file)?;
-        }
-
-        writeln!(file)?;
-        writeln!(file, "## Repository search")?;
-        writeln!(file)?;
-        writeln!(file, "{AGENTS_MARKER}")?;
+        fs::write(&path, updated).with_context(|| format!("failed to write {}", path.display()))?;
+        println!("updated: {}", path.display());
 
         return Ok(());
     }
 
-    fs::write(&path, format!("# AGENTS\n\n{AGENTS_MARKER}\n"))
-        .with_context(|| format!("failed to write {}", path.display()))?;
+    fs::write(
+        &path,
+        format!("# AGENTS\n\n{AGENTS_REPOSITORY_SEARCH_BLOCK}\n"),
+    )
+    .with_context(|| format!("failed to write {}", path.display()))?;
+
+    println!("updated: {}", path.display());
+
+    Ok(())
+}
+
+fn normalize_agents_md(existing: &str) -> String {
+    if agents_md_is_current(existing) {
+        return existing.to_string();
+    }
+
+    let without_sections = remove_repository_search_sections(existing);
+    let without_legacy_markers = remove_legacy_repository_search_lines(&without_sections);
+    let base = without_legacy_markers.trim_end();
+
+    if base.is_empty() {
+        format!("# AGENTS\n\n{AGENTS_REPOSITORY_SEARCH_BLOCK}\n")
+    } else {
+        format!("{base}\n\n{AGENTS_REPOSITORY_SEARCH_BLOCK}\n")
+    }
+}
+
+fn agents_md_is_current(existing: &str) -> bool {
+    repository_search_heading_count(existing) == 1
+        && existing.contains(AGENTS_REPOSITORY_SEARCH_BLOCK)
+        && !contains_legacy_repository_search_marker(existing)
+}
+
+fn repository_search_heading_count(existing: &str) -> usize {
+    existing
+        .lines()
+        .filter(|line| line.trim() == AGENTS_REPOSITORY_SEARCH_HEADING)
+        .count()
+}
+
+fn contains_legacy_repository_search_marker(existing: &str) -> bool {
+    existing.lines().any(is_legacy_repository_search_line)
+}
+
+fn remove_repository_search_sections(existing: &str) -> String {
+    let mut kept = Vec::new();
+    let mut lines = existing.lines().peekable();
+
+    while let Some(line) = lines.next() {
+        if line.trim() == AGENTS_REPOSITORY_SEARCH_HEADING {
+            while let Some(next_line) = lines.peek() {
+                if is_markdown_h1_or_h2(next_line) {
+                    break;
+                }
+
+                lines.next();
+            }
+        } else {
+            kept.push(line);
+        }
+    }
+
+    kept.join("\n")
+}
+
+fn remove_legacy_repository_search_lines(existing: &str) -> String {
+    existing
+        .lines()
+        .filter(|line| !is_legacy_repository_search_line(line))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn is_legacy_repository_search_line(line: &str) -> bool {
+    let trimmed = line.trim();
+
+    trimmed == CLAUDE_MARKER
+        || trimmed.contains("See WI.md for repository search/index usage.")
+        || trimmed.contains("See `WI.md` for repository search/index usage.")
+        || trimmed.contains("Before broad repository discovery, run `build_index`, then use `wi <term>`")
+}
+
+fn is_markdown_h1_or_h2(line: &str) -> bool {
+    let trimmed = line.trim_start();
+    trimmed.starts_with("# ") || trimmed.starts_with("## ")
+}
+
+fn update_claude_md(root: &Path) -> Result<()> {
+    let path = root.join("CLAUDE.md");
+
+    if !path.exists() {
+        return Ok(());
+    }
+
+    let existing =
+        fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
+
+    if existing.lines().any(|line| line.trim() == CLAUDE_MARKER) {
+        return Ok(());
+    }
+
+    let mut file = OpenOptions::new()
+        .append(true)
+        .open(&path)
+        .with_context(|| format!("failed to open {}", path.display()))?;
+
+    if !existing.is_empty() && !existing.ends_with('\n') {
+        writeln!(file)?;
+    }
+
+    writeln!(file, "{CLAUDE_MARKER}")?;
+
+    println!("updated: {}", path.display());
 
     Ok(())
 }

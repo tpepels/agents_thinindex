@@ -1,6 +1,7 @@
 use std::{
     collections::BTreeSet,
     fs,
+    io::Read,
     path::{Path, PathBuf},
     time::UNIX_EPOCH,
 };
@@ -252,12 +253,36 @@ fn discover_files(root: &Path) -> Result<Vec<PathBuf>> {
         }
 
         if entry.file_type().map(|ft| ft.is_file()).unwrap_or(false) {
+            if is_likely_binary(path) {
+                continue;
+            }
+
             files.push(path.to_path_buf());
         }
     }
 
     files.sort();
     Ok(files)
+}
+
+const BINARY_SNIFF_BYTES: usize = 8192;
+
+/// Heuristic used by git, ripgrep, and friends: read the leading chunk and
+/// treat the file as binary if it contains a NUL byte. Cheap (one syscall,
+/// at most 8KB) and avoids feeding non-text blobs to ctags or
+/// `read_to_string`, which would otherwise abort the whole build.
+fn is_likely_binary(path: &Path) -> bool {
+    let Ok(mut file) = fs::File::open(path) else {
+        return false;
+    };
+
+    let mut buf = [0u8; BINARY_SNIFF_BYTES];
+    let n = match file.read(&mut buf) {
+        Ok(n) => n,
+        Err(_) => return false,
+    };
+
+    buf[..n].contains(&0)
 }
 
 fn should_always_ignore_path(rel: &Path) -> bool {
