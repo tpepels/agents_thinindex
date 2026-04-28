@@ -1,94 +1,130 @@
 Use superpowers:subagent-driven-development.
 
-Build a reusable index-integrity test framework that can run the same checks against both fixture/temp indexes and the developer-local `.dev_index` for this repo.
+Build a reusable index-integrity test framework that applies the same shared integrity checks to:
+1. deterministic fixture/temp repo indexes during normal `cargo test`
+2. the thinindex repo itself during an ignored manual test
+3. real downloaded repos under `test_repos/` during an ignored manual test
 
 Goal:
-Avoid duplicating index integrity tests. Define reusable checks once, then apply them to:
-1. deterministic fixture/temp repo indexes during normal `cargo test`
-2. the real local thinindex repo `.dev_index` via ignored tests
+Define index integrity checks once. Fixture, local, and real-repo tests may have separate small harnesses, but all integrity assertions must call the same shared check functions. Do not duplicate duplicate-location, required-field, type-validation, or `.dev_index` assertion logic.
 
 Required design:
-- Create a shared test support module, probably under `tests/common/mod.rs`.
-- Add reusable helpers that operate on raw `index.jsonl` text, not on a specific repo setup.
-- Normal tests should generate an index from fixtures/temp repos and pass its `index.jsonl` into the shared checks.
-- Local tests should read this repo’s `.dev_index/index.jsonl` and pass it into the same shared checks.
-- Local tests must be `#[ignore]` because they depend on developer-local state.
-- Do not make normal `cargo test` depend on the current repo’s `.dev_index`.
+- Create shared test support in `tests/common/mod.rs` or a dedicated common submodule.
+- Shared checks must operate on raw `index.jsonl` text plus a repo/check name.
+- Expose one main shared suite function:
+  - `run_named_index_integrity_checks(name: &str, index: &str, expected_paths: &[&str])`
+- Optional smaller helpers may exist, but all harnesses must call the shared suite.
+- Failure messages must include the repo/check name and useful offending JSON lines.
 
-Required shared checks:
-1. No duplicate record locations:
-   - duplicate definition is exactly `path + line + col`
-   - ignore `kind`, `name`, `source`, and `text` for duplicate detection
-2. Required fields exist on every record:
-   - `path`
-   - `line`
-   - `col`
-   - `lang`
-   - `kind`
-   - `name`
-   - `text`
-   - `source`
-3. `.dev_index` is not indexed:
-   - no record path should contain `.dev_index/`
-4. Optional expected path check:
-   - helper should accept a list of expected path substrings and assert at least one record contains each
+Shared checks, written once:
+1. Parse every non-empty line as JSON.
+2. Validate required fields exist and have expected types:
+   - `path`: string, non-empty
+   - `line`: integer, `>= 1`
+   - `col`: integer, `>= 1`
+   - `lang`: string
+   - `kind`: string, non-empty
+   - `name`: string
+   - `text`: string
+   - `source`: string, non-empty
+3. No duplicate record locations:
+   - duplicate definition is exactly parsed `path + line + col`
+   - ignore `kind`, `name`, `source`, and `text`
+4. `.dev_index` is not indexed:
+   - check only the parsed `path` field
+   - do not search raw JSON text, because `text` may legitimately mention `.dev_index`
+5. Optional expected path check:
+   - if `expected_paths` is non-empty, assert each expected path substring appears in at least one parsed `path`
 
 Implementation shape:
-- Add a parsed record helper if useful, e.g.
+- Add a parsed record helper if useful:
   - `IndexJsonRecord`
-  - `parse_index_jsonl(index: &str) -> Vec<...>`
-- Add assertion helpers, e.g.
-  - `assert_no_duplicate_locations(index: &str)`
-  - `assert_required_fields(index: &str)`
-  - `assert_no_dev_index_records(index: &str)`
-  - `assert_index_contains_paths(index: &str, expected: &[&str])`
-- Failure messages must print useful offending lines.
+  - `parse_index_jsonl(name: &str, index: &str) -> Vec<...>`
+- Add assertion helpers if useful, but expose and use:
+  - `run_named_index_integrity_checks(name: &str, index: &str, expected_paths: &[&str])`
 
 Normal fixture test:
-- In `tests/build_index.rs`, keep or add one test that creates a temp repo with:
+- In `tests/build_index.rs`, keep or add one non-ignored test that creates a temp repo with:
   - Markdown headings/sections
   - HTML ids/classes/data attributes
+  - CSS class/variable records
   - at least one code symbol
 - Run `build_index`
 - Read `.dev_index/index.jsonl`
-- Run the shared integrity checks against it
-- Keep this test non-ignored
+- Call `run_named_index_integrity_checks("fixture index integrity", &index, expected_paths)`
+- This test remains part of normal `cargo test`
 
-Local repo test:
-- Create `tests/local_index.rs`
-- Mark tests `#[ignore]`
-- Read `env!("CARGO_MANIFEST_DIR")/.dev_index/index.jsonl`
-- If missing, fail with a clear message: run `build_index` from repo root first
-- Run the same shared integrity checks
-- Add expected local paths:
+Thinindex local repo test:
+- Keep/create `tests/local_index.rs`
+- Use exactly one ignored test for local repo integrity.
+- Do not create several ignored tests that each rebuild the same `.dev_index`; avoid parallel-test races.
+- The ignored test must:
+  - remove `env!("CARGO_MANIFEST_DIR")/.dev_index`
+  - call `thinindex::indexer::build_index(env!("CARGO_MANIFEST_DIR"))`
+  - read rebuilt `.dev_index/index.jsonl`
+  - call `run_named_index_integrity_checks("thinindex local repo", &index, expected_paths)`
+- Expected local paths:
   - `src/indexer.rs`
   - `src/search.rs`
   - `src/bin/wi.rs`
   - `src/bin/wi-init.rs`
   - `src/wi_cli.rs`
+- This test intentionally mutates/replaces the local `.dev_index`.
 
-Also add or keep a specific dedupe preference test:
-- Build a Markdown fixture where ctags emits `section` and extras may emit `heading_*` at the same line/col.
-- Assert the duplicate location check passes.
-- Assert `wi Tests -l md -v` contains `kind: section`.
-- Assert it does not contain `kind: heading_2` for that same heading.
-- This test is normal/non-ignored.
+Real downloaded repo tests:
+- Create `tests/real_repos.rs`
+- Use exactly one ignored test that loops through repos under `test_repos/`.
+- Use root directory `test_repos/`.
+- If `test_repos/` is missing, print `skipped: test_repos/ missing` and return successfully.
+- If `test_repos/` exists but no repo directories are found, print `skipped: test_repos/ has no repo directories` and return successfully.
+- Accept immediate child directories as repo roots if they contain `.git` OR at least one recognizable project marker:
+  - `Cargo.toml`
+  - `package.json`
+  - `pyproject.toml`
+  - `go.mod`
+  - `.gitignore`
+  - `src/`
+- For each accepted repo:
+  - delete that repo’s `.dev_index`
+  - call `thinindex::indexer::build_index(repo_path)`
+  - read `repo_path/.dev_index/index.jsonl`
+  - call `run_named_index_integrity_checks(repo_name, &index, &[])`
+- Print the list of repos tested.
+- Do not hardcode expected paths for arbitrary real repos unless a per-repo manifest/config is introduced.
+- This test must remain ignored/manual and must not affect normal `cargo test`.
+
+Repo hygiene:
+- Add `test_repos/` to `.gitignore` if not already ignored.
+- Add `test_repos/` to `.thinindexignore` if the thinindex repo should not index downloaded external repos as part of its own local index.
+- Do not commit downloaded third-party repos.
+
+Behavioral regression test:
+- Keep or add a normal non-ignored test proving Markdown heading aliases are canonicalized.
+- This is separate from the generic integrity framework, though it may also call the shared integrity suite.
+- It should assert:
+  - `wi Tests -l md -v` contains `kind: section`
+  - it does not contain `kind: heading_2` for that same heading
+- Keep the duplicate-location invariant unchanged.
 
 Important:
-- If implementing dedupe or changing extraction/index contents, increment `INDEX_SCHEMA_VERSION`.
+- If changing extraction/index contents, increment `INDEX_SCHEMA_VERSION`.
 - Do not remove useful fixture coverage.
-- Do not add the local `.dev_index` test to normal test requirements.
-- Do not duplicate the same assertion logic in multiple files; call shared helpers.
+- Do not duplicate assertion logic across fixture/local/real-repo harnesses.
+- Do not weaken the duplicate-location invariant.
+- Normal `cargo test` must not require `test_repos/` or a pre-existing developer-local `.dev_index`.
 
 Verification:
 - Run `cargo fmt`
 - Run `cargo test`
 - Run `cargo clippy --all-targets --all-features -- -D warnings`
-- Run local ignored tests manually:
-  - `build_index`
+- Run ignored local repo test manually:
   - `cargo test --test local_index -- --ignored`
+- Run ignored real repo test manually:
+  - `cargo test --test real_repos -- --ignored`
 
 Report:
 - changed files
 - verification commands and results
-- whether local ignored tests passed
+- whether the local ignored test passed
+- whether the real-repo ignored test ran, skipped, or failed
+- list of repos tested under `test_repos/`, if any

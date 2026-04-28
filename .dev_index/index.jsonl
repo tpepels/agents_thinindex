@@ -22,6 +22,9 @@
 {"path":"README.md","line":198,"col":1,"lang":"md","kind":"section","name":"Ignore extra paths","text":"## Ignore extra paths","source":"ctags"}
 {"path":"README.md","line":213,"col":1,"lang":"md","kind":"section","name":"Uninstall","text":"## Uninstall","source":"ctags"}
 {"path":"WI.md","line":1,"col":1,"lang":"md","kind":"hashtag","name":"WI","text":"#WI.md","source":"ctags"}
+{"path":"WI.md","line":22,"col":52,"lang":"md","kind":"todo","name":"TODO","text":"Looking for a markdown heading, link, checklist, TODO, or FIXME:","source":"extras"}
+{"path":"WI.md","line":22,"col":61,"lang":"md","kind":"fixme","name":"FIXME","text":"Looking for a markdown heading, link, checklist, TODO, or FIXME:","source":"extras"}
+{"path":"WI.md","line":24,"col":8,"lang":"md","kind":"todo","name":"TODO","text":"wi TODO -t todo","source":"extras"}
 {"path":"docs/ROADMAP.md","line":1,"col":1,"lang":"md","kind":"chapter","name":"Thinindex Product Roadmap","text":"# Thinindex Product Roadmap","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":3,"col":1,"lang":"md","kind":"section","name":"Product target","text":"## Product target","source":"ctags"}
 {"path":"docs/ROADMAP.md","line":26,"col":1,"lang":"md","kind":"section","name":"Product constants","text":"## Product constants","source":"ctags"}
@@ -376,33 +379,51 @@
 {"path":"src/store.rs","line":132,"col":1,"lang":"rs","kind":"function","name":"save_records","text":"pub fn save_records(root: &Path, records: &[IndexRecord]) -> Result<()> {","source":"ctags"}
 {"path":"src/store.rs","line":164,"col":1,"lang":"rs","kind":"function","name":"remove_records_for_paths","text":"pub fn remove_records_for_paths(records: Vec<IndexRecord>, paths: &[String]) -> Vec<IndexRecord>/","source":"ctags"}
 {"path":"src/store.rs","line":171,"col":1,"lang":"rs","kind":"function","name":"sort_records","text":"pub fn sort_records(records: &mut [IndexRecord]) {","source":"ctags"}
-{"path":"src/wi_cli.rs","line":26,"col":1,"lang":"rs","kind":"struct","name":"WiArgs","text":"pub struct WiArgs {","source":"ctags"}
-{"path":"src/wi_cli.rs","line":28,"col":1,"lang":"rs","kind":"field","name":"query","text":"pub query: String,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":35,"col":1,"lang":"rs","kind":"field","name":"kind","text":"pub kind: Option<String>,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":42,"col":1,"lang":"rs","kind":"field","name":"lang","text":"pub lang: Option<String>,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":49,"col":1,"lang":"rs","kind":"field","name":"path","text":"pub path: Option<String>,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":56,"col":1,"lang":"rs","kind":"field","name":"source","text":"pub source: Option<String>,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":59,"col":1,"lang":"rs","kind":"field","name":"limit","text":"pub limit: Option<usize>,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":65,"col":1,"lang":"rs","kind":"field","name":"verbose","text":"pub verbose: bool,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":73,"col":1,"lang":"rs","kind":"field","name":"repo","text":"pub repo: PathBuf,","source":"ctags"}
-{"path":"src/wi_cli.rs","line":76,"col":1,"lang":"rs","kind":"function","name":"wi_help_text","text":"pub fn wi_help_text() -> String {","source":"ctags"}
+{"path":"src/wi_cli.rs","line":37,"col":52,"lang":"rs","kind":"todo","name":"TODO","text":"Looking for a markdown heading, link, checklist, TODO, or FIXME:","source":"extras"}
+{"path":"src/wi_cli.rs","line":37,"col":61,"lang":"rs","kind":"fixme","name":"FIXME","text":"Looking for a markdown heading, link, checklist, TODO, or FIXME:","source":"extras"}
+{"path":"src/wi_cli.rs","line":39,"col":8,"lang":"rs","kind":"todo","name":"TODO","text":"wi TODO -t todo","source":"extras"}
+{"path":"src/wi_cli.rs","line":54,"col":1,"lang":"rs","kind":"struct","name":"WiArgs","text":"pub struct WiArgs {","source":"ctags"}
+{"path":"src/wi_cli.rs","line":56,"col":1,"lang":"rs","kind":"field","name":"query","text":"pub query: String,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":63,"col":1,"lang":"rs","kind":"field","name":"kind","text":"pub kind: Option<String>,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":70,"col":1,"lang":"rs","kind":"field","name":"lang","text":"pub lang: Option<String>,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":77,"col":1,"lang":"rs","kind":"field","name":"path","text":"pub path: Option<String>,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":84,"col":1,"lang":"rs","kind":"field","name":"source","text":"pub source: Option<String>,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":87,"col":1,"lang":"rs","kind":"field","name":"limit","text":"pub limit: Option<usize>,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":93,"col":1,"lang":"rs","kind":"field","name":"verbose","text":"pub verbose: bool,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":101,"col":1,"lang":"rs","kind":"field","name":"repo","text":"pub repo: PathBuf,","source":"ctags"}
+{"path":"src/wi_cli.rs","line":104,"col":1,"lang":"rs","kind":"function","name":"wi_help_text","text":"pub fn wi_help_text() -> String {","source":"ctags"}
 {"path":"tests/build_index.rs","line":1,"col":1,"lang":"rs","kind":"module","name":"common","text":"mod common;","source":"ctags"}
 {"path":"tests/build_index.rs","line":8,"col":1,"lang":"rs","kind":"function","name":"build_creates_index_files","text":"fn build_creates_index_files() {","source":"ctags"}
 {"path":"tests/build_index.rs","line":41,"col":1,"lang":"rs","kind":"function","name":"unchanged_files_are_skipped_on_second_build","text":"fn unchanged_files_are_skipped_on_second_build() {","source":"ctags"}
 {"path":"tests/build_index.rs","line":69,"col":1,"lang":"rs","kind":"function","name":"changed_files_are_reindexed","text":"fn changed_files_are_reindexed() {","source":"ctags"}
 {"path":"tests/build_index.rs","line":112,"col":1,"lang":"rs","kind":"function","name":"deleted_files_are_removed_from_index","text":"fn deleted_files_are_removed_from_index() {","source":"ctags"}
-{"path":"tests/build_index.rs","line":152,"col":1,"lang":"rs","kind":"function","name":"build_index_does_not_emit_duplicate_records_at_same_location","text":"fn build_index_does_not_emit_duplicate_records_at_same_location() {","source":"ctags"}
-{"path":"tests/common/mod.rs","line":8,"col":1,"lang":"rs","kind":"function","name":"has_ctags","text":"pub fn has_ctags() -> bool {","source":"ctags"}
-{"path":"tests/common/mod.rs","line":16,"col":1,"lang":"rs","kind":"function","name":"temp_repo","text":"pub fn temp_repo() -> TempDir {","source":"ctags"}
-{"path":"tests/common/mod.rs","line":22,"col":1,"lang":"rs","kind":"function","name":"write_file","text":"pub fn write_file(root: &Path, relpath: &str, text: &str) {","source":"ctags"}
-{"path":"tests/common/mod.rs","line":32,"col":1,"lang":"rs","kind":"function","name":"build_index_bin","text":"pub fn build_index_bin() -> Command {","source":"ctags"}
-{"path":"tests/common/mod.rs","line":36,"col":1,"lang":"rs","kind":"function","name":"wi_bin","text":"pub fn wi_bin() -> Command {","source":"ctags"}
-{"path":"tests/common/mod.rs","line":40,"col":1,"lang":"rs","kind":"function","name":"wi_init_bin","text":"pub fn wi_init_bin() -> Command {","source":"ctags"}
-{"path":"tests/common/mod.rs","line":44,"col":1,"lang":"rs","kind":"function","name":"wi_stats_bin","text":"pub fn wi_stats_bin() -> Command {","source":"ctags"}
-{"path":"tests/common/mod.rs","line":48,"col":1,"lang":"rs","kind":"function","name":"run_build","text":"pub fn run_build(root: &Path) -> String {","source":"ctags"}
-{"path":"tests/common/mod.rs","line":64,"col":1,"lang":"rs","kind":"function","name":"run_wi","text":"pub fn run_wi(root: &Path, args: &[&str]) -> String {","source":"ctags"}
-{"path":"tests/common/mod.rs","line":81,"col":1,"lang":"rs","kind":"function","name":"fixture_repo","text":"pub fn fixture_repo(name: &str) -> TempDir {","source":"ctags"}
-{"path":"tests/common/mod.rs","line":93,"col":1,"lang":"rs","kind":"function","name":"copy_dir_all","text":"fn copy_dir_all(source: &Path, target: &Path) -> std::io::Result<()> {","source":"ctags"}
+{"path":"tests/build_index.rs","line":152,"col":1,"lang":"rs","kind":"function","name":"fixture_index_passes_shared_integrity_checks","text":"fn fixture_index_passes_shared_integrity_checks() {","source":"ctags"}
+{"path":"tests/build_index.rs","line":226,"col":1,"lang":"rs","kind":"function","name":"markdown_heading_is_canonicalized_to_section","text":"fn markdown_heading_is_canonicalized_to_section() {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":9,"col":1,"lang":"rs","kind":"function","name":"has_ctags","text":"pub fn has_ctags() -> bool {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":17,"col":1,"lang":"rs","kind":"function","name":"temp_repo","text":"pub fn temp_repo() -> TempDir {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":23,"col":1,"lang":"rs","kind":"function","name":"write_file","text":"pub fn write_file(root: &Path, relpath: &str, text: &str) {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":33,"col":1,"lang":"rs","kind":"function","name":"build_index_bin","text":"pub fn build_index_bin() -> Command {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":37,"col":1,"lang":"rs","kind":"function","name":"wi_bin","text":"pub fn wi_bin() -> Command {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":41,"col":1,"lang":"rs","kind":"function","name":"wi_init_bin","text":"pub fn wi_init_bin() -> Command {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":45,"col":1,"lang":"rs","kind":"function","name":"wi_stats_bin","text":"pub fn wi_stats_bin() -> Command {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":49,"col":1,"lang":"rs","kind":"function","name":"run_build","text":"pub fn run_build(root: &Path) -> String {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":65,"col":1,"lang":"rs","kind":"function","name":"run_wi","text":"pub fn run_wi(root: &Path, args: &[&str]) -> String {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":82,"col":1,"lang":"rs","kind":"function","name":"fixture_repo","text":"pub fn fixture_repo(name: &str) -> TempDir {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":94,"col":1,"lang":"rs","kind":"function","name":"copy_dir_all","text":"fn copy_dir_all(source: &Path, target: &Path) -> std::io::Result<()> {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":119,"col":1,"lang":"rs","kind":"struct","name":"IndexJsonRecord","text":"pub struct IndexJsonRecord {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":120,"col":1,"lang":"rs","kind":"field","name":"path","text":"pub path: String,","source":"ctags"}
+{"path":"tests/common/mod.rs","line":121,"col":1,"lang":"rs","kind":"field","name":"line","text":"pub line: u64,","source":"ctags"}
+{"path":"tests/common/mod.rs","line":122,"col":1,"lang":"rs","kind":"field","name":"col","text":"pub col: u64,","source":"ctags"}
+{"path":"tests/common/mod.rs","line":123,"col":1,"lang":"rs","kind":"field","name":"lang","text":"pub lang: String,","source":"ctags"}
+{"path":"tests/common/mod.rs","line":124,"col":1,"lang":"rs","kind":"field","name":"kind","text":"pub kind: String,","source":"ctags"}
+{"path":"tests/common/mod.rs","line":125,"col":1,"lang":"rs","kind":"field","name":"name","text":"pub name: String,","source":"ctags"}
+{"path":"tests/common/mod.rs","line":126,"col":1,"lang":"rs","kind":"field","name":"text","text":"pub text: String,","source":"ctags"}
+{"path":"tests/common/mod.rs","line":127,"col":1,"lang":"rs","kind":"field","name":"source","text":"pub source: String,","source":"ctags"}
+{"path":"tests/common/mod.rs","line":134,"col":1,"lang":"rs","kind":"function","name":"parse_index_jsonl","text":"pub fn parse_index_jsonl(name: &str, index: &str) -> Vec<IndexJsonRecord> {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":257,"col":1,"lang":"rs","kind":"function","name":"assert_no_duplicate_locations","text":"pub fn assert_no_duplicate_locations(name: &str, records: &[IndexJsonRecord]) {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":272,"col":1,"lang":"rs","kind":"function","name":"assert_no_dev_index_paths","text":"pub fn assert_no_dev_index_paths(name: &str, records: &[IndexJsonRecord]) {","source":"ctags"}
+{"path":"tests/common/mod.rs","line":284,"col":1,"lang":"rs","kind":"function","name":"assert_expected_paths_present","text":"pub fn assert_expected_paths_present(","source":"ctags"}
+{"path":"tests/common/mod.rs","line":303,"col":1,"lang":"rs","kind":"function","name":"run_named_index_integrity_checks","text":"pub fn run_named_index_integrity_checks(name: &str, index: &str, expected_paths: &[&str]) {","source":"ctags"}
 {"path":"tests/fixtures/gitignore_repo/generated/keep.py","line":1,"col":1,"lang":"py","kind":"class","name":"KeptGitignoreService","text":"class KeptGitignoreService:","source":"ctags"}
 {"path":"tests/fixtures/gitignore_repo/src/visible.py","line":1,"col":1,"lang":"py","kind":"class","name":"VisibleGitignoreService","text":"class VisibleGitignoreService:","source":"ctags"}
 {"path":"tests/fixtures/html_repo/frontend/pages/index.html","line":1,"col":2,"lang":"html","kind":"html_tag","name":"section","text":"<section class=\"heroPanel\" data-page=\"home\">","source":"extras"}
@@ -457,14 +478,12 @@
 {"path":"tests/ignore_rules.rs","line":111,"col":1,"lang":"rs","kind":"function","name":"build_index_respects_thinindexignore","text":"fn build_index_respects_thinindexignore() {","source":"ctags"}
 {"path":"tests/install_scripts.rs","line":4,"col":1,"lang":"rs","kind":"function","name":"install_script_includes_wi_stats","text":"fn install_script_includes_wi_stats() {","source":"ctags"}
 {"path":"tests/install_scripts.rs","line":14,"col":1,"lang":"rs","kind":"function","name":"uninstall_script_includes_wi_stats","text":"fn uninstall_script_includes_wi_stats() {","source":"ctags"}
-{"path":"tests/local_index.rs","line":10,"col":1,"lang":"rs","kind":"variable","name":"LOCAL_INDEX","text":"static LOCAL_INDEX: OnceLock<String> = OnceLock::new();","source":"ctags"}
-{"path":"tests/local_index.rs","line":12,"col":1,"lang":"rs","kind":"function","name":"repo_root","text":"fn repo_root() -> &'static Path {","source":"ctags"}
-{"path":"tests/local_index.rs","line":16,"col":1,"lang":"rs","kind":"function","name":"local_index_path","text":"fn local_index_path() -> PathBuf {","source":"ctags"}
-{"path":"tests/local_index.rs","line":20,"col":1,"lang":"rs","kind":"function","name":"rebuilt_local_index","text":"fn rebuilt_local_index() -> &'static str {","source":"ctags"}
-{"path":"tests/local_index.rs","line":53,"col":1,"lang":"rs","kind":"function","name":"local_index_has_no_duplicate_locations","text":"fn local_index_has_no_duplicate_locations() {","source":"ctags"}
-{"path":"tests/local_index.rs","line":95,"col":1,"lang":"rs","kind":"function","name":"local_index_has_required_fields_for_every_record","text":"fn local_index_has_required_fields_for_every_record() {","source":"ctags"}
-{"path":"tests/local_index.rs","line":122,"col":1,"lang":"rs","kind":"function","name":"local_index_does_not_include_dev_index_itself","text":"fn local_index_does_not_include_dev_index_itself() {","source":"ctags"}
-{"path":"tests/local_index.rs","line":139,"col":1,"lang":"rs","kind":"function","name":"local_index_has_expected_thinindex_landmarks","text":"fn local_index_has_expected_thinindex_landmarks() {","source":"ctags"}
+{"path":"tests/local_index.rs","line":1,"col":1,"lang":"rs","kind":"module","name":"common","text":"mod common;","source":"ctags"}
+{"path":"tests/local_index.rs","line":10,"col":1,"lang":"rs","kind":"function","name":"local_index_passes_shared_integrity_checks","text":"fn local_index_passes_shared_integrity_checks() {","source":"ctags"}
+{"path":"tests/real_repos.rs","line":1,"col":1,"lang":"rs","kind":"module","name":"common","text":"mod common;","source":"ctags"}
+{"path":"tests/real_repos.rs","line":11,"col":1,"lang":"rs","kind":"constant","name":"PROJECT_MARKERS","text":"const PROJECT_MARKERS: &[&str] = &[","source":"ctags"}
+{"path":"tests/real_repos.rs","line":23,"col":1,"lang":"rs","kind":"function","name":"real_repos_pass_shared_integrity_checks","text":"fn real_repos_pass_shared_integrity_checks() {","source":"ctags"}
+{"path":"tests/real_repos.rs","line":87,"col":1,"lang":"rs","kind":"function","name":"is_repo_root","text":"fn is_repo_root(path: &Path) -> bool {","source":"ctags"}
 {"path":"tests/schema_version.rs","line":1,"col":1,"lang":"rs","kind":"module","name":"common","text":"mod common;","source":"ctags"}
 {"path":"tests/schema_version.rs","line":8,"col":1,"lang":"rs","kind":"function","name":"index_schema_version_missing_triggers_rebuild","text":"fn index_schema_version_missing_triggers_rebuild() {","source":"ctags"}
 {"path":"tests/schema_version.rs","line":68,"col":1,"lang":"rs","kind":"function","name":"index_schema_version_mismatch_triggers_rebuild","text":"fn index_schema_version_mismatch_triggers_rebuild() {","source":"ctags"}

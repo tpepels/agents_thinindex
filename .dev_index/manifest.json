@@ -2,11 +2,11 @@
   "schema_version": 2,
   "files": {
     ".gitignore": {
-      "mtime_ns": 1777294083582013955,
-      "size": 32
+      "mtime_ns": 1777367087388092166,
+      "size": 113
     },
     ".thinindexignore": {
-      "mtime_ns": 1777294083582013955,
+      "mtime_ns": 1777367528633580949,
       "size": 226
     },
     ".vscode/settings.json": {
@@ -30,8 +30,8 @@
       "size": 4171
     },
     "WI.md": {
-      "mtime_ns": 1777300834460018374,
-      "size": 1406
+      "mtime_ns": 1777367528633580949,
+      "size": 2537
     },
     "docs/ROADMAP.md": {
       "mtime_ns": 1777294041839172422,
@@ -42,8 +42,8 @@
       "size": 1147
     },
     "prompts/local_repo_test.md": {
-      "mtime_ns": 1777299819064862757,
-      "size": 3687
+      "mtime_ns": 1777304471271256725,
+      "size": 5952
     },
     "src/bin/build_index.rs": {
       "mtime_ns": 1777110766029355317,
@@ -98,20 +98,20 @@
       "size": 5089
     },
     "src/wi_cli.rs": {
-      "mtime_ns": 1777298601535983499,
-      "size": 2496
+      "mtime_ns": 1777367519144869093,
+      "size": 3627
     },
     "templates/.thinindexignore": {
       "mtime_ns": 1777113369260424849,
       "size": 226
     },
     "tests/build_index.rs": {
-      "mtime_ns": 1777299463469641184,
-      "size": 4730
+      "mtime_ns": 1777367042565672523,
+      "size": 4844
     },
     "tests/common/mod.rs": {
-      "mtime_ns": 1777292829421544693,
-      "size": 2799
+      "mtime_ns": 1777366999659471627,
+      "size": 9345
     },
     "tests/fixtures/gitignore_repo/.gitignore": {
       "mtime_ns": 1777111718629472792,
@@ -186,8 +186,12 @@
       "size": 675
     },
     "tests/local_index.rs": {
-      "mtime_ns": 1777300703350572395,
-      "size": 4353
+      "mtime_ns": 1777367062699874006,
+      "size": 1405
+    },
+    "tests/real_repos.rs": {
+      "mtime_ns": 1777367082254359690,
+      "size": 2461
     },
     "tests/schema_version.rs": {
       "mtime_ns": 1777292769247657874,

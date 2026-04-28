@@ -2,3 +2,6 @@ target
 
 # thinindex
 .dev_index/
+
+# Manual real-repo integrity tests download third-party repos here.
+test_repos/

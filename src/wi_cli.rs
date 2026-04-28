@@ -15,12 +15,40 @@ use clap::{CommandFactory, Parser};
     before_help = "\
 #WI.md
 
-Agent usage:
-  Run `build_index` before discovery and after each phase/structural change.
-  Use `wi <term>` before reading files; results are indexed repo landmarks with file/line locations.
-  If no result, rerun `build_index` once and retry before scanning.
-  Read only returned files unless insufficient.
-  For search terms starting with `-`, use `wi -- <term>`, e.g. `wi -- --css-variable`",
+AGENT RULE — read before exploring this repo:
+  Before you reach for grep, find, ripgrep, ls, or Read to locate code,
+  run `wi <term>` first. `wi` returns file:line landmarks from the
+  repo-local thin index. It exists so agents do NOT scan the tree by
+  default. Only fall back to grep/Read if `wi` returns nothing useful.
+
+When to use `wi` (these triggers should fire *before* you grep or Read):
+  Looking for a symbol, function, struct, class, method, trait, enum:
+    wi IndexRecord
+    wi build_index
+    wi PromptService
+  Looking for a constant, variable, or type by name:
+    wi INDEX_SCHEMA_VERSION
+  Looking for a CSS class, id, variable, or @keyframes:
+    wi .headerNavigation -t css_class
+    wi -t css_variable -- --paper-bg
+  Looking for an HTML id / class / data attribute / tag:
+    wi '#mainHeader' -t html_id
+    wi data-testid -t data_attribute
+  Looking for a markdown heading, link, checklist, TODO, or FIXME:
+    wi 'Tests' -t section
+    wi TODO -t todo
+  Refine with -t <kind>, -l <ext>, -p <path>, -n <n>, -v (verbose).
+
+Workflow:
+  1. Run `build_index` once before exploring, and after structural changes.
+  2. Use `wi <term>` to locate code; only Read files `wi` returned.
+  3. If `wi` returns nothing, rerun `build_index` once and retry; only
+     then fall back to grep/Read.
+  4. For terms starting with `-`, use `wi -- <term>`, e.g.
+     `wi -- --css-variable`.
+
+If you found yourself reading a whole file to find a name, you should
+have run `wi <name>` first. Next time, start with `wi`.",
     next_line_help = false
 )]
 pub struct WiArgs {

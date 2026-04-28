@@ -15,9 +15,10 @@ fn assert_generated_wi_md(wi: &str) {
     );
 
     for required in [
-        "Agent usage:",
-        "Run `build_index` before discovery",
-        "Use `wi <term>` before reading files",
+        "AGENT RULE",
+        "Run `build_index`",
+        "run `wi <term>` first",
+        "Workflow:",
         "Usage:",
         "-t",
         "-l",

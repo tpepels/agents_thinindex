@@ -149,13 +149,11 @@ class DeletedService:
     );
 }
 #[test]
-fn build_index_does_not_emit_duplicate_records_at_same_location() {
+fn fixture_index_passes_shared_integrity_checks() {
     if !has_ctags() {
         eprintln!("skipping: ctags unavailable");
         return;
     }
-
-    use std::collections::BTreeSet;
 
     let repo = temp_repo();
     let root = repo.path();
@@ -184,6 +182,20 @@ Content.
 
     write_file(
         root,
+        "frontend/styles/header.css",
+        r#"
+:root {
+  --paper-bg: white;
+}
+
+.headerNavigation {
+  display: flex;
+}
+"#,
+    );
+
+    write_file(
+        root,
         "src/service.py",
         r#"
 class PromptService:
@@ -198,37 +210,50 @@ def build_prompt():
 
     let index = fs::read_to_string(root.join(".dev_index/index.jsonl")).expect("read index");
 
-    let mut seen = BTreeSet::new();
-    let mut duplicates = Vec::new();
+    run_named_index_integrity_checks(
+        "fixture index integrity",
+        &index,
+        &[
+            "docs/guide.md",
+            "frontend/page.html",
+            "frontend/styles/header.css",
+            "src/service.py",
+        ],
+    );
+}
 
-    for line in index.lines().filter(|line| !line.trim().is_empty()) {
-        let record: serde_json::Value =
-            serde_json::from_str(line).expect("parse index record JSON");
-
-        let key = (
-            record
-                .get("path")
-                .and_then(|value| value.as_str())
-                .unwrap_or("")
-                .to_string(),
-            record
-                .get("line")
-                .and_then(|value| value.as_u64())
-                .unwrap_or(0),
-            record
-                .get("col")
-                .and_then(|value| value.as_u64())
-                .unwrap_or(0),
-        );
-
-        if !seen.insert(key) {
-            duplicates.push(line.to_string());
-        }
+#[test]
+fn markdown_heading_is_canonicalized_to_section() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
     }
 
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "docs/guide.md",
+        r#"
+# Guide
+
+## Tests
+
+Content.
+"#,
+    );
+
+    run_build(root);
+
+    let verbose = run_wi(root, &["Tests", "-l", "md", "-v"]);
+
     assert!(
-        duplicates.is_empty(),
-        "index should not contain duplicate path+line+col records:\n{}",
-        duplicates.join("\n")
+        verbose.contains("kind: section"),
+        "markdown heading `Tests` should produce a `section` record, got:\n{verbose}"
+    );
+    assert!(
+        !verbose.contains("kind: heading_2"),
+        "markdown heading `Tests` should not surface as `heading_2`, got:\n{verbose}"
     );
 }
