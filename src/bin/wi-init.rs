@@ -8,21 +8,11 @@ use std::{
 use anyhow::{Context, Result};
 use clap::Parser;
 use thinindex::indexer::{build_index, find_repo_root};
-use thinindex::wi_cli::wi_help_text;
 
 const THININDEXIGNORE_TEMPLATE: &str = include_str!("../../templates/.thinindexignore");
-const CLAUDE_MARKER: &str = "@WI.md";
-
 const AGENTS_REPOSITORY_SEARCH_HEADING: &str = "## Repository search";
-const AGENTS_REPOSITORY_SEARCH_BLOCK: &str = "\
-## Repository search
-
-- Before broad repository discovery, run `build_index`.
-- Use `wi <term>` before grep/find/ls/Read to locate code.
-- Read only files returned by `wi` unless the result is insufficient.
-- If `wi` returns no useful result, rerun `build_index` once and retry.
-- Fall back to grep/find/Read only after that retry fails.
-- See `WI.md` for filters and examples: `-t KIND`, `-l EXT`, `-p PATH`, `-s SOURCE`, `-n N`, `-v`.";
+const REPOSITORY_SEARCH_BLOCK: &str = "\
+## Repository search\n\n- Before broad repository discovery, run `build_index`.\n- Run `wi --help` if you need search filters or examples.\n- Use `wi <term>` before grep/find/ls/Read to locate code.\n- Read only files returned by `wi` unless the result is insufficient.\n- If `wi` returns no useful result, rerun `build_index` once and retry.\n- Fall back to grep/find/Read only after that retry fails.";
 
 #[derive(Debug, Parser)]
 #[command(
@@ -72,7 +62,6 @@ fn run() -> Result<()> {
 
     let mut rollback = InitRollback::capture(&root)?;
 
-    write_wi_md(&root)?;
     write_thinindexignore(&root, args.force)?;
     update_gitignore(&root)?;
     update_agents_md(&root)?;
@@ -87,7 +76,6 @@ fn run() -> Result<()> {
     rollback.commit();
 
     println!("initialized: {}", root.display());
-    println!("wrote: {}", root.join("WI.md").display());
     println!("wrote: {}", root.join(".thinindexignore").display());
     println!("updated: {}", root.join("AGENTS.md").display());
     println!("records: {}", stats.records);
@@ -143,23 +131,17 @@ impl FileSnapshot {
 #[derive(Debug)]
 struct InitRollback {
     snapshots: Vec<FileSnapshot>,
-    dev_index_existed: bool,
     dev_index_path: PathBuf,
+    dev_index_existed: bool,
     committed: bool,
 }
 
 impl InitRollback {
     fn capture(root: &Path) -> Result<Self> {
-        let paths = [
-            "WI.md",
-            ".thinindexignore",
-            "AGENTS.md",
-            "CLAUDE.md",
-            ".gitignore",
-        ]
-        .iter()
-        .map(|name| root.join(name))
-        .collect::<Vec<_>>();
+        let paths = [".thinindexignore", "AGENTS.md", "CLAUDE.md", ".gitignore"]
+            .iter()
+            .map(|name| root.join(name))
+            .collect::<Vec<_>>();
 
         let mut snapshots = Vec::new();
 
@@ -172,8 +154,8 @@ impl InitRollback {
 
         Ok(Self {
             snapshots,
-            dev_index_existed,
             dev_index_path,
+            dev_index_existed,
             committed: false,
         })
     }
@@ -229,15 +211,6 @@ fn remove_repo(root: &Path, keep_index: bool) -> Result<()> {
     }
 
     println!("removed thinindex setup from: {}", root.display());
-
-    Ok(())
-}
-
-fn write_wi_md(root: &Path) -> Result<()> {
-    let path = root.join("WI.md");
-
-    fs::write(&path, wi_help_text())
-        .with_context(|| format!("failed to write {}", path.display()))?;
 
     Ok(())
 }
@@ -311,11 +284,8 @@ fn update_agents_md(root: &Path) -> Result<()> {
         return Ok(());
     }
 
-    fs::write(
-        &path,
-        format!("# AGENTS\n\n{AGENTS_REPOSITORY_SEARCH_BLOCK}\n"),
-    )
-    .with_context(|| format!("failed to write {}", path.display()))?;
+    fs::write(&path, format!("# AGENTS\n\n{REPOSITORY_SEARCH_BLOCK}\n"))
+        .with_context(|| format!("failed to write {}", path.display()))?;
 
     println!("updated: {}", path.display());
 
@@ -332,15 +302,15 @@ fn normalize_agents_md(existing: &str) -> String {
     let base = without_legacy_markers.trim_end();
 
     if base.is_empty() {
-        format!("# AGENTS\n\n{AGENTS_REPOSITORY_SEARCH_BLOCK}\n")
+        format!("# AGENTS\n\n{REPOSITORY_SEARCH_BLOCK}\n")
     } else {
-        format!("{base}\n\n{AGENTS_REPOSITORY_SEARCH_BLOCK}\n")
+        format!("{base}\n\n{REPOSITORY_SEARCH_BLOCK}\n")
     }
 }
 
 fn agents_md_is_current(existing: &str) -> bool {
     repository_search_heading_count(existing) == 1
-        && existing.contains(AGENTS_REPOSITORY_SEARCH_BLOCK)
+        && existing.contains(REPOSITORY_SEARCH_BLOCK)
         && !contains_legacy_repository_search_marker(existing)
 }
 
@@ -387,10 +357,12 @@ fn remove_legacy_repository_search_lines(existing: &str) -> String {
 fn is_legacy_repository_search_line(line: &str) -> bool {
     let trimmed = line.trim();
 
-    trimmed == CLAUDE_MARKER
+    trimmed == "@WI.md"
         || trimmed.contains("See WI.md for repository search/index usage.")
         || trimmed.contains("See `WI.md` for repository search/index usage.")
-        || trimmed.contains("Before broad repository discovery, run `build_index`, then use `wi <term>`")
+        || trimmed
+            .contains("Before broad repository discovery, run `build_index`, then use `wi <term>`")
+        || trimmed == "@AGENTS.md"
 }
 
 fn is_markdown_h1_or_h2(line: &str) -> bool {
@@ -408,21 +380,12 @@ fn update_claude_md(root: &Path) -> Result<()> {
     let existing =
         fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
 
-    if existing.lines().any(|line| line.trim() == CLAUDE_MARKER) {
+    let updated = normalize_agents_md(&existing);
+    if updated == existing {
         return Ok(());
     }
 
-    let mut file = OpenOptions::new()
-        .append(true)
-        .open(&path)
-        .with_context(|| format!("failed to open {}", path.display()))?;
-
-    if !existing.is_empty() && !existing.ends_with('\n') {
-        writeln!(file)?;
-    }
-
-    writeln!(file, "{CLAUDE_MARKER}")?;
-
+    fs::write(&path, updated).with_context(|| format!("failed to write {}", path.display()))?;
     println!("updated: {}", path.display());
 
     Ok(())

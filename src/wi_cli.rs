@@ -1,11 +1,9 @@
 use std::path::PathBuf;
 
-use clap::{CommandFactory, Parser};
+use clap::Parser;
 
 // This Clap parser is the single source of truth for `wi` CLI behavior and help text.
 // `src/bin/wi.rs` uses it to parse arguments.
-// `wi-init` renders repo-local `WI.md` from this same definition via `wi_help_text()`.
-// Keep option help explicit: it is written into repo-local `WI.md` for agents.
 
 #[derive(Debug, Parser)]
 #[command(
@@ -80,9 +78,4 @@ pub struct WiArgs {
         help = "Directory inside the repository"
     )]
     pub repo: PathBuf,
-}
-
-pub fn wi_help_text() -> String {
-    let mut command = WiArgs::command().term_width(120);
-    command.render_help().to_string()
 }

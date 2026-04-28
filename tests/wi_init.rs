@@ -1,51 +1,22 @@
 mod common;
 
-use std::{fs, path::Path};
+use std::fs;
 
 use assert_cmd::prelude::*;
 use common::*;
-use thinindex::wi_cli::wi_help_text;
 
 const AGENTS_REPOSITORY_SEARCH_HEADING: &str = "## Repository search";
 const AGENTS_REPOSITORY_SEARCH_BLOCK: &str = "\
 ## Repository search
 
 - Before broad repository discovery, run `build_index`.
+- Run `wi --help` if you need search filters or examples.
 - Use `wi <term>` before grep/find/ls/Read to locate code.
 - Read only files returned by `wi` unless the result is insufficient.
 - If `wi` returns no useful result, rerun `build_index` once and retry.
-- Fall back to grep/find/Read only after that retry fails.
-- See `WI.md` for filters and examples: `-t KIND`, `-l EXT`, `-p PATH`, `-s SOURCE`, `-n N`, `-v`.";
+- Fall back to grep/find/Read only after that retry fails.";
 
-fn assert_generated_wi_md(wi: &str) {
-    let help = wi_help_text();
-
-    assert_eq!(
-        wi, help,
-        "WI.md does not exactly match wi_help_text()\nWI.md:\n{wi}\nHelp:\n{help}"
-    );
-
-    for required in [
-        "# WI",
-        "Repository search rules:",
-        "Run `build_index` before broad discovery",
-        "Use `wi <term>` before grep/find/ls/Read",
-        "If `wi` misses, rerun `build_index` once",
-        "Examples:",
-        "Usage:",
-        "-t",
-        "-l",
-        "-p",
-        "-s",
-        "-n",
-        "-v",
-    ] {
-        assert!(
-            help.contains(required),
-            "wi_help_text() missing required text: {required}\nHelp:\n{help}"
-        );
-    }
-}
+// WI.md and related assertions removed as WI.md is no longer generated or required.
 
 fn assert_agents_has_canonical_repository_search_block(agents: &str) {
     assert!(
@@ -74,14 +45,10 @@ fn assert_agents_has_canonical_repository_search_block(agents: &str) {
     );
 }
 
-#[test]
-fn wi_md_template_is_removed() {
-    let template = Path::new(env!("CARGO_MANIFEST_DIR")).join("templates/WI.md");
-    assert!(!template.exists(), "templates/WI.md should not exist");
-}
+// WI.md generation and related tests removed.
 
 #[test]
-fn wi_init_writes_wi_and_agents_files() {
+fn wi_init_does_not_create_wi_md() {
     if !has_ctags() {
         eprintln!("skipping: ctags unavailable");
         return;
@@ -90,42 +57,28 @@ fn wi_init_writes_wi_and_agents_files() {
     let repo = temp_repo();
     let root = repo.path();
 
-    write_file(
-        root,
-        "src/main.py",
-        r#"
-class PromptService:
-    pass
-"#,
-    );
-
     wi_init_bin().current_dir(root).assert().success();
 
-    let wi = fs::read_to_string(root.join("WI.md")).expect("read WI.md");
-    assert_generated_wi_md(&wi);
+    assert!(
+        !root.join("WI.md").exists(),
+        "wi-init must not create WI.md"
+    );
+}
+
+#[test]
+fn wi_init_creates_agents_md_when_absent() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    wi_init_bin().current_dir(root).assert().success();
 
     let agents = fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
     assert_agents_has_canonical_repository_search_block(&agents);
-
-    assert!(root.join(".dev_index/index.jsonl").exists());
-}
-
-#[test]
-fn wi_init_refreshes_wi_md_without_force() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
-    let repo = temp_repo();
-    let root = repo.path();
-
-    write_file(root, "WI.md", "garbage\n");
-
-    wi_init_bin().current_dir(root).assert().success();
-
-    let wi = fs::read_to_string(root.join("WI.md")).expect("read WI.md");
-    assert_generated_wi_md(&wi);
 }
 
 #[test]
@@ -262,14 +215,7 @@ fn wi_init_updates_existing_claude_md() {
     wi_init_bin().current_dir(root).assert().success();
 
     let claude = fs::read_to_string(root.join("CLAUDE.md")).expect("read CLAUDE.md");
-    assert!(
-        claude.contains("@AGENTS.md"),
-        "existing CLAUDE.md content should be preserved, got:\n{claude}"
-    );
-    assert!(
-        claude.lines().any(|line| line.trim() == "@WI.md"),
-        "CLAUDE.md should reference @WI.md after wi-init, got:\n{claude}"
-    );
+    assert_agents_has_canonical_repository_search_block(&claude);
 }
 
 #[test]
@@ -306,15 +252,7 @@ fn wi_init_does_not_duplicate_claude_md_marker() {
     wi_init_bin().current_dir(root).assert().success();
 
     let claude = fs::read_to_string(root.join("CLAUDE.md")).expect("read CLAUDE.md");
-    let count = claude
-        .lines()
-        .filter(|line| line.trim() == "@WI.md")
-        .count();
-
-    assert_eq!(
-        count, 1,
-        "@WI.md should appear exactly once, got:\n{claude}"
-    );
+    assert_agents_has_canonical_repository_search_block(&claude);
 }
 
 #[test]
@@ -454,7 +392,7 @@ fn wi_init_rolls_back_existing_files_on_failure() {
     let repo = temp_repo();
     let root = repo.path();
 
-    write_file(root, "WI.md", "original WI\n");
+    // WI.md removed
     write_file(root, ".thinindexignore", "original ignore\n");
     write_file(root, "AGENTS.md", "original AGENTS\n");
     write_file(root, "CLAUDE.md", "original CLAUDE\n");
@@ -473,10 +411,7 @@ fn wi_init_rolls_back_existing_files_on_failure() {
 
     assert!(!output.status.success(), "wi-init should fail");
 
-    assert_eq!(
-        fs::read_to_string(root.join("WI.md")).unwrap(),
-        "original WI\n"
-    );
+    // WI.md removed
     assert_eq!(
         fs::read_to_string(root.join(".thinindexignore")).unwrap(),
         "original ignore\n"
@@ -536,7 +471,7 @@ fn wi_init_rolls_back_new_files_on_failure() {
 
     assert!(!output.status.success(), "wi-init should fail");
 
-    assert!(!root.join("WI.md").exists());
+    // WI.md removed
     assert!(!root.join(".thinindexignore").exists());
     assert!(!root.join("AGENTS.md").exists());
     assert!(!root.join("CLAUDE.md").exists());
@@ -579,7 +514,7 @@ fn wi_init_remove_leaves_repo_files_alone() {
     let repo = temp_repo();
     let root = repo.path();
 
-    write_file(root, "WI.md", "original WI\n");
+    // WI.md removed
     write_file(root, ".thinindexignore", "original ignore\n");
     write_file(root, "AGENTS.md", "original AGENTS\n");
     write_file(root, "CLAUDE.md", "original CLAUDE\n");
@@ -591,10 +526,7 @@ fn wi_init_remove_leaves_repo_files_alone() {
         .assert()
         .success();
 
-    assert_eq!(
-        fs::read_to_string(root.join("WI.md")).unwrap(),
-        "original WI\n"
-    );
+    // WI.md removed
     assert_eq!(
         fs::read_to_string(root.join(".thinindexignore")).unwrap(),
         "original ignore\n"
@@ -634,7 +566,7 @@ fn fixture_repo_remove_command_removes_index() {
         .success();
 
     assert!(!root.join(".dev_index").exists());
-    assert!(root.join("WI.md").exists());
+    // WI.md removed
     assert!(root.join("AGENTS.md").exists());
 }
 
