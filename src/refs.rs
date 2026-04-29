@@ -160,10 +160,12 @@ fn extract_text_references(
                     ctx,
                     col,
                     target.name.as_str(),
-                    Some(target.kind.as_str()),
-                    ref_kind,
-                    ctx.text.trim(),
-                    SOURCE_TEXT,
+                    RefSpec {
+                        to_kind: Some(target.kind.as_str()),
+                        ref_kind,
+                        evidence: ctx.text.trim().to_string(),
+                        source: SOURCE_TEXT,
+                    },
                 );
             }
 
@@ -226,10 +228,12 @@ fn push_import_names(
                 ctx,
                 part_start + 1,
                 name,
-                None,
-                "import",
-                import_evidence(ctx.text),
-                SOURCE_IMPORTS,
+                RefSpec {
+                    to_kind: None,
+                    ref_kind: "import",
+                    evidence: import_evidence(ctx.text),
+                    source: SOURCE_IMPORTS,
+                },
             );
         }
 
@@ -250,10 +254,12 @@ fn extract_rust_imports(ctx: &LineContext<'_>, refs: &mut Vec<ReferenceRecord>) 
                 ctx,
                 leading_spaces + "mod ".len() + 1,
                 name,
-                None,
-                "import",
-                import_evidence(ctx.text),
-                SOURCE_IMPORTS,
+                RefSpec {
+                    to_kind: None,
+                    ref_kind: "import",
+                    evidence: import_evidence(ctx.text),
+                    source: SOURCE_IMPORTS,
+                },
             );
         }
 
@@ -277,10 +283,12 @@ fn extract_rust_imports(ctx: &LineContext<'_>, refs: &mut Vec<ReferenceRecord>) 
             ctx,
             base + offset + 1,
             name,
-            None,
-            "import",
-            import_evidence(ctx.text),
-            SOURCE_IMPORTS,
+            RefSpec {
+                to_kind: None,
+                ref_kind: "import",
+                evidence: import_evidence(ctx.text),
+                source: SOURCE_IMPORTS,
+            },
         );
     }
 }
@@ -325,9 +333,9 @@ fn extract_js_imports(ctx: &LineContext<'_>, refs: &mut Vec<ReferenceRecord>) {
     let trimmed = ctx.text.trim_start();
     let leading_spaces = ctx.text.len() - trimmed.len();
 
-    if trimmed.starts_with("import ") {
-        extract_js_named_imports(ctx, refs, trimmed, leading_spaces);
-    } else if trimmed.starts_with("export ") && trimmed.contains(" from ") {
+    if trimmed.starts_with("import ")
+        || (trimmed.starts_with("export ") && trimmed.contains(" from "))
+    {
         extract_js_named_imports(ctx, refs, trimmed, leading_spaces);
     }
 }
@@ -363,10 +371,12 @@ fn extract_js_named_imports(
                     ctx,
                     leading_spaces + open + 1 + offset + leading + 1,
                     name,
-                    None,
-                    "import",
-                    import_evidence(ctx.text),
-                    SOURCE_IMPORTS,
+                    RefSpec {
+                        to_kind: None,
+                        ref_kind: "import",
+                        evidence: import_evidence(ctx.text),
+                        source: SOURCE_IMPORTS,
+                    },
                 );
             }
 
@@ -389,10 +399,12 @@ fn extract_js_named_imports(
             ctx,
             col,
             name,
-            None,
-            "import",
-            import_evidence(ctx.text),
-            SOURCE_IMPORTS,
+            RefSpec {
+                to_kind: None,
+                ref_kind: "import",
+                evidence: import_evidence(ctx.text),
+                source: SOURCE_IMPORTS,
+            },
         );
     }
 }
@@ -426,10 +438,12 @@ fn extract_markdown_links(ctx: &LineContext<'_>, refs: &mut Vec<ReferenceRecord>
                 ctx,
                 target_start + 1,
                 target,
-                Some("link"),
-                "markdown_link",
-                markdown_link_evidence(ctx.text, open, target_close + 1),
-                SOURCE_EXTRAS,
+                RefSpec {
+                    to_kind: Some("link"),
+                    ref_kind: "markdown_link",
+                    evidence: markdown_link_evidence(ctx.text, open, target_close + 1),
+                    source: SOURCE_EXTRAS,
+                },
             );
         }
 
@@ -452,10 +466,12 @@ fn extract_css_usages(ctx: &LineContext<'_>, refs: &mut Vec<ReferenceRecord>) {
             ctx,
             index + 1,
             token.as_str(),
-            Some(to_kind),
-            "css_usage",
-            token.as_str(),
-            SOURCE_EXTRAS,
+            RefSpec {
+                to_kind: Some(to_kind),
+                ref_kind: "css_usage",
+                evidence: token.clone(),
+                source: SOURCE_EXTRAS,
+            },
         );
     }
 }
@@ -540,10 +556,12 @@ fn extract_html_attributes(
                     ctx,
                     absolute_attr_col,
                     attr,
-                    Some("data_attribute"),
-                    "html_usage",
-                    attr,
-                    SOURCE_EXTRAS,
+                    RefSpec {
+                        to_kind: Some("data_attribute"),
+                        ref_kind: "html_usage",
+                        evidence: attr.to_string(),
+                        source: SOURCE_EXTRAS,
+                    },
                 );
             }
 
@@ -557,10 +575,12 @@ fn extract_html_attributes(
                             ctx,
                             absolute_value_start + 1,
                             format!("#{value}"),
-                            Some("html_id"),
-                            "html_usage",
-                            format!("#{value}"),
-                            SOURCE_EXTRAS,
+                            RefSpec {
+                                to_kind: Some("html_id"),
+                                ref_kind: "html_usage",
+                                evidence: format!("#{value}"),
+                                source: SOURCE_EXTRAS,
+                            },
                         );
                     }
                     "class" | "className" => {
@@ -592,10 +612,12 @@ fn push_class_usage_refs(
                 ctx,
                 class_start + 1,
                 to_name.as_str(),
-                Some("css_class"),
-                "html_usage",
-                to_name.as_str(),
-                SOURCE_EXTRAS,
+                RefSpec {
+                    to_kind: Some("css_class"),
+                    ref_kind: "html_usage",
+                    evidence: to_name.clone(),
+                    source: SOURCE_EXTRAS,
+                },
             );
             offset += relative_index + class_name.len();
         }
