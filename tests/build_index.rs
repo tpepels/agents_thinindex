@@ -3,6 +3,20 @@ mod common;
 use std::fs;
 
 use common::*;
+use rusqlite::Connection;
+
+fn sqlite_table_exists(root: &std::path::Path, table: &str) -> bool {
+    let conn = Connection::open(root.join(".dev_index/index.sqlite")).expect("open sqlite index");
+    let count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?1",
+            [table],
+            |row| row.get(0),
+        )
+        .expect("query sqlite_master");
+
+    count == 1
+}
 
 #[test]
 fn build_creates_index_files() {
@@ -172,6 +186,8 @@ fn fixture_index_passes_shared_integrity_checks() {
 ## Tests
 
 Content.
+
+See [PromptService](../src/service.py).
 "#,
     );
 
@@ -213,6 +229,8 @@ def build_prompt():
 
     run_build(root);
 
+    assert!(sqlite_table_exists(root, "refs"));
+
     let snapshot = load_index_snapshot_from_sqlite(root);
 
     run_named_index_integrity_checks(
@@ -224,6 +242,104 @@ def build_prompt():
             "frontend/styles/header.css",
             "src/service.py",
         ],
+    );
+
+    assert!(
+        snapshot
+            .refs
+            .iter()
+            .any(|reference| reference.to_name == "../src/service.py"
+                && reference.ref_kind == "markdown_link"),
+        "expected markdown link reference to ../src/service.py, got:\n{:#?}",
+        snapshot.refs
+    );
+}
+
+#[test]
+fn changed_files_rewrite_stale_refs() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "src/service.py", "class PromptService: pass\n");
+    write_file(root, "docs/guide.md", "[Old](../src/old.py)\n");
+
+    run_build(root);
+    let before = thinindex::store::load_refs(root).expect("load refs before");
+    assert!(
+        before
+            .iter()
+            .any(|reference| reference.to_name == "../src/old.py"),
+        "expected initial markdown ref, got:\n{before:#?}"
+    );
+
+    write_file(root, "docs/guide.md", "[New](../src/service.py)\n");
+
+    let second = run_build(root);
+    assert!(
+        second.contains("changed files: 1"),
+        "expected one changed file, got:\n{second}"
+    );
+
+    let after = thinindex::store::load_refs(root).expect("load refs after");
+    assert!(
+        !after
+            .iter()
+            .any(|reference| reference.to_name == "../src/old.py"),
+        "stale ref should be removed after changed file rebuild, got:\n{after:#?}"
+    );
+    assert!(
+        after
+            .iter()
+            .any(|reference| reference.to_name == "../src/service.py"),
+        "new ref should be inserted after changed file rebuild, got:\n{after:#?}"
+    );
+}
+
+#[test]
+fn deleted_files_remove_refs() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "src/service.py", "class PromptService: pass\n");
+    write_file(
+        root,
+        "docs/deleted.md",
+        "[PromptService](../src/service.py)\n",
+    );
+
+    run_build(root);
+    let before = thinindex::store::load_refs(root).expect("load refs before");
+    assert!(
+        before
+            .iter()
+            .any(|reference| reference.from_path == "docs/deleted.md"),
+        "expected ref from docs/deleted.md, got:\n{before:#?}"
+    );
+
+    fs::remove_file(root.join("docs/deleted.md")).expect("delete markdown file");
+
+    let second = run_build(root);
+    assert!(
+        second.contains("deleted files: 1"),
+        "expected one deleted file, got:\n{second}"
+    );
+
+    let after = thinindex::store::load_refs(root).expect("load refs after");
+    assert!(
+        !after
+            .iter()
+            .any(|reference| reference.from_path == "docs/deleted.md"),
+        "deleted file refs should be removed, got:\n{after:#?}"
     );
 }
 

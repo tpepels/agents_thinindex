@@ -13,9 +13,10 @@ use crate::{
     ctags::{check_ctags, index_with_ctags},
     extras::index_extras,
     model::{FileMeta, IndexRecord},
+    refs::extract_refs,
     store::{
-        load_manifest, load_records, prepare_for_build, remove_records_for_paths,
-        save_index_snapshot, sort_records,
+        load_manifest, load_records, load_refs, prepare_for_build, remove_records_for_paths,
+        remove_refs_for_paths, save_index_snapshot, sort_records, sort_refs,
     },
 };
 
@@ -55,6 +56,7 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
     let (mut manifest, reset_message) = prepare_for_build(&root)?;
 
     let existing_records = load_records(&root)?;
+    let existing_refs = load_refs(&root)?;
 
     let files = discover_files(&root)?;
     let current_paths: BTreeSet<String> = files
@@ -90,6 +92,7 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
     stale_paths.extend(changed_paths.clone());
 
     let mut records = remove_records_for_paths(existing_records, &stale_paths);
+    let mut refs = remove_refs_for_paths(existing_refs, &stale_paths);
 
     if !changed_files.is_empty() {
         let changed_abs_paths: Vec<PathBuf> = changed_files
@@ -107,15 +110,20 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
             let mut extra_records = index_extras(&rel, &text);
             records.append(&mut extra_records);
 
+            let mut file_refs = extract_refs(&rel, &text);
+            refs.append(&mut file_refs);
+
             manifest.files.insert(rel, meta);
         }
     }
 
     dedupe_records_by_location(&mut records);
+    dedupe_refs_by_location(&mut refs);
     debug_assert_unique_record_locations(&records);
     sort_records(&mut records);
+    sort_refs(&mut refs);
 
-    save_index_snapshot(&root, &manifest, &records)?;
+    save_index_snapshot(&root, &manifest, &records, &refs)?;
 
     Ok(BuildStats {
         root,
@@ -228,6 +236,22 @@ fn debug_assert_unique_record_locations(records: &[IndexRecord]) {
             record.source
         );
     }
+}
+
+fn dedupe_refs_by_location(refs: &mut Vec<crate::model::ReferenceRecord>) {
+    sort_refs(refs);
+
+    let mut seen_locations = BTreeSet::new();
+
+    refs.retain(|reference| {
+        seen_locations.insert((
+            reference.from_path.clone(),
+            reference.from_line,
+            reference.from_col,
+            reference.to_name.clone(),
+            reference.ref_kind.clone(),
+        ))
+    });
 }
 
 fn discover_files(root: &Path) -> Result<Vec<PathBuf>> {

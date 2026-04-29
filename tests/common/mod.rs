@@ -4,7 +4,7 @@ use std::{collections::HashSet, fs, path::Path, process::Command};
 
 use assert_cmd::prelude::*;
 use tempfile::TempDir;
-use thinindex::model::IndexRecord;
+use thinindex::model::{IndexRecord, ReferenceRecord};
 
 pub fn has_ctags() -> bool {
     Command::new("ctags")
@@ -117,6 +117,7 @@ fn copy_dir_all(source: &Path, target: &Path) -> std::io::Result<()> {
 #[derive(Debug, Clone)]
 pub struct IndexSnapshot {
     pub records: Vec<IndexRecord>,
+    pub refs: Vec<ReferenceRecord>,
 }
 
 pub fn load_index_snapshot_from_sqlite(root: &Path) -> IndexSnapshot {
@@ -124,6 +125,12 @@ pub fn load_index_snapshot_from_sqlite(root: &Path) -> IndexSnapshot {
         records: thinindex::store::load_records(root).unwrap_or_else(|error| {
             panic!(
                 "failed to load SQLite index snapshot for {}\nerror: {error:#}",
+                root.display()
+            )
+        }),
+        refs: thinindex::store::load_refs(root).unwrap_or_else(|error| {
+            panic!(
+                "failed to load SQLite refs snapshot for {}\nerror: {error:#}",
                 root.display()
             )
         }),
@@ -194,6 +201,101 @@ pub fn assert_expected_paths_present(name: &str, records: &[IndexRecord], expect
     }
 }
 
+pub fn assert_required_ref_fields(name: &str, refs: &[ReferenceRecord]) {
+    for reference in refs {
+        assert!(
+            !reference.from_path.is_empty(),
+            "[{name}] ref `from_path` must not be empty for {reference:?}"
+        );
+        assert!(
+            reference.from_line >= 1,
+            "[{name}] ref `from_line` must be >= 1, got {} for {reference:?}",
+            reference.from_line
+        );
+        assert!(
+            reference.from_col >= 1,
+            "[{name}] ref `from_col` must be >= 1, got {} for {reference:?}",
+            reference.from_col
+        );
+        assert!(
+            !reference.to_name.is_empty(),
+            "[{name}] ref `to_name` must not be empty for {reference:?}"
+        );
+        assert!(
+            !reference.ref_kind.is_empty(),
+            "[{name}] ref `ref_kind` must not be empty for {reference:?}"
+        );
+        assert!(
+            !reference.evidence.is_empty(),
+            "[{name}] ref `evidence` must not be empty for {reference:?}"
+        );
+        assert!(
+            !reference.source.is_empty(),
+            "[{name}] ref `source` must not be empty for {reference:?}"
+        );
+    }
+}
+
+pub fn assert_allowed_ref_kinds(name: &str, refs: &[ReferenceRecord]) {
+    let allowed = [
+        "text_reference",
+        "import",
+        "markdown_link",
+        "css_usage",
+        "html_usage",
+        "test_reference",
+    ];
+
+    for reference in refs {
+        assert!(
+            allowed.contains(&reference.ref_kind.as_str()),
+            "[{name}] ref kind `{}` is not allowed for this phase: {reference:?}",
+            reference.ref_kind
+        );
+    }
+}
+
+pub fn assert_no_duplicate_refs(name: &str, refs: &[ReferenceRecord]) {
+    let mut seen: HashSet<(String, usize, usize, String, String)> = HashSet::new();
+
+    for reference in refs {
+        let key = (
+            reference.from_path.clone(),
+            reference.from_line,
+            reference.from_col,
+            reference.to_name.clone(),
+            reference.ref_kind.clone(),
+        );
+
+        assert!(
+            seen.insert(key.clone()),
+            "[{name}] duplicate ref: from_path={} from_line={} from_col={} to_name={} ref_kind={}",
+            key.0,
+            key.1,
+            key.2,
+            key.3,
+            key.4,
+        );
+    }
+}
+
+pub fn assert_no_dev_index_ref_paths(name: &str, refs: &[ReferenceRecord]) {
+    for reference in refs {
+        assert!(
+            !reference.from_path.contains(".dev_index"),
+            "[{name}] ref from_path contains `.dev_index`: {}",
+            reference.from_path,
+        );
+    }
+}
+
+pub fn run_named_ref_integrity_checks(name: &str, refs: &[ReferenceRecord]) {
+    assert_required_ref_fields(name, refs);
+    assert_allowed_ref_kinds(name, refs);
+    assert_no_duplicate_refs(name, refs);
+    assert_no_dev_index_ref_paths(name, refs);
+}
+
 /// Run the full index-integrity check suite against loaded SQLite records.
 ///
 /// * `name` – a human-readable label (repo name, test name, …)
@@ -209,4 +311,5 @@ pub fn run_named_index_integrity_checks(
     assert_no_duplicate_locations(name, &snapshot.records);
     assert_no_dev_index_paths(name, &snapshot.records);
     assert_expected_paths_present(name, &snapshot.records, expected_paths);
+    run_named_ref_integrity_checks(name, &snapshot.refs);
 }

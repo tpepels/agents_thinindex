@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-pub const INDEX_SCHEMA_VERSION: u32 = 4;
+pub const INDEX_SCHEMA_VERSION: u32 = 5;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IndexRecord {
@@ -13,6 +13,43 @@ pub struct IndexRecord {
     pub name: String,
     pub text: String,
     pub source: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ReferenceRecord {
+    pub from_path: String,
+    pub from_line: usize,
+    pub from_col: usize,
+    pub to_name: String,
+    pub to_kind: Option<String>,
+    pub ref_kind: String,
+    pub evidence: String,
+    pub source: String,
+}
+
+impl ReferenceRecord {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        from_path: impl Into<String>,
+        from_line: usize,
+        from_col: usize,
+        to_name: impl Into<String>,
+        to_kind: Option<impl Into<String>>,
+        ref_kind: impl Into<String>,
+        evidence: impl Into<String>,
+        source: impl Into<String>,
+    ) -> Self {
+        Self {
+            from_path: from_path.into(),
+            from_line,
+            from_col,
+            to_name: to_name.into(),
+            to_kind: to_kind.map(Into::into),
+            ref_kind: ref_kind.into(),
+            evidence: truncate(evidence.into(), 120),
+            source: source.into(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

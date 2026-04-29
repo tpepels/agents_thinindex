@@ -7,6 +7,14 @@ Add a deterministic reference graph on top of the SQLite index storage from PLAN
 
 This pass does not add prediction, context packs, impact analysis, or new `wi` commands. It only adds the reference data model, SQLite storage, build integration, and integrity tests.
 
+Phase tracking:
+- [x] Add typed reference model, SQLite `refs` schema, and schema-version bump.
+- [x] Add deterministic ref extraction for the foundation reference types.
+- [x] Integrate ref loading/writing/removal into `build_index`.
+- [x] Add shared ref-integrity checks and fixture/local/real-repo test coverage.
+- [x] Run required formatting, tests, lint, and ignored tests.
+- [x] Commit with `Add SQLite reference graph foundation`.
+
 Product rule:
 References must be factual and evidence-backed. Do not infer relationships without a concrete indexed occurrence or extractor result.
 

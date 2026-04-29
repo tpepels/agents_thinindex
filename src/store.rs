@@ -8,7 +8,7 @@ use std::{
 use anyhow::{Context, Result, anyhow, bail};
 use rusqlite::{Connection, OptionalExtension, params};
 
-use crate::model::{FileMeta, INDEX_SCHEMA_VERSION, IndexRecord, Manifest};
+use crate::model::{FileMeta, INDEX_SCHEMA_VERSION, IndexRecord, Manifest, ReferenceRecord};
 
 pub const DEV_INDEX_DIR: &str = ".dev_index";
 pub const SQLITE_FILE: &str = "index.sqlite";
@@ -84,10 +84,16 @@ pub fn load_records(root: &Path) -> Result<Vec<IndexRecord>> {
     load_records_from_conn(&conn)
 }
 
+pub fn load_refs(root: &Path) -> Result<Vec<ReferenceRecord>> {
+    let conn = open_ready_database(root)?;
+    load_refs_from_conn(&conn)
+}
+
 pub fn save_index_snapshot(
     root: &Path,
     manifest: &Manifest,
     records: &[IndexRecord],
+    refs: &[ReferenceRecord],
 ) -> Result<()> {
     let mut conn = open_ready_database(root)?;
     let tx = conn.transaction().with_context(|| {
@@ -99,6 +105,8 @@ pub fn save_index_snapshot(
 
     tx.execute("DELETE FROM records", [])
         .context("failed to clear records table")?;
+    tx.execute("DELETE FROM refs", [])
+        .context("failed to clear refs table")?;
     tx.execute("DELETE FROM files", [])
         .context("failed to clear files table")?;
 
@@ -143,6 +151,36 @@ pub fn save_index_snapshot(
                 format!(
                     "failed to insert index record at {}:{}:{}",
                     record.path, record.line, record.col
+                )
+            })?;
+        }
+    }
+
+    {
+        let mut stmt = tx
+            .prepare(
+                "INSERT INTO refs(
+                    from_path, from_line, from_col, to_name, to_kind, ref_kind, evidence, source
+                 )
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            )
+            .context("failed to prepare ref insert")?;
+
+        for reference in refs {
+            stmt.execute(params![
+                &reference.from_path,
+                i64_from_usize(reference.from_line, "from_line")?,
+                i64_from_usize(reference.from_col, "from_col")?,
+                &reference.to_name,
+                reference.to_kind.as_deref(),
+                &reference.ref_kind,
+                &reference.evidence,
+                &reference.source,
+            ])
+            .with_context(|| {
+                format!(
+                    "failed to insert reference at {}:{}:{} to {}",
+                    reference.from_path, reference.from_line, reference.from_col, reference.to_name
                 )
             })?;
         }
@@ -231,6 +269,21 @@ fn initialize_schema(conn: &Connection) -> Result<()> {
         CREATE INDEX IF NOT EXISTS records_lang_idx ON records(lang);
         CREATE INDEX IF NOT EXISTS records_path_idx ON records(path);
         CREATE INDEX IF NOT EXISTS records_source_idx ON records(source);
+        CREATE TABLE IF NOT EXISTS refs (
+            from_path TEXT NOT NULL,
+            from_line INTEGER NOT NULL,
+            from_col INTEGER NOT NULL,
+            to_name TEXT NOT NULL,
+            to_kind TEXT,
+            ref_kind TEXT NOT NULL,
+            evidence TEXT NOT NULL,
+            source TEXT NOT NULL,
+            UNIQUE(from_path, from_line, from_col, to_name, ref_kind)
+        );
+        CREATE INDEX IF NOT EXISTS refs_to_name_idx ON refs(to_name);
+        CREATE INDEX IF NOT EXISTS refs_from_path_idx ON refs(from_path);
+        CREATE INDEX IF NOT EXISTS refs_ref_kind_idx ON refs(ref_kind);
+        CREATE INDEX IF NOT EXISTS refs_source_idx ON refs(source);
         CREATE TABLE IF NOT EXISTS usage_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp INTEGER NOT NULL,
@@ -376,10 +429,63 @@ fn load_records_from_conn(conn: &Connection) -> Result<Vec<IndexRecord>> {
     Ok(records)
 }
 
+fn load_refs_from_conn(conn: &Connection) -> Result<Vec<ReferenceRecord>> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT from_path, from_line, from_col, to_name, to_kind, ref_kind, evidence, source
+             FROM refs
+             ORDER BY from_path, from_line, from_col, to_name, ref_kind, source",
+        )
+        .context("failed to prepare refs query")?;
+
+    let rows = stmt
+        .query_map([], |row| {
+            let from_line: i64 = row.get(1)?;
+            let from_col: i64 = row.get(2)?;
+
+            Ok((
+                row.get::<_, String>(0)?,
+                from_line,
+                from_col,
+                row.get::<_, String>(3)?,
+                row.get::<_, Option<String>>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, String>(6)?,
+                row.get::<_, String>(7)?,
+            ))
+        })
+        .context("failed to query refs")?;
+
+    let mut refs = Vec::new();
+    for row in rows {
+        let (from_path, from_line, from_col, to_name, to_kind, ref_kind, evidence, source) =
+            row.context("failed to read ref row")?;
+
+        refs.push(ReferenceRecord {
+            from_path,
+            from_line: usize_from_i64(from_line, "from_line")?,
+            from_col: usize_from_i64(from_col, "from_col")?,
+            to_name,
+            to_kind,
+            ref_kind,
+            evidence,
+            source,
+        });
+    }
+
+    Ok(refs)
+}
+
 pub fn remove_records_for_paths(records: Vec<IndexRecord>, paths: &[String]) -> Vec<IndexRecord> {
     records
         .into_iter()
         .filter(|record| !paths.contains(&record.path))
+        .collect()
+}
+
+pub fn remove_refs_for_paths(refs: Vec<ReferenceRecord>, paths: &[String]) -> Vec<ReferenceRecord> {
+    refs.into_iter()
+        .filter(|reference| !paths.contains(&reference.from_path))
         .collect()
 }
 
@@ -391,6 +497,18 @@ pub fn sort_records(records: &mut [IndexRecord]) {
             .then(a.col.cmp(&b.col))
             .then(a.kind.cmp(&b.kind))
             .then(a.name.cmp(&b.name))
+            .then(a.source.cmp(&b.source))
+    });
+}
+
+pub fn sort_refs(refs: &mut [ReferenceRecord]) {
+    refs.sort_by(|a, b| {
+        a.from_path
+            .cmp(&b.from_path)
+            .then(a.from_line.cmp(&b.from_line))
+            .then(a.from_col.cmp(&b.from_col))
+            .then(a.to_name.cmp(&b.to_name))
+            .then(a.ref_kind.cmp(&b.ref_kind))
             .then(a.source.cmp(&b.source))
     });
 }
