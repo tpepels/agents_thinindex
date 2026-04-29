@@ -1,6 +1,6 @@
 # Product Boundary
 
-Thinindex is currently a local/free agent-navigation tool. This document defines the boundary for possible future paid work without adding license enforcement, payment integration, network behavior, telemetry, feature lockouts, release installers, ctags bundling, or native parser replacement.
+Thinindex is currently a local/free agent-navigation tool. This document defines the boundary for possible future paid work without adding license enforcement, payment integration, network behavior, telemetry, feature lockouts, release installers, or parser feature gates.
 
 ## Product principle
 
@@ -41,7 +41,7 @@ Possible future Pro value should be treated as candidates, not implemented gates
 - richer agent integration packs
 - exported agent-readiness reports
 - advanced reference graph quality features
-- signed installers and a managed update channel after parser/licensing blockers are removed
+- signed installers and a managed update channel after licensing and release blockers are removed
 - release-quality native parser backend if it materially improves bundled parser quality
 
 These are roadmap candidates. They are not active feature gates in the current tool.
@@ -62,16 +62,14 @@ The following must remain part of the local/free core:
 
 ## Packaging/licensing blockers
 
-Universal Ctags must not be bundled into proprietary release artifacts. While ctags remains required, it may only be documented as an external user-installed dependency.
-
-A permissively licensed native parser backend is required before proprietary same-binary Pro packaging. All bundled parser dependencies and grammar dependencies must be audited before release packaging.
+All bundled parser dependencies and grammar dependencies must be permissively licensed and audited before release packaging.
 
 Before packaging work proceeds, thinindex also needs:
 
 - `THIRD_PARTY_NOTICES`
 - dependency license audit coverage
-- a parser path that does not require bundled Universal Ctags
-- release documentation that keeps ctags external until that path exists
+- release documentation that matches the audited dependency set
+- installer and archive smoke tests on target platforms
 
 ## What is not being built yet
 
@@ -86,14 +84,13 @@ This boundary does not add:
 - feature lockouts
 - network calls
 - release installers
-- ctags bundling
-- native parser replacement
+- parser paywalls
 
 ## Licensing/payment deferred decisions
 
 Pricing, license provider, activation flow, local license cache shape, paid update policy, and team licensing are deferred decisions.
 
-Do not encode pricing or edition limits in code until the product has evidence that a paid edition is useful and the parser/package blocker has been resolved.
+Do not encode pricing or edition limits in code until the product has evidence that a paid edition is useful and packaging/license audit work is complete.
 
 ## Evidence needed before charging
 

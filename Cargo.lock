@@ -688,9 +688,7 @@ dependencies = [
  "regex",
  "rusqlite",
  "serde",
- "serde_json",
  "tempfile",
- "walkdir",
 ]
 
 [[package]]

@@ -27,5 +27,5 @@ Manual repo smoke:
 
 Packaging note:
 
-- Do not bundle Universal Ctags.
-- Cross-platform release archives and installers are blocked until the native parser work removes the ctags runtime dependency.
+- Cross-platform release archives and installers require dependency license audit coverage.
+- Smoke-test generated artifacts on each target platform before publishing.

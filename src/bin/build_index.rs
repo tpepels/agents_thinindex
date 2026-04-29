@@ -54,9 +54,5 @@ fn run() -> Result<()> {
     println!("deleted files: {}", stats.deleted_files);
     println!("records: {}", stats.records);
 
-    if !stats.ctags_universal {
-        println!("warning: ctags does not appear to be Universal Ctags");
-    }
-
     Ok(())
 }

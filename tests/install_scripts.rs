@@ -153,40 +153,31 @@ fn docs_do_not_describe_legacy_files_as_current_instruction_or_storage() {
 }
 
 #[test]
-fn docs_state_ctags_is_external_and_blocks_proprietary_packaging() {
+fn docs_describe_self_contained_parser_and_release_audit_boundary() {
     let readme = repo_file("README.md");
     let roadmap = repo_file("docs/ROADMAP.md");
     let release = repo_file("docs/RELEASE_CHECKLIST.md");
     let product_boundary = repo_file("docs/PRODUCT_BOUNDARY.md");
 
     assert!(
-        readme.contains("external user-installed dependency")
-            && readme.contains("must not bundle Universal Ctags"),
-        "README should describe ctags as external-only"
+        readme.contains("Indexing is self-contained")
+            && readme.contains("does not require an external parser command"),
+        "README should describe self-contained parser behavior"
     );
     assert!(
-        readme.contains("Proprietary Windows/macOS/Linux packages are blocked")
-            && readme.contains("permissively licensed"),
-        "README should document native permissive parser packaging blocker"
+        roadmap.contains("Indexing uses native Rust parser code")
+            && roadmap.contains("No external parser command is required"),
+        "roadmap should describe the native parser path as current"
     );
     assert!(
-        roadmap.contains("Proprietary cross-platform packages are blocked")
-            && roadmap.contains("permissively licensed bundled parser dependencies"),
-        "roadmap should preserve ctags/native-parser packaging blocker"
+        product_boundary.contains("permissively licensed and audited")
+            && product_boundary.contains("dependency license audit coverage"),
+        "product boundary should preserve release audit blockers"
     );
     assert!(
-        product_boundary
-            .contains("Universal Ctags must not be bundled into proprietary release artifacts")
-            && product_boundary
-                .contains("A permissively licensed native parser backend is required"),
-        "product boundary should document ctags/native-parser packaging blocker"
-    );
-    assert!(
-        release.contains("Do not bundle Universal Ctags")
-            && release.contains(
-                "blocked until the native parser work removes the ctags runtime dependency"
-            ),
-        "release checklist should prohibit bundled ctags in proprietary release artifacts"
+        release.contains("dependency license audit coverage")
+            && release.contains("Smoke-test generated artifacts"),
+        "release checklist should require release audit and artifact smoke tests"
     );
 }
 

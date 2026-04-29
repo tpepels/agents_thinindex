@@ -108,11 +108,6 @@ fn assert_rows_have_reasons(output: &str) {
 
 #[test]
 fn wi_finds_python_symbol() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -136,11 +131,6 @@ class PromptService:
 
 #[test]
 fn wi_filters_by_path() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -178,11 +168,6 @@ def HeaderNavigation():
 
 #[test]
 fn wi_filters_by_language() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -205,11 +190,6 @@ fn wi_filters_by_language() {
 
 #[test]
 fn wi_filters_by_source() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -231,19 +211,15 @@ fn wi_filters_by_source() {
         "expected extras source result, got:\n{extras}"
     );
 
-    let ctags = run_wi(root, &[".headerNavigation", "-s", "ctags", "-v"]);
+    let native = run_wi(root, &[".headerNavigation", "-s", "native", "-v"]);
     assert!(
-        !ctags.contains("source: extras"),
-        "ctags-filtered result should not include extras records, got:\n{ctags}"
+        !native.contains("source: extras"),
+        "native-filtered result should not include extras records, got:\n{native}"
     );
 }
 
 #[test]
 fn wi_limits_results() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
     let repo = temp_repo();
     let root = repo.path();
     for i in 0..5 {
@@ -261,11 +237,6 @@ fn wi_limits_results() {
 
 #[test]
 fn wi_verbose_prints_details() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -305,11 +276,6 @@ fn wi_help_mentions_context_commands() {
 
 #[test]
 fn wi_refs_prompt_service_includes_primary_and_refs() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_context_fixture(root);
@@ -347,11 +313,6 @@ fn wi_refs_prompt_service_includes_primary_and_refs() {
 
 #[test]
 fn wi_refs_order_is_deterministic_and_ranked() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_context_fixture(root);
@@ -375,11 +336,6 @@ fn wi_refs_order_is_deterministic_and_ranked() {
 
 #[test]
 fn wi_refs_respects_limit() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_context_fixture(root);
@@ -404,11 +360,6 @@ fn wi_refs_respects_limit() {
 
 #[test]
 fn wi_refs_missing_refs_shows_primary_non_error() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_file(root, "src/lonely.py", "class LonelyService: pass\n");
@@ -428,11 +379,6 @@ fn wi_refs_missing_refs_shows_primary_non_error() {
 
 #[test]
 fn wi_pack_prompt_service_groups_compact_read_set() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_context_fixture(root);
@@ -465,11 +411,6 @@ fn wi_pack_prompt_service_groups_compact_read_set() {
 
 #[test]
 fn wi_refs_includes_related_ui_for_style_query() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_context_fixture(root);
@@ -485,11 +426,6 @@ fn wi_refs_includes_related_ui_for_style_query() {
 
 #[test]
 fn wi_pack_dedupes_files_and_respects_limit() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_context_fixture(root);
@@ -525,11 +461,6 @@ fn wi_pack_dedupes_files_and_respects_limit() {
 
 #[test]
 fn wi_impact_prompt_service_groups_affected_files() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_context_fixture(root);
@@ -559,11 +490,6 @@ fn wi_impact_prompt_service_groups_affected_files() {
 
 #[test]
 fn wi_impact_order_is_deterministic_and_ranked() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_context_fixture(root);
@@ -605,11 +531,6 @@ fn wi_impact_order_is_deterministic_and_ranked() {
 
 #[test]
 fn wi_impact_respects_group_limits() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_context_fixture(root);
@@ -651,11 +572,6 @@ fn wi_impact_respects_group_limits() {
 
 #[test]
 fn wi_impact_respects_n_as_total_non_primary_limit() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_context_fixture(root);
@@ -676,11 +592,6 @@ fn wi_impact_respects_n_as_total_non_primary_limit() {
 
 #[test]
 fn wi_impact_missing_refs_shows_primary_non_error() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_file(root, "src/lonely.py", "class LonelyService: pass\n");
@@ -700,11 +611,6 @@ fn wi_impact_missing_refs_shows_primary_non_error() {
 
 #[test]
 fn wi_impact_no_primary_preserves_no_result_behavior_and_logs_miss() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_context_fixture(root);
@@ -726,11 +632,6 @@ fn wi_impact_no_primary_preserves_no_result_behavior_and_logs_miss() {
 
 #[test]
 fn wi_impact_does_not_dump_full_file_contents() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_context_fixture(root);
@@ -752,11 +653,6 @@ fn wi_impact_does_not_dump_full_file_contents() {
 
 #[test]
 fn wi_impact_dedupes_one_best_row_per_file_per_group() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_context_fixture(root);
@@ -781,11 +677,6 @@ fn wi_impact_dedupes_one_best_row_per_file_per_group() {
 
 #[test]
 fn wi_impact_filter_options_apply_to_primary_search() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_context_fixture(root);
@@ -815,11 +706,6 @@ fn wi_impact_filter_options_apply_to_primary_search() {
 
 #[test]
 fn wi_impact_logs_usage_with_subcommand() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_context_fixture(root);
@@ -839,11 +725,6 @@ fn wi_impact_logs_usage_with_subcommand() {
 
 #[test]
 fn wi_impact_without_term_remains_normal_search() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_file(
@@ -863,11 +744,6 @@ fn wi_impact_without_term_remains_normal_search() {
 
 #[test]
 fn wi_refs_without_term_remains_normal_search() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_file(root, "src/refs_symbol.py", "def refs():\n    return 1\n");
@@ -883,11 +759,6 @@ fn wi_refs_without_term_remains_normal_search() {
 
 #[test]
 fn css_extras_are_indexed() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -928,18 +799,13 @@ fn css_extras_are_indexed() {
 
 #[test]
 fn markdown_extras_are_indexed() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
     write_file(
         root,
         "README.md",
-        "# Thin Index\n\n- [ ] Add ctags integration\n- [x] Add search\n\nSee [docs](docs/index.md).\n",
+        "# Thin Index\n\n- [ ] Add native parser integration\n- [x] Add search\n\nSee [docs](docs/index.md).\n",
     );
 
     run_build(root);
@@ -947,7 +813,7 @@ fn markdown_extras_are_indexed() {
     let heading = run_wi(root, &["Thin Index"]);
     assert!(heading.contains("README.md"));
 
-    let checklist = run_wi(root, &["Add ctags integration", "-t", "checklist"]);
+    let checklist = run_wi(root, &["Add native parser integration", "-t", "checklist"]);
     assert!(checklist.contains("README.md"));
 
     let link = run_wi(root, &["docs", "-t", "link"]);
@@ -956,11 +822,6 @@ fn markdown_extras_are_indexed() {
 
 #[test]
 fn fixture_repo_indexes_python_symbols() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = fixture_repo("sample_repo");
     let root = repo.path();
 
@@ -981,11 +842,6 @@ fn fixture_repo_indexes_python_symbols() {
 
 #[test]
 fn fixture_repo_indexes_css_extras() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = fixture_repo("sample_repo");
     let root = repo.path();
 
@@ -1012,11 +868,6 @@ fn fixture_repo_indexes_css_extras() {
 
 #[test]
 fn fixture_repo_indexes_markdown_extras() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = fixture_repo("sample_repo");
     let root = repo.path();
 
@@ -1028,7 +879,7 @@ fn fixture_repo_indexes_markdown_extras() {
         "expected markdown heading result, got:\n{heading}"
     );
 
-    let checklist = run_wi(root, &["Add ctags integration", "-t", "checklist"]);
+    let checklist = run_wi(root, &["Add native parser integration", "-t", "checklist"]);
     assert!(
         checklist.contains("docs/guide.md"),
         "expected markdown checklist result, got:\n{checklist}"
@@ -1043,11 +894,6 @@ fn fixture_repo_indexes_markdown_extras() {
 
 #[test]
 fn fixture_repo_indexes_jsx_extras() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = fixture_repo("sample_repo");
     let root = repo.path();
 
@@ -1069,11 +915,6 @@ fn fixture_repo_indexes_jsx_extras() {
 
 #[test]
 fn fixture_html_repo_indexes_html_extras() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = fixture_repo("html_repo");
     let root = repo.path();
 
@@ -1106,11 +947,6 @@ fn fixture_html_repo_indexes_html_extras() {
 
 #[test]
 fn fixture_todo_repo_indexes_todos_and_fixmes() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = fixture_repo("todo_repo");
     let root = repo.path();
 
@@ -1137,11 +973,6 @@ fn fixture_todo_repo_indexes_todos_and_fixmes() {
 
 #[test]
 fn fixture_css_double_dash_query_requires_separator() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = fixture_repo("sample_repo");
     let root = repo.path();
 
@@ -1156,11 +987,6 @@ fn fixture_css_double_dash_query_requires_separator() {
 
 #[test]
 fn wi_exact_symbol_match_beats_doc_or_path_match() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -1189,11 +1015,6 @@ class HeaderNavigation:
 
 #[test]
 fn wi_source_result_beats_test_when_match_quality_is_equal() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -1225,11 +1046,6 @@ class PromptService:
 
 #[test]
 fn wi_prefix_match_beats_substring_match() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -1256,11 +1072,6 @@ class PromptService:
 
 #[test]
 fn wi_limit_returns_highest_ranked_result() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -1285,11 +1096,6 @@ class PromptService:
 
 #[test]
 fn wi_reports_stale_index_when_a_file_changes_after_initial_build() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -1348,11 +1154,6 @@ class NewName:
 
 #[test]
 fn wi_does_not_pollute_stdout_when_index_is_fresh() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
