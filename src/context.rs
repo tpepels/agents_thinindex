@@ -11,9 +11,15 @@ use crate::{
 const DEFAULT_PRIMARY_LIMIT: usize = 3;
 const DEFAULT_REFS_LIMIT: usize = 20;
 const DEFAULT_PACK_LIMIT: usize = 10;
+const DEFAULT_IMPACT_LIMIT: usize = 15;
 const PACK_TEST_LIMIT: usize = 3;
 const PACK_CALLER_LIMIT: usize = 3;
 const PACK_DOC_LIMIT: usize = 2;
+const IMPACT_TEST_LIMIT: usize = 5;
+const IMPACT_CALLER_LIMIT: usize = 5;
+const IMPACT_DOC_LIMIT: usize = 3;
+const IMPACT_CONFIG_LIMIT: usize = 5;
+const IMPACT_OTHER_LIMIT: usize = 5;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ContextOutput {
@@ -43,6 +49,15 @@ enum PackGroup {
     Callers,
     Docs,
     Related,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ImpactGroup {
+    Tests,
+    Callers,
+    Docs,
+    Config,
+    Other,
 }
 
 pub fn render_refs_command(
@@ -158,6 +173,86 @@ pub fn render_pack_command(
     Ok(ContextOutput {
         text: out,
         result_count: count,
+    })
+}
+
+pub fn render_impact_command(
+    root: &Path,
+    query: &str,
+    options: &SearchOptions,
+) -> Result<ContextOutput> {
+    let primary = primary_matches(root, query, options)?;
+    if primary.is_empty() {
+        return Ok(ContextOutput {
+            text: String::new(),
+            result_count: 0,
+        });
+    }
+
+    let total_limit = command_limit(options, DEFAULT_IMPACT_LIMIT);
+    let refs = matching_refs(root, query, &primary, usize::MAX)?;
+    let mut out = String::new();
+    let mut non_primary_count = 0usize;
+
+    out.push_str("Primary:\n");
+    for result in &primary {
+        out.push_str(&format!("- {}\n", primary_line(result)));
+        out.push_str("  reason: exact symbol match\n");
+    }
+
+    let tests = impact_group_rows(
+        &refs,
+        ImpactGroup::Tests,
+        IMPACT_TEST_LIMIT,
+        total_limit.saturating_sub(non_primary_count),
+    );
+    non_primary_count += tests.len();
+    append_impact_group(&mut out, "Likely affected tests", &tests);
+
+    let callers = impact_group_rows(
+        &refs,
+        ImpactGroup::Callers,
+        IMPACT_CALLER_LIMIT,
+        total_limit.saturating_sub(non_primary_count),
+    );
+    non_primary_count += callers.len();
+    append_impact_group(&mut out, "Callers/importers", &callers);
+
+    let docs = impact_group_rows(
+        &refs,
+        ImpactGroup::Docs,
+        IMPACT_DOC_LIMIT,
+        total_limit.saturating_sub(non_primary_count),
+    );
+    non_primary_count += docs.len();
+    append_impact_group(&mut out, "Related docs", &docs);
+
+    let config = impact_group_rows(
+        &refs,
+        ImpactGroup::Config,
+        IMPACT_CONFIG_LIMIT,
+        total_limit.saturating_sub(non_primary_count),
+    );
+    non_primary_count += config.len();
+    append_impact_group(&mut out, "Related config/routes/schemas", &config);
+
+    let other = impact_group_rows(
+        &refs,
+        ImpactGroup::Other,
+        IMPACT_OTHER_LIMIT,
+        total_limit.saturating_sub(non_primary_count),
+    );
+    non_primary_count += other.len();
+    append_impact_group(&mut out, "Other references", &other);
+
+    if refs.is_empty() {
+        out.push('\n');
+        out.push_str(&format!("no impact references found for {query}\n"));
+    }
+
+    Ok(ContextOutput {
+        text: out,
+        result_count: primary.len() + non_primary_count,
     })
 }
 
@@ -336,6 +431,153 @@ fn append_pack_group(
     }
 }
 
+fn impact_group_rows(
+    refs: &[RefRow],
+    group: ImpactGroup,
+    group_limit: usize,
+    total_remaining: usize,
+) -> Vec<ReferenceRecord> {
+    if total_remaining == 0 {
+        return Vec::new();
+    }
+
+    let mut rows: Vec<&RefRow> = refs
+        .iter()
+        .filter(|row| impact_group(row) == group)
+        .collect();
+    rows.sort_by_key(|row| impact_row_key(row, group));
+
+    let mut selected = Vec::new();
+    let mut used = BTreeSet::new();
+    let limit = group_limit.min(total_remaining);
+
+    for row in rows {
+        if selected.len() >= limit {
+            break;
+        }
+
+        if used.insert(row.reference.from_path.clone()) {
+            selected.push(row.reference.clone());
+        }
+    }
+
+    selected
+}
+
+fn impact_group(row: &RefRow) -> ImpactGroup {
+    let path = &row.reference.from_path;
+
+    if row.reference.ref_kind == "test_reference" || is_test_path(path) {
+        return ImpactGroup::Tests;
+    }
+
+    if is_fixture_path(path) {
+        return ImpactGroup::Other;
+    }
+
+    if row.reference.ref_kind == "markdown_link" || is_doc_path(path) {
+        return ImpactGroup::Docs;
+    }
+
+    if is_config_route_schema_path(path) {
+        return ImpactGroup::Config;
+    }
+
+    if row.reference.ref_kind == "import"
+        || (row.reference.ref_kind == "text_reference"
+            && !is_ui_style_config_path(path)
+            && !is_fixture_path(path))
+    {
+        return ImpactGroup::Callers;
+    }
+
+    ImpactGroup::Other
+}
+
+fn impact_row_key(
+    row: &RefRow,
+    group: ImpactGroup,
+) -> (usize, usize, String, usize, usize, String) {
+    (
+        impact_kind_priority(row, group),
+        path_penalty(&row.reference.from_path),
+        row.reference.from_path.clone(),
+        row.reference.from_line,
+        row.reference.from_col,
+        row.reference.ref_kind.clone(),
+    )
+}
+
+fn impact_kind_priority(row: &RefRow, group: ImpactGroup) -> usize {
+    match group {
+        ImpactGroup::Tests => match row.reference.ref_kind.as_str() {
+            "test_reference" => 0,
+            _ => 1,
+        },
+        ImpactGroup::Callers => match row.reference.ref_kind.as_str() {
+            "import" => 0,
+            "text_reference" => 1,
+            _ => 2,
+        },
+        ImpactGroup::Docs => match row.reference.ref_kind.as_str() {
+            "markdown_link" => 0,
+            _ => 1,
+        },
+        ImpactGroup::Config => match row.reference.ref_kind.as_str() {
+            "import" => 0,
+            "text_reference" => 1,
+            _ => 2,
+        },
+        ImpactGroup::Other => {
+            if is_fixture_path(&row.reference.from_path) {
+                20
+            } else if matches!(row.reference.ref_kind.as_str(), "css_usage" | "html_usage")
+                || is_ui_style_config_path(&row.reference.from_path)
+            {
+                5
+            } else {
+                0
+            }
+        }
+    }
+}
+
+fn append_impact_group(out: &mut String, heading: &str, refs: &[ReferenceRecord]) {
+    out.push('\n');
+    out.push_str(heading);
+    out.push_str(":\n");
+
+    if refs.is_empty() {
+        out.push_str("- none\n");
+        return;
+    }
+
+    for reference in refs {
+        out.push_str(&format!("- {}\n", ref_line(reference)));
+        out.push_str(&format!("  reason: {}\n", impact_reason(reference)));
+    }
+}
+
+fn impact_reason(reference: &ReferenceRecord) -> String {
+    if reference.ref_kind == "test_reference" || is_test_path(&reference.from_path) {
+        format!("test references {}", reference.to_name)
+    } else if reference.ref_kind == "import" {
+        format!("imports {}", reference.to_name)
+    } else if reference.ref_kind == "markdown_link" || is_doc_path(&reference.from_path) {
+        format!("docs reference {}", reference.to_name)
+    } else if is_config_route_schema_path(&reference.from_path) {
+        format!("config/routes/schemas reference {}", reference.to_name)
+    } else if matches!(reference.ref_kind.as_str(), "css_usage" | "html_usage")
+        || is_ui_style_config_path(&reference.from_path)
+    {
+        format!("ui/style reference {}", reference.to_name)
+    } else if reference.ref_kind == "text_reference" {
+        format!("references {}", reference.to_name)
+    } else {
+        format!("{} to {}", reference.ref_kind, reference.to_name)
+    }
+}
+
 fn command_limit(options: &SearchOptions, default_limit: usize) -> usize {
     if options.limit == 0 {
         default_limit
@@ -382,6 +624,29 @@ fn is_ui_style_config_path(path: &str) -> bool {
         || normalized.ends_with(".html")
         || normalized.ends_with(".jsx")
         || normalized.ends_with(".tsx")
+        || normalized.ends_with(".json")
+        || normalized.ends_with(".toml")
+        || normalized.ends_with(".yaml")
+        || normalized.ends_with(".yml")
+}
+
+fn is_config_route_schema_path(path: &str) -> bool {
+    let normalized = path.replace('\\', "/").to_ascii_lowercase();
+    let filename = normalized.rsplit('/').next().unwrap_or(&normalized);
+
+    normalized.contains("/config/")
+        || normalized.starts_with("config/")
+        || normalized.contains("/configs/")
+        || normalized.starts_with("configs/")
+        || normalized.contains("/routes/")
+        || normalized.starts_with("routes/")
+        || normalized.contains("/schemas/")
+        || normalized.starts_with("schemas/")
+        || filename.contains("config")
+        || filename.contains("settings")
+        || filename.contains("route")
+        || filename.contains("router")
+        || filename.contains("schema")
         || normalized.ends_with(".json")
         || normalized.ends_with(".toml")
         || normalized.ends_with(".yaml")

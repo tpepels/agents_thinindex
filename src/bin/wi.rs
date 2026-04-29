@@ -4,7 +4,7 @@ use anyhow::Result;
 use anyhow::bail;
 use clap::Parser;
 use thinindex::{
-    context::{render_pack_command, render_refs_command},
+    context::{render_impact_command, render_pack_command, render_refs_command},
     indexer::{find_repo_root, index_is_fresh},
     search::{SearchOptions, format_result, search},
     stats::{self, UsageEvent},
@@ -44,6 +44,7 @@ fn run() -> Result<()> {
         WiCommand::Search => args.limit.unwrap_or(30),
         WiCommand::Refs => args.limit.unwrap_or(20),
         WiCommand::Pack => args.limit.unwrap_or(10),
+        WiCommand::Impact => args.limit.unwrap_or(15),
     };
 
     let options = SearchOptions {
@@ -75,6 +76,13 @@ fn run() -> Result<()> {
         }
         WiCommand::Pack => {
             let output = render_pack_command(&root, &query, &options)?;
+            if !output.text.is_empty() {
+                print!("{}", output.text);
+            }
+            output.result_count
+        }
+        WiCommand::Impact => {
+            let output = render_impact_command(&root, &query, &options)?;
             if !output.text.is_empty() {
                 print!("{}", output.text);
             }

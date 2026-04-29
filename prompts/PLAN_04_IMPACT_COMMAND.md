@@ -9,6 +9,14 @@ Add `wi impact <term>` to answer: “If I edit this symbol or area, what else sh
 
 This pass uses the SQLite index and reference graph. It must not add ML prediction. Output must be deterministic, compact, and evidence-backed.
 
+Phase tracking:
+- [x] Add CLI parsing/help for `wi impact <term>`.
+- [x] Add SQLite-backed impact rendering with deterministic grouping, limits, and dedupe.
+- [x] Preserve existing `wi`, `wi refs`, and `wi pack` behavior and usage logging.
+- [x] Add tests for impact output, ordering, limits, missing refs, and compatibility.
+- [x] Run required formatting, tests, lint, smoke command, and ignored tests.
+- [x] Commit with `Add wi impact command`.
+
 Prerequisite:
 - PLAN_00_SQLITE_INDEX_STORAGE.md is complete.
 - PLAN_01_REFERENCE_GRAPH_FOUNDATION.md is complete.

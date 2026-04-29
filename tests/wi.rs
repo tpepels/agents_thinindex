@@ -69,6 +69,43 @@ fn suggested_rows(output: &str) -> Vec<&str> {
         .collect()
 }
 
+fn group_rows<'a>(output: &'a str, heading: &str) -> Vec<&'a str> {
+    output
+        .lines()
+        .skip_while(|line| *line != heading)
+        .skip(1)
+        .take_while(|line| !line.ends_with(':'))
+        .filter(|line| line.starts_with("- ") && !line.ends_with("none"))
+        .collect()
+}
+
+fn non_primary_impact_rows(output: &str) -> Vec<&str> {
+    [
+        "Likely affected tests:",
+        "Callers/importers:",
+        "Related docs:",
+        "Related config/routes/schemas:",
+        "Other references:",
+    ]
+    .into_iter()
+    .flat_map(|heading| group_rows(output, heading))
+    .collect()
+}
+
+fn assert_rows_have_reasons(output: &str) {
+    let lines: Vec<_> = output.lines().collect();
+
+    for (index, line) in lines.iter().enumerate() {
+        if line.starts_with("- ") && !line.ends_with("none") {
+            let reason = lines.get(index + 1).copied().unwrap_or_default();
+            assert!(
+                reason.trim_start().starts_with("reason:"),
+                "row missing following reason line:\n{line}\n\nfull output:\n{output}"
+            );
+        }
+    }
+}
+
 #[test]
 fn wi_finds_python_symbol() {
     if !has_ctags() {
@@ -261,7 +298,8 @@ fn wi_help_mentions_context_commands() {
         .assert()
         .success()
         .stdout(predicates::str::contains("wi refs PromptService"))
-        .stdout(predicates::str::contains("wi pack PromptService"));
+        .stdout(predicates::str::contains("wi pack PromptService"))
+        .stdout(predicates::str::contains("wi impact PromptService"));
 }
 
 #[test]
@@ -482,6 +520,344 @@ fn wi_pack_dedupes_files_and_respects_limit() {
             "duplicate path in:\n{output}"
         );
     }
+}
+
+#[test]
+fn wi_impact_prompt_service_groups_affected_files() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    run_build(root);
+
+    let output = run_wi(root, &["impact", "PromptService"]);
+
+    for heading in [
+        "Primary:",
+        "Likely affected tests:",
+        "Callers/importers:",
+        "Related docs:",
+        "Related config/routes/schemas:",
+        "Other references:",
+    ] {
+        assert!(output.contains(heading), "missing {heading}\n{output}");
+    }
+    assert!(
+        output.contains("src/prompt_service.py")
+            && output.contains("tests/test_prompt_service.py")
+            && output.contains("src/consumer.py")
+            && output.contains("docs/guide.md"),
+        "missing expected impact files:\n{output}"
+    );
+    assert_rows_have_reasons(&output);
+}
+
+#[test]
+fn wi_impact_order_is_deterministic_and_ranked() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    write_file(
+        root,
+        "fixtures/example_prompt.py",
+        "from prompt_service import PromptService\nPromptService()\n",
+    );
+    run_build(root);
+
+    let first = run_wi(root, &["impact", "PromptService"]);
+    let second = run_wi(root, &["impact", "PromptService"]);
+
+    assert_eq!(first, second);
+    let primary_pos = first.find("Primary:").expect("primary heading present");
+    let tests_pos = first
+        .find("Likely affected tests:")
+        .expect("tests heading present");
+    let callers_pos = first
+        .find("Callers/importers:")
+        .expect("callers heading present");
+    let docs_pos = first.find("Related docs:").expect("docs heading present");
+    let other_pos = first
+        .find("Other references:")
+        .expect("other heading present");
+    let fixture_pos = first
+        .find("fixtures/example_prompt.py")
+        .expect("fixture ref present");
+
+    assert!(
+        primary_pos < tests_pos && tests_pos < callers_pos && callers_pos < docs_pos,
+        "expected primary, tests, callers, docs order:\n{first}"
+    );
+    assert!(
+        other_pos < fixture_pos,
+        "fixture/example rows should be in the last group:\n{first}"
+    );
+}
+
+#[test]
+fn wi_impact_respects_group_limits() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    for i in 0..7 {
+        write_file(
+            root,
+            &format!("tests/test_prompt_service_{i}.py"),
+            "from prompt_service import PromptService\n\ndef test_prompt_service_extra():\n    assert PromptService()\n",
+        );
+        write_file(
+            root,
+            &format!("src/consumer_{i}.py"),
+            "from prompt_service import PromptService\nPromptService()\n",
+        );
+        write_file(
+            root,
+            &format!("docs/guide_{i}.md"),
+            "[PromptService](PromptService)\n",
+        );
+        write_file(
+            root,
+            &format!("frontend/components/prompt_{i}.tsx"),
+            "export const label = 'PromptService';\n",
+        );
+    }
+    run_build(root);
+
+    let output = run_wi(root, &["impact", "PromptService"]);
+
+    assert!(group_rows(&output, "Likely affected tests:").len() <= 5);
+    assert!(group_rows(&output, "Callers/importers:").len() <= 5);
+    assert!(group_rows(&output, "Related docs:").len() <= 3);
+    assert!(group_rows(&output, "Other references:").len() <= 5);
+    assert!(
+        non_primary_impact_rows(&output).len() <= 15,
+        "expected at most 15 non-primary rows, got:\n{output}"
+    );
+}
+
+#[test]
+fn wi_impact_respects_n_as_total_non_primary_limit() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    run_build(root);
+
+    let output = run_wi(root, &["impact", "PromptService", "-n", "2"]);
+
+    assert!(
+        output.contains("Primary:") && output.contains("src/prompt_service.py"),
+        "primary should still print:\n{output}"
+    );
+    assert_eq!(
+        non_primary_impact_rows(&output).len(),
+        2,
+        "expected two non-primary rows, got:\n{output}"
+    );
+}
+
+#[test]
+fn wi_impact_missing_refs_shows_primary_non_error() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_file(root, "src/lonely.py", "class LonelyService: pass\n");
+    run_build(root);
+
+    let output = run_wi(root, &["impact", "LonelyService"]);
+
+    assert!(
+        output.contains("Primary:"),
+        "primary should print:\n{output}"
+    );
+    assert!(
+        output.contains("no impact references found for LonelyService"),
+        "missing no-impact-refs message:\n{output}"
+    );
+}
+
+#[test]
+fn wi_impact_no_primary_preserves_no_result_behavior_and_logs_miss() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    run_build(root);
+
+    let output = run_wi(root, &["impact", "NoSuchSymbolPleaseMissXYZ"]);
+
+    assert!(
+        output.trim().is_empty() && !output.contains("Primary:"),
+        "impact miss should preserve no-result output behavior:\n{output}"
+    );
+
+    let events = thinindex::stats::read_usage_events(root).expect("read usage events");
+    let event = events.last().expect("at least one usage event");
+    assert_eq!(event.query, "impact NoSuchSymbolPleaseMissXYZ");
+    assert!(!event.hit, "expected miss event: {event:?}");
+    assert_eq!(event.result_count, 0, "expected zero results: {event:?}");
+}
+
+#[test]
+fn wi_impact_does_not_dump_full_file_contents() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    run_build(root);
+
+    let output = run_wi(root, &["impact", "PromptService"]);
+
+    for needle in [
+        "class PromptService:",
+        "def consume():",
+        "def test_prompt_service():",
+    ] {
+        assert!(
+            !output.contains(needle),
+            "impact must not dump file contents; found {needle} in:\n{output}"
+        );
+    }
+}
+
+#[test]
+fn wi_impact_dedupes_one_best_row_per_file_per_group() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    write_file(
+        root,
+        "src/repeated_consumer.py",
+        "from prompt_service import PromptService\nPromptService()\nPromptService()\n",
+    );
+    run_build(root);
+
+    let output = run_wi(root, &["impact", "PromptService"]);
+    let repeated_rows = group_rows(&output, "Callers/importers:")
+        .into_iter()
+        .filter(|row| row.contains("src/repeated_consumer.py"))
+        .count();
+
+    assert_eq!(
+        repeated_rows, 1,
+        "expected one best callers/importers row per file, got:\n{output}"
+    );
+}
+
+#[test]
+fn wi_impact_filter_options_apply_to_primary_search() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    write_file(
+        root,
+        "legacy/prompt_service.py",
+        "class PromptService: pass\n",
+    );
+    run_build(root);
+
+    let output = run_wi(root, &["impact", "PromptService", "-p", "src/"]);
+    let primary_rows = group_rows(&output, "Primary:");
+
+    assert!(
+        primary_rows
+            .iter()
+            .any(|row| row.contains("src/prompt_service.py")),
+        "expected filtered primary result:\n{output}"
+    );
+    assert!(
+        primary_rows
+            .iter()
+            .all(|row| !row.contains("legacy/prompt_service.py")),
+        "primary search should honor path filter:\n{output}"
+    );
+}
+
+#[test]
+fn wi_impact_logs_usage_with_subcommand() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    run_build(root);
+
+    run_wi(root, &["impact", "PromptService"]);
+
+    let events = thinindex::stats::read_usage_events(root).expect("read usage events");
+    let event = events.last().expect("at least one usage event");
+    assert_eq!(event.query, "impact PromptService");
+    assert!(event.hit, "expected impact hit event: {event:?}");
+    assert!(
+        event.result_count > 0,
+        "expected positive result_count: {event:?}"
+    );
+}
+
+#[test]
+fn wi_impact_without_term_remains_normal_search() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_file(
+        root,
+        "src/impact_symbol.py",
+        "def impact():\n    return 1\n",
+    );
+    run_build(root);
+
+    let output = run_wi(root, &["impact"]);
+
+    assert!(
+        output.contains("src/impact_symbol.py") && !output.contains("Primary:"),
+        "`wi impact` without a term should remain normal search, got:\n{output}"
+    );
 }
 
 #[test]
