@@ -589,3 +589,92 @@ class PromptService:
         "-n 1 should return the highest-ranked result, got:\n{out}"
     );
 }
+
+#[test]
+fn wi_auto_rebuilds_when_a_file_changes_after_initial_build() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "src/foo.py",
+        r#"
+class OldName:
+    pass
+"#,
+    );
+
+    run_build(root);
+
+    let before = run_wi(root, &["OldName"]);
+    assert!(
+        before.contains("src/foo.py"),
+        "OldName should be found before edit, got:\n{before}"
+    );
+
+    // Edit the file in-place, replacing the symbol. wi must auto-rebuild and
+    // surface the new symbol without an explicit build_index call.
+    write_file(
+        root,
+        "src/foo.py",
+        r#"
+class NewName:
+    pass
+"#,
+    );
+
+    let after_old = run_wi(root, &["OldName"]);
+    assert!(
+        !after_old.contains("src/foo.py"),
+        "OldName must be gone after auto-rebuild, got:\n{after_old}"
+    );
+
+    let after_new = run_wi(root, &["NewName"]);
+    assert!(
+        after_new.contains("src/foo.py"),
+        "NewName must appear after auto-rebuild, got:\n{after_new}"
+    );
+}
+
+#[test]
+fn wi_does_not_pollute_stdout_when_index_is_fresh() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "src/foo.py",
+        r#"
+class OnlyName:
+    pass
+"#,
+    );
+
+    run_build(root);
+
+    // Two consecutive wi calls without intervening edits: the second must
+    // not emit any rebuild noise on stdout — only the search result.
+    let _warm = run_wi(root, &["OnlyName"]);
+    let stdout = run_wi(root, &["OnlyName"]);
+
+    let lines: Vec<&str> = stdout.lines().filter(|l| !l.is_empty()).collect();
+    assert_eq!(
+        lines.len(),
+        1,
+        "fresh-index wi run should print exactly one result line, got:\n{stdout}"
+    );
+    assert!(
+        lines[0].contains("src/foo.py"),
+        "result line should reference src/foo.py, got:\n{stdout}"
+    );
+}

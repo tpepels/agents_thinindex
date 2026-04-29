@@ -29,6 +29,9 @@ pub struct BuildStats {
     pub deleted_files: usize,
     pub records: usize,
     pub ctags_universal: bool,
+    /// Populated when an existing index was reset (schema bump or corrupted
+    /// manifest). Callers may surface this; library code stays silent.
+    pub reset_message: Option<&'static str>,
 }
 
 pub fn find_repo_root(start: &Path) -> Result<PathBuf> {
@@ -51,10 +54,10 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
 
     let mut manifest = load_manifest(&root)?;
 
-    if let Some(message) = reset_reason(&manifest) {
+    let reset_message = reset_reason(&manifest);
+    if reset_message.is_some() {
         crate::store::reset_dev_index(&root)?;
         manifest = Manifest::new();
-        println!("{message}");
     }
 
     let existing_records = load_records(&root)?;
@@ -128,7 +131,41 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
         deleted_files: deleted_paths.len(),
         records: records.len(),
         ctags_universal: ctags_status.is_universal,
+        reset_message,
     })
+}
+
+/// Cheap pre-check: compare manifest entries to current file mtimes/sizes
+/// without invoking ctags or rewriting the index. Returns `Ok(false)` if
+/// any indexed file has been touched, deleted, or added since the last
+/// build, or if the manifest itself needs reset.
+pub fn index_is_fresh(start: &Path) -> Result<bool> {
+    let root = find_repo_root(start)?;
+    let manifest = load_manifest(&root)?;
+
+    if reset_reason(&manifest).is_some() {
+        return Ok(false);
+    }
+
+    let files = discover_files(&root)?;
+    let mut current_paths: BTreeSet<String> = BTreeSet::new();
+
+    for path in &files {
+        let rel = relpath(&root, path)?;
+        let next_meta = file_meta(path)?;
+
+        if manifest.files.get(&rel) != Some(&next_meta) {
+            return Ok(false);
+        }
+
+        current_paths.insert(rel);
+    }
+
+    if manifest.files.keys().any(|p| !current_paths.contains(p)) {
+        return Ok(false);
+    }
+
+    Ok(true)
 }
 
 fn dedupe_records_by_location(records: &mut Vec<IndexRecord>) {

@@ -39,6 +39,10 @@ fn run() -> Result<()> {
 
     let stats = build_index(&start)?;
 
+    if let Some(message) = stats.reset_message {
+        println!("{message}");
+    }
+
     if args.quiet {
         println!("{}", stats.root.join(".dev_index").display());
         return Ok(());

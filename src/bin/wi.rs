@@ -4,7 +4,7 @@ use anyhow::Result;
 use clap::Parser;
 use thinindex::wi_cli::WiArgs;
 use thinindex::{
-    indexer::find_repo_root,
+    indexer::{build_index, find_repo_root, index_is_fresh},
     search::{SearchOptions, format_result, search},
     stats::{self, UsageEvent},
 };
@@ -21,6 +21,20 @@ fn run() -> Result<()> {
     let query = args.query.clone();
     let repo = env::current_dir()?;
     let root = find_repo_root(&repo)?;
+
+    // Auto-rebuild stale indexes silently. Failure here must not block the
+    // search — fall back to whatever the on-disk index contains.
+    match index_is_fresh(&root) {
+        Ok(false) => {
+            if let Err(error) = build_index(&root) {
+                eprintln!("warning: auto-rebuild failed, searching stale index: {error:#}");
+            }
+        }
+        Ok(true) => {}
+        Err(error) => {
+            eprintln!("warning: index freshness check failed: {error:#}");
+        }
+    }
 
     let used_type = args.kind.is_some();
     let used_lang = args.lang.is_some();
