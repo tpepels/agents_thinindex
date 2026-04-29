@@ -64,12 +64,14 @@ The following must remain part of the local/free core:
 
 All bundled parser dependencies and grammar dependencies must be permissively licensed and audited before release packaging.
 
-The current Rust, Python, and JS/TS parser support uses in-repository Rust code and introduces no third-party parser or grammar dependency.
+Universal Ctags has been removed. It is not bundled, not called by the code, and not required by install docs or tests. Proprietary packaging is no longer blocked by Universal Ctags.
 
-Before packaging work proceeds, thinindex also needs:
+The current Rust, Python, and JS/TS parser support uses in-repository Rust code and introduces no third-party parser or grammar dependency. CSS, HTML, Markdown, and JSX extras are also project-owned deterministic extractors.
 
-- `THIRD_PARTY_NOTICES`
-- dependency license audit coverage
+Before packaging work proceeds, thinindex still needs:
+
+- `THIRD_PARTY_NOTICES` kept in sync with the audited dependency set
+- full Cargo.lock dependency license audit coverage
 - release documentation that matches the audited dependency set
 - installer and archive smoke tests on target platforms
 

@@ -22,7 +22,16 @@ Current storage is `.dev_index/index.sqlite`. The entire `.dev_index/` directory
 
 Current instruction surfaces are `AGENTS.md` and, when already present, `CLAUDE.md`. `wi-init` creates or normalizes the canonical `## Repository search` block and does not create a separate instruction file.
 
-Indexing uses native Rust parser code and project-owned extra extractors. No external parser command is required for the shipped local workflow. Rust native parsing currently covers functions, methods, structs, enums, traits, modules, constants/statics, type aliases, and imports. Python native parsing currently covers classes, functions, methods, async functions/methods, imports, and conservative uppercase constants. JavaScript/TypeScript/JSX/TSX native parsing currently covers functions, arrow-function declarations, classes, practical class methods, imports, exports, interfaces/types, and JSX component usage through existing extras.
+Indexing uses native Rust parser code and project-owned extra extractors. No external parser command is required for the shipped local workflow. Universal Ctags has been removed and is not bundled or used.
+
+Current parser coverage:
+
+- Rust native parsing covers functions, methods, structs, enums, traits, modules, constants/statics, type aliases, and imports.
+- Python native parsing covers classes, functions, methods, async functions/methods, imports, and conservative uppercase constants.
+- JavaScript/TypeScript/JSX/TSX native parsing covers functions, arrow-function declarations, classes, practical class methods, imports, exports, interfaces/types, and JSX component usage through existing extras.
+- CSS/HTML/Markdown extras cover selectors, ids/classes, tags, headings, checklist items, links, TODO/FIXME, and related deterministic records.
+
+Known parser gaps include macro-expanded Rust, dynamic Python assignment patterns, multi-line JS/TS import/export forms, computed JS/TS class members, and full JSX/TypeScript type analysis.
 
 ## Product direction
 
@@ -81,6 +90,8 @@ Do not add new command families or broader search semantics without a plan that 
 ## Parser and packaging
 
 The native parser boundary is current infrastructure. Rust, Python, and JS/TS native parsing are supported for common code landmarks. Language-specific parser quality is still conservative and should improve incrementally without changing storage or command semantics.
+
+Universal Ctags is no longer a packaging blocker because it is not used or bundled. Proprietary packaging is still blocked until the full Cargo.lock dependency audit, notices review, archive hardening, and installer smoke work are complete.
 
 Before proprietary Windows/macOS/Linux packages are viable, thinindex needs:
 
