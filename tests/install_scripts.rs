@@ -153,40 +153,46 @@ fn docs_do_not_describe_legacy_files_as_current_instruction_or_storage() {
 }
 
 #[test]
-fn docs_state_ctags_is_external_and_blocks_proprietary_packaging() {
+fn docs_state_tree_sitter_is_bundled_and_ctags_removed() {
     let readme = repo_file("README.md");
     let roadmap = repo_file("docs/ROADMAP.md");
     let release = repo_file("docs/RELEASE_CHECKLIST.md");
     let product_boundary = repo_file("docs/PRODUCT_BOUNDARY.md");
+    let third_party = repo_file("THIRD_PARTY_NOTICES");
 
     assert!(
-        readme.contains("external user-installed dependency")
-            && readme.contains("must not bundle Universal Ctags"),
-        "README should describe ctags as external-only"
+        readme.contains("Indexing is self-contained")
+            && readme.contains("does not require an external parser command"),
+        "README should describe self-contained parser behavior"
     );
     assert!(
-        readme.contains("Proprietary Windows/macOS/Linux packages are blocked")
-            && readme.contains("permissively licensed"),
-        "README should document native permissive parser packaging blocker"
+        readme.contains("Universal Ctags is removed from the active parser path")
+            && readme.contains("Tree-sitter parser dependencies are bundled"),
+        "README should document Tree-sitter parser packaging status"
     );
     assert!(
-        roadmap.contains("Proprietary cross-platform packages are blocked")
-            && roadmap.contains("permissively licensed bundled parser dependencies"),
-        "roadmap should preserve ctags/native-parser packaging blocker"
+        roadmap.contains("Tree-sitter extraction framework")
+            && roadmap.contains("No external parser command is required"),
+        "roadmap should describe Tree-sitter as current parser path"
     );
     assert!(
-        product_boundary
-            .contains("Universal Ctags must not be bundled into proprietary release artifacts")
-            && product_boundary
-                .contains("A permissively licensed native parser backend is required"),
-        "product boundary should document ctags/native-parser packaging blocker"
+        product_boundary.contains("Universal Ctags has been removed from the active parser path")
+            && product_boundary.contains("Tree-sitter parser dependencies"),
+        "product boundary should document parser dependency status"
     );
     assert!(
-        release.contains("Do not bundle Universal Ctags")
-            && release.contains(
-                "blocked until the native parser work removes the ctags runtime dependency"
-            ),
-        "release checklist should prohibit bundled ctags in proprietary release artifacts"
+        release.contains("Universal Ctags is removed, not bundled, and not used")
+            && release.contains("full dependency license audit coverage"),
+        "release checklist should document ctags removal and license audit"
+    );
+    assert!(
+        third_party.contains("tree-sitter")
+            && third_party.contains("tree-sitter-rust")
+            && third_party.contains("tree-sitter-python")
+            && third_party.contains("tree-sitter-javascript")
+            && third_party.contains("tree-sitter-typescript")
+            && third_party.contains("License: MIT"),
+        "THIRD_PARTY_NOTICES should list Tree-sitter parser dependencies"
     );
 }
 

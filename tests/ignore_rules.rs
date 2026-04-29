@@ -4,11 +4,6 @@ use common::*;
 
 #[test]
 fn fixture_ignored_repo_skips_default_ignored_dirs() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = fixture_repo("ignored_repo");
     let root = repo.path();
 
@@ -41,11 +36,6 @@ fn fixture_ignored_repo_skips_default_ignored_dirs() {
 
 #[test]
 fn fixture_thinindexignore_repo_uses_gitignore_style_patterns() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = fixture_repo("thinindexignore_repo");
     let root = repo.path();
 
@@ -78,11 +68,6 @@ fn fixture_thinindexignore_repo_uses_gitignore_style_patterns() {
 
 #[test]
 fn fixture_gitignore_rules_are_respected() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = fixture_repo("gitignore_repo");
     let root = repo.path();
 
@@ -109,11 +94,6 @@ fn fixture_gitignore_rules_are_respected() {
 
 #[test]
 fn build_index_respects_thinindexignore() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 

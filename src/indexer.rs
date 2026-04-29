@@ -10,7 +10,6 @@ use anyhow::{Context, Result};
 use ignore::WalkBuilder;
 
 use crate::{
-    ctags::{check_ctags, index_with_ctags},
     extras::index_extras,
     model::{FileMeta, IndexRecord},
     refs::{extract_refs, finalize_refs},
@@ -18,6 +17,7 @@ use crate::{
         load_manifest, load_records, prepare_for_build, remove_records_for_paths,
         save_index_snapshot, sort_records, sort_refs,
     },
+    tree_sitter_extraction::TreeSitterExtractionEngine,
 };
 
 const IGNORE_DIRS: &[&str] = &[".git", ".dev_index"];
@@ -29,7 +29,6 @@ pub struct BuildStats {
     pub changed_files: usize,
     pub deleted_files: usize,
     pub records: usize,
-    pub ctags_universal: bool,
     /// Populated when an existing index was reset (schema bump or corrupted
     /// manifest). Callers may surface this; library code stays silent.
     pub reset_message: Option<&'static str>,
@@ -51,7 +50,6 @@ pub fn find_repo_root(start: &Path) -> Result<PathBuf> {
 
 pub fn build_index(start: &Path) -> Result<BuildStats> {
     let root = find_repo_root(start)?;
-    let ctags_status = check_ctags()?;
 
     let (mut manifest, reset_message) = prepare_for_build(&root)?;
 
@@ -93,17 +91,16 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
     let mut records = remove_records_for_paths(existing_records, &stale_paths);
 
     if !changed_files.is_empty() {
-        let changed_abs_paths: Vec<PathBuf> = changed_files
-            .iter()
-            .map(|(path, _, _)| path.clone())
-            .collect();
-
-        let mut ctags_records = index_with_ctags(&root, &changed_abs_paths)?;
-        records.append(&mut ctags_records);
+        let parser = TreeSitterExtractionEngine::default();
 
         for (path, rel, meta) in changed_files {
             let text = fs::read_to_string(&path)
                 .with_context(|| format!("failed to read source file: {}", path.display()))?;
+
+            let mut parser_records = parser
+                .parse_file(&rel, &text)
+                .with_context(|| format!("failed to parse source file: {rel}"))?;
+            records.append(&mut parser_records);
 
             let mut extra_records = index_extras(&rel, &text);
             records.append(&mut extra_records);
@@ -129,15 +126,14 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
         changed_files: changed_paths.len(),
         deleted_files: deleted_paths.len(),
         records: records.len(),
-        ctags_universal: ctags_status.is_universal,
         reset_message,
     })
 }
 
 /// Cheap pre-check: compare manifest entries to current file mtimes/sizes
-/// without invoking ctags or rewriting the index. Returns `Ok(false)` if
-/// any indexed file has been touched, deleted, or added since the last
-/// build, or if the manifest itself needs reset.
+/// without parsing files or rewriting the index. Returns `Ok(false)` if any
+/// indexed file has been touched, deleted, or added since the last build, or
+/// if the manifest itself needs reset.
 pub fn index_is_fresh(start: &Path) -> Result<bool> {
     let root = find_repo_root(start)?;
     let manifest = load_manifest(&root)?;
@@ -183,7 +179,7 @@ fn record_location_preference_key(record: &IndexRecord) -> (usize, String, usize
 
 fn record_location_preference_rank(record: &IndexRecord) -> usize {
     match (record.source.as_str(), record.kind.as_str()) {
-        ("ctags", "section") => 0,
+        ("tree_sitter", "section") => 0,
 
         ("extras", "css_id")
         | ("extras", "css_class")
@@ -200,7 +196,7 @@ fn record_location_preference_rank(record: &IndexRecord) -> usize {
         | ("extras", "checklist")
         | ("extras", "link") => 0,
 
-        ("ctags", _) => 1,
+        ("tree_sitter", _) => 1,
 
         ("extras", "section") => 2,
 
@@ -322,7 +318,7 @@ const BINARY_SNIFF_BYTES: usize = 8192;
 
 /// Heuristic used by git, ripgrep, and friends: read the leading chunk and
 /// treat the file as binary if it contains a NUL byte. Cheap (one syscall,
-/// at most 8KB) and avoids feeding non-text blobs to ctags or
+/// at most 8KB) and avoids feeding non-text blobs to the parser or
 /// `read_to_string`, which would otherwise abort the whole build.
 fn is_likely_binary(path: &Path) -> bool {
     let Ok(mut file) = fs::File::open(path) else {

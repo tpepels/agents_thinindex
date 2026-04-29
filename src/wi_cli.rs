@@ -66,7 +66,7 @@ pub struct WiArgs {
     #[arg(
         short = 's',
         value_name = "SOURCE",
-        help = "Filter by index source. Values are usually ctags or extras"
+        help = "Filter by index source. Values are usually tree_sitter or extras"
     )]
     pub source: Option<String>,
 

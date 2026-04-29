@@ -22,7 +22,7 @@ Current storage is `.dev_index/index.sqlite`. The entire `.dev_index/` directory
 
 Current instruction surfaces are `AGENTS.md` and, when already present, `CLAUDE.md`. `wi-init` creates or normalizes the canonical `## Repository search` block and does not create a separate instruction file.
 
-Universal Ctags remains a required external parser dependency for indexing. It is not bundled into release artifacts.
+Indexing uses the Tree-sitter extraction framework and project-owned extras. No external parser command is required for the shipped local workflow.
 
 ## Product direction
 
@@ -78,23 +78,22 @@ Near-term work should focus on hardening the current agent-navigation surface:
 
 Do not add new command families or broader search semantics without a plan that explains the agent workflow they improve.
 
-## Parser and packaging blocker
+## Parser and packaging
 
-Universal Ctags is acceptable only as an external user-installed dependency while thinindex is pre-release. Proprietary cross-platform packages are blocked until Universal Ctags is removed from the required parser path.
+Universal Ctags is removed from the active parser path. Proprietary cross-platform packages still require license audit coverage for bundled Tree-sitter parser dependencies and release hardening.
 
 Before proprietary Windows/macOS/Linux packages are viable, thinindex needs:
 
-- a native parser backend boundary
 - permissively licensed bundled parser dependencies
 - license audit coverage for those dependencies
-- install docs that no longer require users to install ctags
-- release artifacts that do not bundle Universal Ctags
+- install docs that match the bundled parser stack
+- release artifacts that pass archive and installer smoke tests
 
-The native parser should be introduced as product infrastructure, not as a change to search semantics by itself.
+Tree-sitter parser improvements should be introduced as product infrastructure, not as search-semantics changes by themselves.
 
 ## Product boundary
 
-The current tool is local/free. No payment, account, license enforcement, telemetry, cloud sync, remote indexing, feature lockout, release installer, or ctags bundling behavior is implemented.
+The current tool is local/free. No payment, account, license enforcement, telemetry, cloud sync, remote indexing, feature lockout, or release installer behavior is implemented.
 
 The free/local core must continue to include local indexing, `build_index`, `wi <term>`, basic filters, `wi --help`, `wi-init`, repository instruction setup, local cache rebuilds, `.dev_index/index.sqlite`, `wi-stats`, and no-network local operation.
 
@@ -122,4 +121,4 @@ Documentation should:
 - describe `.dev_index/index.sqlite` as the canonical cache
 - describe old pre-alpha caches only as disposable migration input
 - avoid claiming semantic code intelligence, LSP replacement, hosted search, or predictive ranking
-- avoid commercial packaging claims while the ctags blocker remains
+- avoid commercial packaging claims before dependency audits and release hardening are complete

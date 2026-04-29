@@ -33,11 +33,6 @@ fn force_schema_version(root: &std::path::Path, version: u32) {
 
 #[test]
 fn old_jsonl_storage_triggers_rebuild() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -67,11 +62,6 @@ fn old_jsonl_storage_triggers_rebuild() {
 
 #[test]
 fn sqlite_schema_version_missing_triggers_rebuild() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -97,11 +87,6 @@ fn sqlite_schema_version_missing_triggers_rebuild() {
 
 #[test]
 fn sqlite_schema_version_mismatch_triggers_rebuild() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -123,11 +108,6 @@ fn sqlite_schema_version_mismatch_triggers_rebuild() {
 
 #[test]
 fn sqlite_schema_version_reset_removes_usage_events() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -159,11 +139,6 @@ fn sqlite_schema_version_reset_removes_usage_events() {
 
 #[test]
 fn index_schema_version_no_rebuild_when_same() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -184,11 +159,6 @@ fn index_schema_version_no_rebuild_when_same() {
 
 #[test]
 fn malformed_sqlite_rebuilds_cleanly() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 

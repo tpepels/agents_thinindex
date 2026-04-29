@@ -28,11 +28,6 @@ fn assert_ref_exists(refs: &[thinindex::model::ReferenceRecord], ref_kind: &str,
 
 #[test]
 fn build_creates_index_files() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -66,11 +61,6 @@ def top_level_function():
 
 #[test]
 fn unchanged_files_are_skipped_on_second_build() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -94,11 +84,6 @@ class PromptService:
 
 #[test]
 fn changed_files_are_reindexed() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -137,11 +122,6 @@ class RankingService:
 
 #[test]
 fn deleted_files_are_removed_from_index() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -177,11 +157,6 @@ class DeletedService:
 }
 #[test]
 fn fixture_index_passes_shared_integrity_checks() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -265,11 +240,6 @@ def build_prompt():
 
 #[test]
 fn fixture_reference_repo_extracts_plan_02_refs() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -372,11 +342,6 @@ def test_prompt_service():
 
 #[test]
 fn refs_are_deterministic_on_repeated_build() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -406,11 +371,6 @@ fn refs_are_deterministic_on_repeated_build() {
 
 #[test]
 fn changed_python_file_rewrites_stale_refs() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -445,11 +405,6 @@ fn changed_python_file_rewrites_stale_refs() {
 
 #[test]
 fn changed_files_rewrite_stale_refs() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -490,11 +445,6 @@ fn changed_files_rewrite_stale_refs() {
 
 #[test]
 fn deleted_files_remove_refs() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -533,11 +483,6 @@ fn deleted_files_remove_refs() {
 
 #[test]
 fn binary_files_are_skipped() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -587,11 +532,6 @@ class PromptService:
 
 #[test]
 fn markdown_heading_is_canonicalized_to_section() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 

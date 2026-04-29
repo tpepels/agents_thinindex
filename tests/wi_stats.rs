@@ -4,11 +4,6 @@ use common::*;
 
 #[test]
 fn wi_appends_usage_log() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -39,11 +34,6 @@ class PromptService:
 
 #[test]
 fn wi_logs_miss_when_no_results() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -71,11 +61,6 @@ class PromptService:
 
 #[test]
 fn wi_stats_prints_all_windows() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -127,11 +112,6 @@ class PromptService:
 
 #[test]
 fn wi_stats_no_usage_message() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
     write_file(root, "src/main.py", "class PromptService: pass\n");
@@ -158,11 +138,6 @@ fn wi_stats_no_usage_message() {
 
 #[test]
 fn wi_stats_recent_misses_section() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -210,11 +185,6 @@ class PromptService:
 
 #[test]
 fn wi_stats_recent_misses_none_when_only_hits() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 

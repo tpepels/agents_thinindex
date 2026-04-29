@@ -139,3 +139,10 @@ Report:
 - verification commands and results
 - ignored local/real repo test status
 - commit hash
+
+Phase tracking:
+- [x] Remove active Universal Ctags integration surfaces.
+- [x] Add Tree-sitter registry, strategy, adapter, query pack, capture mapper, and license metadata plumbing.
+- [x] Wire the extraction engine into `build_index` with deterministic records and schema bump.
+- [x] Run required verification.
+- [x] Commit scoped PLAN_11A changes.

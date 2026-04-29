@@ -141,8 +141,8 @@ thinindex is intentionally conservative:
 - Impact output is evidence-backed but not exhaustive.
 - Agents can still ignore repository instructions.
 - Generated, build, vendor, dependency, and large fixture paths should be ignored.
-- Proprietary packaging is blocked until Universal Ctags is removed from the required parser path.
-- Bundled parser dependencies must be permissively licensed and audited before commercial release artifacts.
+- Tree-sitter parser support is deterministic symbol extraction, not semantic or LSP-level analysis.
+- Bundled parser dependencies must stay permissively licensed and audited before commercial release artifacts.
 
 ## Free/local and future Pro
 
@@ -154,31 +154,31 @@ Future Pro candidates are documented in [docs/PRODUCT_BOUNDARY.md](docs/PRODUCT_
 
 ## Install/uninstall
 
-Requires Rust/Cargo and Universal Ctags. Universal Ctags is an external user-installed dependency for indexing until thinindex has a permissively licensed native parser. Release archives and installers must not bundle Universal Ctags.
+Requires Rust/Cargo. Indexing is self-contained and does not require an external parser command.
 
 Arch Linux:
 
 ```bash
-sudo pacman -S rust universal-ctags
+sudo pacman -S rust
 ```
 
 Debian / Ubuntu:
 
 ```bash
 sudo apt update
-sudo apt install cargo universal-ctags
+sudo apt install cargo
 ```
 
 Fedora:
 
 ```bash
-sudo dnf install rust cargo ctags
+sudo dnf install rust cargo
 ```
 
 macOS with Homebrew:
 
 ```bash
-brew install rust universal-ctags
+brew install rust
 ```
 
 Install:
@@ -200,10 +200,7 @@ build_index --version
 wi --version
 wi-init --version
 wi-stats --version
-ctags --version
 ```
-
-`ctags --version` should mention Universal Ctags.
 
 Uninstall installed binaries:
 
@@ -221,9 +218,9 @@ wi-init --remove
 
 ## Packaging/licensing caveat
 
-SQLite is bundled through the Rust dependency configuration, but Universal Ctags is not bundled. Universal Ctags may be used only as an external user-installed dependency while it remains required.
+SQLite and Tree-sitter parser dependencies are bundled through the Rust dependency configuration. Universal Ctags is removed from the active parser path and is not bundled or used.
 
-Proprietary Windows/macOS/Linux packages are blocked until the parser path no longer requires Universal Ctags and the replacement native parser stack is permissively licensed and audited.
+Proprietary Windows/macOS/Linux packages still require dependency license audit coverage, release hardening, and artifact smoke tests before publishing.
 
 ## Development
 

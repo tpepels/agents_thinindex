@@ -1,6 +1,6 @@
 # Product Boundary
 
-Thinindex is currently a local/free agent-navigation tool. This document defines the boundary for possible future paid work without adding license enforcement, payment integration, network behavior, telemetry, feature lockouts, release installers, ctags bundling, or native parser replacement.
+Thinindex is currently a local/free agent-navigation tool. This document defines the boundary for possible future paid work without adding license enforcement, payment integration, network behavior, telemetry, feature lockouts, release installers, or parser feature gates.
 
 ## Product principle
 
@@ -62,16 +62,16 @@ The following must remain part of the local/free core:
 
 ## Packaging/licensing blockers
 
-Universal Ctags must not be bundled into proprietary release artifacts. While ctags remains required, it may only be documented as an external user-installed dependency.
+Universal Ctags has been removed from the active parser path. It is not bundled, detected, or called by thinindex.
 
-A permissively licensed native parser backend is required before proprietary same-binary Pro packaging. All bundled parser dependencies and grammar dependencies must be audited before release packaging.
+Tree-sitter parser dependencies and grammar dependencies must be permissively licensed and audited before release packaging.
 
 Before packaging work proceeds, thinindex also needs:
 
 - `THIRD_PARTY_NOTICES`
-- dependency license audit coverage
-- a parser path that does not require bundled Universal Ctags
-- release documentation that keeps ctags external until that path exists
+- full dependency license audit coverage
+- release documentation that matches the audited parser dependency set
+- installer and archive smoke tests on target platforms
 
 ## What is not being built yet
 
@@ -86,8 +86,7 @@ This boundary does not add:
 - feature lockouts
 - network calls
 - release installers
-- ctags bundling
-- native parser replacement
+- parser paywalls
 
 ## Licensing/payment deferred decisions
 

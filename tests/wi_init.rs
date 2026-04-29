@@ -61,11 +61,6 @@ fn assert_agents_has_canonical_repository_search_block(agents: &str) {
 
 #[test]
 fn wi_init_does_not_create_wi_md() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -79,11 +74,6 @@ fn wi_init_does_not_create_wi_md() {
 
 #[test]
 fn wi_init_creates_agents_md_when_absent() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -95,11 +85,6 @@ fn wi_init_creates_agents_md_when_absent() {
 
 #[test]
 fn wi_init_appends_canonical_agents_block_to_existing_file() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -118,11 +103,6 @@ fn wi_init_appends_canonical_agents_block_to_existing_file() {
 
 #[test]
 fn wi_init_normalizes_legacy_agents_marker() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -140,11 +120,6 @@ fn wi_init_normalizes_legacy_agents_marker() {
 
 #[test]
 fn wi_init_normalizes_backticked_legacy_agents_marker() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -162,11 +137,6 @@ fn wi_init_normalizes_backticked_legacy_agents_marker() {
 
 #[test]
 fn wi_init_normalizes_at_wi_marker_in_agents_md() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -185,11 +155,6 @@ fn wi_init_normalizes_at_wi_marker_in_agents_md() {
 
 #[test]
 fn wi_init_normalizes_old_paragraph_repository_search_block() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -212,11 +177,6 @@ fn wi_init_normalizes_old_paragraph_repository_search_block() {
 
 #[test]
 fn wi_init_normalizes_older_bullet_block_without_pack_or_impact() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -238,11 +198,6 @@ fn wi_init_normalizes_older_bullet_block_without_pack_or_impact() {
 
 #[test]
 fn wi_init_does_not_duplicate_agents_repository_search_block() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -267,11 +222,6 @@ fn wi_init_does_not_duplicate_agents_repository_search_block() {
 
 #[test]
 fn wi_init_normalizes_at_agents_md_only_claude_md() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -290,11 +240,6 @@ fn wi_init_normalizes_at_agents_md_only_claude_md() {
 
 #[test]
 fn wi_init_normalizes_claude_md_with_at_agents_md_and_extra_content() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -314,11 +259,6 @@ fn wi_init_normalizes_claude_md_with_at_agents_md_and_extra_content() {
 
 #[test]
 fn wi_init_leaves_canonical_block_unchanged() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -342,11 +282,6 @@ fn wi_init_leaves_canonical_block_unchanged() {
 
 #[test]
 fn wi_init_normalizes_old_versioned_block() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -364,11 +299,6 @@ fn wi_init_normalizes_old_versioned_block() {
 
 #[test]
 fn wi_init_does_not_emit_agents_h1_when_claude_md_filters_to_empty() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -393,11 +323,6 @@ fn wi_init_does_not_emit_agents_h1_when_claude_md_filters_to_empty() {
 
 #[test]
 fn wi_init_does_not_create_claude_md() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -411,11 +336,6 @@ fn wi_init_does_not_create_claude_md() {
 
 #[test]
 fn wi_init_does_not_duplicate_claude_md_marker() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -430,11 +350,6 @@ fn wi_init_does_not_duplicate_claude_md_marker() {
 
 #[test]
 fn wi_init_rolls_back_existing_claude_md_on_failure() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -457,11 +372,6 @@ fn wi_init_rolls_back_existing_claude_md_on_failure() {
 
 #[test]
 fn wi_init_writes_thinindexignore() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -482,11 +392,6 @@ fn wi_init_writes_thinindexignore() {
 
 #[test]
 fn wi_init_force_overwrites_thinindexignore() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -510,11 +415,6 @@ fn wi_init_force_overwrites_thinindexignore() {
 
 #[test]
 fn wi_init_updates_gitignore_once() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -534,11 +434,6 @@ fn wi_init_updates_gitignore_once() {
 
 #[test]
 fn wi_init_gitignore_existing_variants_are_not_duplicated() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     for existing in [".dev_index\n", ".dev_index/\n", "/.dev_index/\n"] {
         let repo = temp_repo();
         let root = repo.path();
@@ -557,11 +452,6 @@ fn wi_init_gitignore_existing_variants_are_not_duplicated() {
 
 #[test]
 fn wi_init_rolls_back_existing_files_on_failure() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -610,11 +500,6 @@ fn wi_init_rolls_back_existing_files_on_failure() {
 
 #[test]
 fn wi_init_rolls_back_new_files_on_failure() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -654,11 +539,6 @@ fn wi_init_rolls_back_new_files_on_failure() {
 
 #[test]
 fn wi_init_preserves_existing_dev_index_on_failure() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -679,11 +559,6 @@ fn wi_init_preserves_existing_dev_index_on_failure() {
 
 #[test]
 fn wi_init_remove_leaves_repo_files_alone() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = temp_repo();
     let root = repo.path();
 
@@ -720,11 +595,6 @@ fn wi_init_remove_leaves_repo_files_alone() {
 
 #[test]
 fn fixture_repo_remove_command_removes_index() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = fixture_repo("sample_repo");
     let root = repo.path();
 
@@ -745,11 +615,6 @@ fn fixture_repo_remove_command_removes_index() {
 
 #[test]
 fn fixture_keep_index_remove_preserves_dev_index() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
     let repo = fixture_repo("sample_repo");
     let root = repo.path();
 

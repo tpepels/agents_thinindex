@@ -1,0 +1,45 @@
+# Third-Party Notices
+
+This file records parser and runtime dependency notices relevant to thinindex release packaging.
+
+## Parser and Grammar Dependencies
+
+Universal Ctags
+- Status: removed.
+- Bundled: no.
+- Used at runtime: no.
+- Accepted reason: not applicable; thinindex no longer shells out to ctags and does not emit `source = "ctags"` records.
+
+Tree-sitter core
+- Package: tree-sitter
+- Upstream: https://github.com/tree-sitter/tree-sitter
+- License: MIT
+- Accepted reason: parser runtime for bundled deterministic extraction.
+
+Tree-sitter Rust grammar
+- Package: tree-sitter-rust
+- Upstream: https://github.com/tree-sitter/tree-sitter-rust
+- License: MIT
+- Accepted reason: Rust grammar for registry-backed extraction.
+
+Tree-sitter Python grammar
+- Package: tree-sitter-python
+- Upstream: https://github.com/tree-sitter/tree-sitter-python
+- License: MIT
+- Accepted reason: Python grammar for registry-backed extraction.
+
+Tree-sitter JavaScript grammar
+- Package: tree-sitter-javascript
+- Upstream: https://github.com/tree-sitter/tree-sitter-javascript
+- License: MIT
+- Accepted reason: JavaScript and JSX grammar for registry-backed extraction.
+
+Tree-sitter TypeScript grammar
+- Package: tree-sitter-typescript
+- Upstream: https://github.com/tree-sitter/tree-sitter-typescript
+- License: MIT
+- Accepted reason: TypeScript and TSX grammars for registry-backed extraction.
+
+## Audit Status
+
+The parser dependencies listed above are permissively licensed. Proprietary release artifacts still require a full dependency audit against `Cargo.lock` before publishing.

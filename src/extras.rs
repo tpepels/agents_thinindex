@@ -264,6 +264,28 @@ fn index_markdown_line(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {
     let trimmed = ctx.text.trim_start();
     let leading_spaces = ctx.text.len() - trimmed.len();
 
+    if trimmed.starts_with('#') {
+        let marker_len = trimmed.chars().take_while(|ch| *ch == '#').count();
+
+        if (1..=6).contains(&marker_len) {
+            let after_marker = &trimmed[marker_len..];
+
+            if after_marker.starts_with(char::is_whitespace) {
+                let name = after_marker.trim();
+
+                if !name.is_empty() {
+                    push_record(
+                        records,
+                        ctx,
+                        leading_spaces + marker_len + 1,
+                        "section",
+                        name,
+                    );
+                }
+            }
+        }
+    }
+
     if trimmed.starts_with("- [ ] ")
         || trimmed.starts_with("- [x] ")
         || trimmed.starts_with("- [X] ")
