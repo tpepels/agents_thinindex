@@ -171,9 +171,12 @@ fn docs_describe_self_contained_parser_and_release_audit_boundary() {
     );
     assert!(
         readme.contains("Native Rust parsing is supported")
+            && readme.contains("Native Python parsing is supported")
             && roadmap.contains("Rust native parsing currently covers")
-            && product_boundary.contains("introduces no third-party parser or grammar dependency"),
-        "docs should describe Rust native parser support and dependency status"
+            && roadmap.contains("Python native parsing currently covers")
+            && product_boundary
+                .contains("Rust and Python parser support uses in-repository Rust code"),
+        "docs should describe Rust/Python native parser support and dependency status"
     );
     assert!(
         product_boundary.contains("permissively licensed and audited")

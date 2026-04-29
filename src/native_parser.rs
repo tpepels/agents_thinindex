@@ -20,13 +20,16 @@ pub fn parse_file(rel_path: &str, text: &str) -> Vec<IndexRecord> {
         return parse_rust_file(rel_path, &lang, text);
     }
 
+    if lang == "py" {
+        return parse_python_file(rel_path, &lang, text);
+    }
+
     let mut records = Vec::new();
 
     for (line_index, line) in text.lines().enumerate() {
         let line_no = line_index + 1;
 
         match lang.as_str() {
-            "py" => parse_python_line(rel_path, &lang, line_no, line, &mut records),
             "js" | "jsx" | "ts" | "tsx" => {
                 parse_js_like_line(rel_path, &lang, line_no, line, &mut records);
             }
@@ -45,32 +48,262 @@ struct RustState {
     impl_body_depth: Option<usize>,
 }
 
+#[derive(Debug, Default)]
+struct PythonState {
+    class_indents: Vec<usize>,
+    function_indents: Vec<usize>,
+}
+
+fn parse_python_file(path: &str, lang: &str, text: &str) -> Vec<IndexRecord> {
+    let mut records = Vec::new();
+    let mut state = PythonState::default();
+
+    for (line_index, line) in text.lines().enumerate() {
+        let line_no = line_index + 1;
+        let code = python_code_before_line_comment(line);
+
+        if code.trim().is_empty() {
+            continue;
+        }
+
+        let indent = leading_whitespace_width(line);
+        state.update_for_line(indent);
+        parse_python_line(
+            path,
+            lang,
+            line_no,
+            line,
+            code,
+            indent,
+            &mut state,
+            &mut records,
+        );
+    }
+
+    records
+}
+
+impl PythonState {
+    fn update_for_line(&mut self, indent: usize) {
+        while self
+            .class_indents
+            .last()
+            .is_some_and(|class_indent| indent <= *class_indent)
+        {
+            self.class_indents.pop();
+        }
+
+        while self
+            .function_indents
+            .last()
+            .is_some_and(|function_indent| indent <= *function_indent)
+        {
+            self.function_indents.pop();
+        }
+    }
+
+    fn in_class_body(&self, indent: usize) -> bool {
+        self.class_indents
+            .last()
+            .is_some_and(|class_indent| indent > *class_indent)
+    }
+
+    fn enter_class(&mut self, indent: usize) {
+        self.class_indents.push(indent);
+    }
+
+    fn in_function_body(&self, indent: usize) -> bool {
+        self.function_indents
+            .last()
+            .is_some_and(|function_indent| indent > *function_indent)
+    }
+
+    fn enter_function(&mut self, indent: usize) {
+        self.function_indents.push(indent);
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 fn parse_python_line(
     path: &str,
     lang: &str,
     line_no: usize,
     line: &str,
+    code: &str,
+    indent: usize,
+    state: &mut PythonState,
     records: &mut Vec<IndexRecord>,
 ) {
-    let trimmed = line.trim_start();
+    let trimmed = code.trim_start();
 
     if trimmed.starts_with('#') {
         return;
     }
 
-    if let Some((col, name)) = keyword_name(line, "class") {
+    if let Some((col, name)) = keyword_name(code, "class") {
         push_record(records, path, lang, line_no, col, "class", name, line);
+        state.enter_class(indent);
         return;
     }
 
-    if let Some((col, name)) = keyword_name(line, "def") {
-        let kind = if line.len() > trimmed.len() {
+    if let Some((col, name)) = keyword_name(code, "def") {
+        let kind = if state.in_class_body(indent) {
             "method"
         } else {
             "function"
         };
         push_record(records, path, lang, line_no, col, kind, name, line);
+        state.enter_function(indent);
+        return;
     }
+
+    if trimmed.starts_with("from ") {
+        push_python_from_import_records(records, path, lang, line_no, line, code);
+        return;
+    }
+
+    if trimmed.starts_with("import ") {
+        push_python_import_records(records, path, lang, line_no, line, code);
+        return;
+    }
+
+    if let Some((col, name)) = python_constant_assignment(code)
+        && (indent == 0 || (state.in_class_body(indent) && !state.in_function_body(indent)))
+    {
+        push_record(records, path, lang, line_no, col, "constant", name, line);
+    }
+}
+
+fn push_python_import_records(
+    records: &mut Vec<IndexRecord>,
+    path: &str,
+    lang: &str,
+    line_no: usize,
+    line: &str,
+    code: &str,
+) {
+    let Some(import_index) = code.find("import ") else {
+        return;
+    };
+    let body_start = import_index + "import ".len();
+    let body = code[body_start..].trim();
+
+    for part in body.split(',') {
+        let import_text = part.trim();
+
+        if import_text.is_empty() {
+            continue;
+        }
+
+        let name = python_import_binding_name(import_text);
+
+        if name.is_empty() {
+            continue;
+        }
+
+        if let Some(relative_col) = code[body_start..].find(&name) {
+            push_record(
+                records,
+                path,
+                lang,
+                line_no,
+                body_start + relative_col + 1,
+                "import",
+                name,
+                line,
+            );
+        }
+    }
+}
+
+fn push_python_from_import_records(
+    records: &mut Vec<IndexRecord>,
+    path: &str,
+    lang: &str,
+    line_no: usize,
+    line: &str,
+    code: &str,
+) {
+    let Some(import_index) = code.find(" import ") else {
+        return;
+    };
+    let body_start = import_index + " import ".len();
+    let body = code[body_start..].trim();
+
+    if body == "*" {
+        return;
+    }
+
+    for part in body.split(',') {
+        let import_text = part.trim();
+
+        if import_text.is_empty() {
+            continue;
+        }
+
+        let name = python_import_binding_name(import_text);
+
+        if name.is_empty() {
+            continue;
+        }
+
+        if let Some(relative_col) = code[body_start..].find(&name) {
+            push_record(
+                records,
+                path,
+                lang,
+                line_no,
+                body_start + relative_col + 1,
+                "import",
+                name,
+                line,
+            );
+        }
+    }
+}
+
+fn python_import_binding_name(import_text: &str) -> String {
+    if let Some((_, alias)) = import_text.rsplit_once(" as ") {
+        return take_identifier(alias.trim());
+    }
+
+    take_identifier(import_text.split('.').next().unwrap_or_default())
+}
+
+fn python_constant_assignment(code: &str) -> Option<(usize, String)> {
+    let equals = code.find('=')?;
+
+    if code[..equals].ends_with(['!', '<', '>', '=']) || code[equals + 1..].starts_with('=') {
+        return None;
+    }
+
+    let before_equals = code[..equals].trim_end();
+    let binding = before_equals
+        .rsplit_once(':')
+        .map(|(name, _)| name.trim())
+        .unwrap_or(before_equals)
+        .trim();
+
+    let name = take_identifier(binding);
+
+    if name.len() != binding.len() || !is_python_constant_name(&name) {
+        return None;
+    }
+
+    let col = code.find(&name)? + 1;
+    Some((col, name))
+}
+
+fn is_python_constant_name(name: &str) -> bool {
+    !name.is_empty()
+        && name
+            .chars()
+            .next()
+            .is_some_and(|ch| ch.is_ascii_uppercase() || ch == '_')
+        && name.chars().any(|ch| ch.is_ascii_uppercase())
+        && name
+            .chars()
+            .all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit() || ch == '_')
 }
 
 fn parse_rust_file(path: &str, lang: &str, text: &str) -> Vec<IndexRecord> {
@@ -245,6 +478,10 @@ fn rust_code_before_line_comment(line: &str) -> &str {
     line.split_once("//").map(|(code, _)| code).unwrap_or(line)
 }
 
+fn python_code_before_line_comment(line: &str) -> &str {
+    line.split_once('#').map(|(code, _)| code).unwrap_or(line)
+}
+
 fn rust_has_keyword(line: &str, keyword: &str) -> bool {
     let mut search_start = 0;
 
@@ -259,6 +496,13 @@ fn rust_has_keyword(line: &str, keyword: &str) -> bool {
     }
 
     false
+}
+
+fn leading_whitespace_width(line: &str) -> usize {
+    line.chars()
+        .take_while(|ch| ch.is_whitespace())
+        .map(|ch| if ch == '\t' { 4 } else { 1 })
+        .sum()
 }
 
 fn parse_js_like_line(
@@ -503,7 +747,7 @@ mod tests {
     fn parses_common_native_landmarks() {
         let records = parse_file(
             "src/lib.rs",
-            "pub const INDEX_SCHEMA_VERSION: u32 = 7;\npub fn build_index() {}\nstruct PromptService;\n",
+            "pub const INDEX_SCHEMA_VERSION: u32 = 8;\npub fn build_index() {}\nstruct PromptService;\n",
         );
 
         assert!(records.iter().any(|record| record.name == "build_index"));
@@ -513,6 +757,75 @@ mod tests {
                 .iter()
                 .any(|record| record.name == "INDEX_SCHEMA_VERSION")
         );
+    }
+
+    #[test]
+    fn parses_python_classes_functions_methods_imports_and_constants() {
+        let records = parse_file(
+            "app/services/prompt_service.py",
+            r#"
+import os
+import pathlib as pl
+from typing import Optional, TYPE_CHECKING as CHECKING
+
+MAX_RETRIES = 3
+local_value = 1
+
+class PromptService:
+    DEFAULT_MODEL: str = "base"
+
+    def build_prompt(self):
+        LOCAL_CACHE = "skip"
+        pass
+
+    async def fetch_prompt(self):
+        pass
+
+async def create_prompt_service():
+    return PromptService()
+
+def helper_function():
+    return Optional
+"#,
+        );
+
+        for (name, kind) in [
+            ("os", "import"),
+            ("pl", "import"),
+            ("Optional", "import"),
+            ("CHECKING", "import"),
+            ("MAX_RETRIES", "constant"),
+            ("DEFAULT_MODEL", "constant"),
+            ("PromptService", "class"),
+            ("build_prompt", "method"),
+            ("fetch_prompt", "method"),
+            ("create_prompt_service", "function"),
+            ("helper_function", "function"),
+        ] {
+            assert!(
+                records.iter().any(|record| record.name == name
+                    && record.kind == kind
+                    && record.source == NATIVE_SOURCE),
+                "missing {kind} {name}, got:\n{records:#?}"
+            );
+        }
+
+        assert!(
+            !records.iter().any(|record| record.name == "local_value"),
+            "lowercase assignment should not be indexed as a constant:\n{records:#?}"
+        );
+        assert!(
+            !records.iter().any(|record| record.name == "LOCAL_CACHE"),
+            "method-local uppercase assignment should not be indexed as a constant:\n{records:#?}"
+        );
+
+        let async_method = records
+            .iter()
+            .find(|record| record.name == "fetch_prompt")
+            .expect("async method");
+        assert_eq!(async_method.kind, "method");
+        assert_eq!(async_method.line, 16);
+        assert_eq!(async_method.col, 15);
     }
 
     #[test]

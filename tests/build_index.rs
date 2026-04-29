@@ -104,6 +104,60 @@ fn rust_fixture_indexes_native_symbols() {
 }
 
 #[test]
+fn python_fixture_indexes_native_symbols() {
+    let repo = fixture_repo("python_repo");
+    let root = repo.path();
+
+    run_build(root);
+
+    let snapshot = load_index_snapshot_from_sqlite(root);
+    run_named_index_integrity_checks(
+        "python fixture",
+        &snapshot,
+        &["app/services/prompt_service.py"],
+    );
+
+    for (kind, name) in [
+        ("class", "PromptService"),
+        ("function", "create_prompt_service"),
+        ("function", "helper_function"),
+        ("method", "build_prompt"),
+        ("method", "fetch_prompt"),
+        ("import", "os"),
+        ("import", "pl"),
+        ("import", "Optional"),
+        ("import", "CHECKING"),
+        ("constant", "MAX_RETRIES"),
+        ("constant", "DEFAULT_MODEL"),
+    ] {
+        assert_record_exists(&snapshot.records, kind, name);
+    }
+
+    assert!(
+        !snapshot
+            .records
+            .iter()
+            .any(|record| record.name == "local_value"),
+        "lowercase assignment should not be indexed as a constant:\n{:#?}",
+        snapshot.records
+    );
+    assert!(
+        !snapshot
+            .records
+            .iter()
+            .any(|record| record.name == "LOCAL_CACHE"),
+        "method-local uppercase assignment should not be indexed as a constant:\n{:#?}",
+        snapshot.records
+    );
+
+    let wi = run_wi(root, &["PromptService", "-l", "py"]);
+    assert!(
+        wi.contains("app/services/prompt_service.py") && wi.contains("PromptService"),
+        "expected Python PromptService search result, got:\n{wi}"
+    );
+}
+
+#[test]
 fn unchanged_files_are_skipped_on_second_build() {
     let repo = temp_repo();
     let root = repo.path();
