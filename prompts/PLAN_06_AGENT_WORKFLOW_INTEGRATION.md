@@ -9,6 +9,14 @@ Make agents reliably use thinindex commands in the right order now that SQLite s
 
 This pass updates instruction surfaces and tests only. Do not add new index storage, reference extraction, search ranking, benchmark logic, or new user-facing commands unless the plan explicitly requires a tiny compatibility adjustment.
 
+Phase tracking:
+- [x] Update canonical Repository search block in `wi-init`.
+- [x] Normalize AGENTS.md and existing CLAUDE.md to the canonical block.
+- [x] Remove legacy `WI.md`/old Repository search normalization paths.
+- [x] Update `wi-init` and help-surface tests.
+- [x] Run required formatting, tests, lint, help, and ignored tests.
+- [x] Commit with `Integrate agent workflow instructions`.
+
 Product rule:
 Instruction text is a product contract. Keep it short, direct, and test-visible.
 

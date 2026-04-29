@@ -11,18 +11,16 @@ use thinindex::indexer::{build_index, find_repo_root};
 
 const THININDEXIGNORE_TEMPLATE: &str = include_str!("../../templates/.thinindexignore");
 const REPOSITORY_SEARCH_HEADING: &str = "## Repository search";
-const REPOSITORY_SEARCH_BLOCK_VERSION: u32 = 3;
-const REPOSITORY_SEARCH_BLOCK_VERSION_PREFIX: &str = "<!-- thinindex-repo-search-block: v";
 const REPOSITORY_SEARCH_BLOCK: &str = "## Repository search
 
-<!-- thinindex-repo-search-block: v3 -->
-
-`wi` (\"where is\") is an index of *named* things in this repo — functions, classes, methods, CSS classes/variables, HTML ids, section headings, TODO/FIXME — not full text or paths. Use `wi <name>` whenever you'd grep for a name; use grep/rg/find directly for free text or paths.
-
-- Run `wi --help` before your first repository search and treat its output as part of these instructions.
+- Before broad repository discovery, run `build_index`.
+- Run `wi --help` if you need search filters, examples, or subcommands.
+- Use `wi <term>` before grep/find/ls/Read to locate code.
+- For implementation work, prefer `wi pack <term>` to get a compact read set.
+- Before editing a symbol or feature area, run `wi impact <term>` to find related tests/docs/callers.
 - Read only files returned by `wi` unless the result is insufficient.
-- If `wi` misses a name you expect to exist, fall back to grep/rg/find.
-- If results look stale, run `build_index`.";
+- If `wi` returns no useful result, rerun `build_index` once and retry.
+- Fall back to grep/find/Read only after that retry fails.";
 
 #[derive(Debug, Parser)]
 #[command(
@@ -303,15 +301,6 @@ fn update_agents_md(root: &Path) -> Result<()> {
 }
 
 fn normalize_repository_search_block(existing: &str, empty_base_prefix: &str) -> String {
-    // The version marker line is the contract: same-or-newer version means
-    // we leave the file untouched, so users (or future wi-init releases) can
-    // pin a block by writing a higher version.
-    if let Some(existing_version) = parse_block_version(existing)
-        && existing_version >= REPOSITORY_SEARCH_BLOCK_VERSION
-    {
-        return existing.to_string();
-    }
-
     let without_sections = remove_repository_search_sections(existing);
     let without_legacy_markers = remove_legacy_repository_search_lines(&without_sections);
     let base = without_legacy_markers.trim_end();
@@ -321,21 +310,6 @@ fn normalize_repository_search_block(existing: &str, empty_base_prefix: &str) ->
     } else {
         format!("{base}\n\n{REPOSITORY_SEARCH_BLOCK}\n")
     }
-}
-
-fn parse_block_version(existing: &str) -> Option<u32> {
-    for line in existing.lines() {
-        let trimmed = line.trim();
-
-        if let Some(rest) = trimmed.strip_prefix(REPOSITORY_SEARCH_BLOCK_VERSION_PREFIX)
-            && let Some(num) = rest.strip_suffix(" -->")
-            && let Ok(version) = num.parse::<u32>()
-        {
-            return Some(version);
-        }
-    }
-
-    None
 }
 
 fn remove_repository_search_sections(existing: &str) -> String {
@@ -371,10 +345,15 @@ fn is_legacy_repository_search_line(line: &str) -> bool {
     let trimmed = line.trim();
 
     trimmed == "@WI.md"
+        || trimmed == "@AGENTS.md"
         || trimmed.contains("See WI.md for repository search/index usage.")
         || trimmed.contains("See `WI.md` for repository search/index usage.")
+        || trimmed.starts_with("<!-- thinindex-repo-search-block:")
         || trimmed
             .contains("Before broad repository discovery, run `build_index`, then use `wi <term>`")
+        || trimmed.contains("Run `wi --help` before your first repository search")
+        || trimmed.contains("If `wi` misses a name you expect to exist")
+        || trimmed.contains("If results look stale, run `build_index`.")
 }
 
 fn is_markdown_h1_or_h2(line: &str) -> bool {
@@ -391,13 +370,6 @@ fn update_claude_md(root: &Path) -> Result<()> {
 
     let existing =
         fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
-
-    // If CLAUDE.md is just `@AGENTS.md`, the canonical block is already
-    // reachable through the import — don't duplicate it here.
-    // TODO - Make this more tolerant (could be \n, lower-case whatever, only if there's @AGENTS.md in the file don't update)
-    if existing.trim() == "@AGENTS.md" {
-        return Ok(());
-    }
 
     let updated = normalize_repository_search_block(&existing, "");
     if updated == existing {

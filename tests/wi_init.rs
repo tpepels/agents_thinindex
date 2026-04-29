@@ -9,14 +9,14 @@ const AGENTS_REPOSITORY_SEARCH_HEADING: &str = "## Repository search";
 const AGENTS_REPOSITORY_SEARCH_BLOCK: &str = "\
 ## Repository search
 
-<!-- thinindex-repo-search-block: v3 -->
-
-`wi` (\"where is\") is an index of *named* things in this repo — functions, classes, methods, CSS classes/variables, HTML ids, section headings, TODO/FIXME — not full text or paths. Use `wi <name>` whenever you'd grep for a name; use grep/rg/find directly for free text or paths.
-
-- Run `wi --help` before your first repository search and treat its output as part of these instructions.
+- Before broad repository discovery, run `build_index`.
+- Run `wi --help` if you need search filters, examples, or subcommands.
+- Use `wi <term>` before grep/find/ls/Read to locate code.
+- For implementation work, prefer `wi pack <term>` to get a compact read set.
+- Before editing a symbol or feature area, run `wi impact <term>` to find related tests/docs/callers.
 - Read only files returned by `wi` unless the result is insufficient.
-- If `wi` misses a name you expect to exist, fall back to grep/rg/find.
-- If results look stale, run `build_index`.";
+- If `wi` returns no useful result, rerun `build_index` once and retry.
+- Fall back to grep/find/Read only after that retry fails.";
 
 // WI.md and related assertions removed as WI.md is no longer generated or required.
 
@@ -44,6 +44,16 @@ fn assert_agents_has_canonical_repository_search_block(agents: &str) {
     assert!(
         !agents.contains("See `WI.md` for repository search/index usage."),
         "AGENTS.md should not contain old backticked weak marker, got:\n{agents}"
+    );
+
+    assert!(
+        !agents.lines().any(|line| line.trim() == "@WI.md"),
+        "AGENTS.md should not contain @WI.md, got:\n{agents}"
+    );
+
+    assert!(
+        !agents.contains("thinindex-repo-search-block:"),
+        "repository search block should not use old version marker, got:\n{agents}"
     );
 }
 
@@ -174,6 +184,59 @@ fn wi_init_normalizes_at_wi_marker_in_agents_md() {
 }
 
 #[test]
+fn wi_init_normalizes_old_paragraph_repository_search_block() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "AGENTS.md",
+        "# AGENTS\n\n## Repository search\n\nBefore broad repository discovery, run `build_index`, then use `wi <term>` before grep.\n\n## Other\n\nKeep this.\n",
+    );
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    let agents = fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
+    assert!(agents.contains("## Other\n\nKeep this."));
+    assert!(
+        !agents.contains("then use `wi <term>` before grep"),
+        "old paragraph block should be removed, got:\n{agents}"
+    );
+    assert_agents_has_canonical_repository_search_block(&agents);
+}
+
+#[test]
+fn wi_init_normalizes_older_bullet_block_without_pack_or_impact() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "AGENTS.md",
+        "# AGENTS\n\n## Repository search\n\n- Run `wi --help` before your first repository search and treat its output as part of these instructions.\n- Read only files returned by `wi` unless the result is insufficient.\n- If results look stale, run `build_index`.\n",
+    );
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    let agents = fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
+    assert!(
+        !agents.contains("before your first repository search"),
+        "older bullet block should be removed, got:\n{agents}"
+    );
+    assert_agents_has_canonical_repository_search_block(&agents);
+}
+
+#[test]
 fn wi_init_does_not_duplicate_agents_repository_search_block() {
     if !has_ctags() {
         eprintln!("skipping: ctags unavailable");
@@ -203,7 +266,7 @@ fn wi_init_does_not_duplicate_agents_repository_search_block() {
 }
 
 #[test]
-fn wi_init_leaves_at_agents_md_only_claude_md_unchanged() {
+fn wi_init_normalizes_at_agents_md_only_claude_md() {
     if !has_ctags() {
         eprintln!("skipping: ctags unavailable");
         return;
@@ -219,8 +282,9 @@ fn wi_init_leaves_at_agents_md_only_claude_md_unchanged() {
     let claude = fs::read_to_string(root.join("CLAUDE.md")).expect("read CLAUDE.md");
 
     assert_eq!(
-        claude, "@AGENTS.md\n",
-        "CLAUDE.md that is only `@AGENTS.md` should be left alone, got:\n{claude}"
+        claude,
+        format!("{AGENTS_REPOSITORY_SEARCH_BLOCK}\n"),
+        "CLAUDE.md that is only `@AGENTS.md` should be replaced by the canonical block, got:\n{claude}"
     );
 }
 
@@ -240,10 +304,7 @@ fn wi_init_normalizes_claude_md_with_at_agents_md_and_extra_content() {
 
     let claude = fs::read_to_string(root.join("CLAUDE.md")).expect("read CLAUDE.md");
 
-    assert!(
-        claude.contains("@AGENTS.md"),
-        "@AGENTS.md import directive should be preserved, got:\n{claude}"
-    );
+    assert!(!claude.contains("@AGENTS.md"));
     assert!(
         claude.contains("project-specific note"),
         "extra content should be preserved, got:\n{claude}"
@@ -252,7 +313,7 @@ fn wi_init_normalizes_claude_md_with_at_agents_md_and_extra_content() {
 }
 
 #[test]
-fn wi_init_leaves_versioned_block_unchanged() {
+fn wi_init_leaves_canonical_block_unchanged() {
     if !has_ctags() {
         eprintln!("skipping: ctags unavailable");
         return;
@@ -275,12 +336,12 @@ fn wi_init_leaves_versioned_block_unchanged() {
 
     assert_eq!(
         before, after,
-        "wi-init must not rewrite AGENTS.md when it already has the current versioned block"
+        "wi-init must not rewrite AGENTS.md when it already has the canonical block"
     );
 }
 
 #[test]
-fn wi_init_leaves_newer_versioned_block_unchanged() {
+fn wi_init_normalizes_old_versioned_block() {
     if !has_ctags() {
         eprintln!("skipping: ctags unavailable");
         return;
@@ -289,18 +350,16 @@ fn wi_init_leaves_newer_versioned_block_unchanged() {
     let repo = temp_repo();
     let root = repo.path();
 
-    // Pretend a future wi-init wrote v999 — current wi-init must not downgrade it.
-    let future = "# AGENTS\n\n## Repository search\n\n<!-- thinindex-repo-search-block: v999 -->\n\nfuture wording goes here.\n";
-    write_file(root, "AGENTS.md", future);
+    let old = "# AGENTS\n\n## Repository search\n\n<!-- thinindex-repo-search-block: v999 -->\n\nfuture wording goes here.\n";
+    write_file(root, "AGENTS.md", old);
 
     wi_init_bin().current_dir(root).assert().success();
 
     let after = fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
 
-    assert_eq!(
-        after, future,
-        "wi-init must not overwrite a newer versioned block, got:\n{after}"
-    );
+    assert!(!after.contains("thinindex-repo-search-block"));
+    assert!(!after.contains("future wording goes here"));
+    assert_agents_has_canonical_repository_search_block(&after);
 }
 
 #[test]

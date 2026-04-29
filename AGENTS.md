@@ -2,11 +2,11 @@
 
 ## Repository search
 
-<!-- thinindex-repo-search-block: v3 -->
-
-`wi` ("where is") is an index of *named* things in this repo — functions, classes, methods, CSS classes/variables, HTML ids, section headings, TODO/FIXME — not full text or paths. Use `wi <name>` whenever you'd grep for a name; use grep/rg/find directly for free text or paths.
-
-- Run `wi --help` before your first repository search and treat its output as part of these instructions.
+- Before broad repository discovery, run `build_index`.
+- Run `wi --help` if you need search filters, examples, or subcommands.
+- Use `wi <term>` before grep/find/ls/Read to locate code.
+- For implementation work, prefer `wi pack <term>` to get a compact read set.
+- Before editing a symbol or feature area, run `wi impact <term>` to find related tests/docs/callers.
 - Read only files returned by `wi` unless the result is insufficient.
-- If `wi` misses a name you expect to exist, fall back to grep/rg/find.
-- If results look stale, run `build_index`.
+- If `wi` returns no useful result, rerun `build_index` once and retry.
+- Fall back to grep/find/Read only after that retry fails.
