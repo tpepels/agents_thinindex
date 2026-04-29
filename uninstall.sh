@@ -23,18 +23,14 @@ cat <<'EOF'
 Note:
   This removed the thinindex commands only.
 
-  Existing repositories may still contain:
+  It does not remove repo-local files such as:
     .dev_index/
-    WI.md
-    AGENTS.md entries that say: See WI.md for repository search/index usage.
+    .thinindexignore
+    AGENTS.md
+    CLAUDE.md
 
-  To clean a repo before uninstalling, run inside that repo:
+  To remove a repo-local index, run inside that repo before uninstalling:
     wi-init --remove
-
-  If thinindex is already uninstalled, remove manually:
-    rm -rf .dev_index
-    rm -f WI.md
-    # then edit AGENTS.md and remove the WI.md reference if desired
 EOF
 
 echo "done."

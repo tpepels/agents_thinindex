@@ -9,6 +9,14 @@ Harden thinindex installation, uninstall, version reporting, and release readine
 
 This pass does not add new search semantics, reference extraction rules, ML prediction, or context commands.
 
+Phase tracking:
+- [x] Harden install/uninstall messaging and script assertions.
+- [x] Add version/help smoke tests for all binaries.
+- [x] Update operator docs for install, uninstall, SQLite cache behavior, and current commands.
+- [x] Add lightweight release checklist.
+- [x] Run required formatting, tests, lint, version/help commands, and ignored tests.
+- [x] Commit with `Harden install and release readiness`.
+
 Product rule:
 Installation and removal must be boring, repeatable, and test-visible.
 

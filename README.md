@@ -11,23 +11,25 @@ It installs:
 - `wi-init` — sets up a repo for agent use
 - `wi-stats` — shows usage stats and ASCII hit/miss graphs for 1/2/5/30-day windows
 
-No daemon. No embeddings. No vector database. No MCP. No background updater.
+No daemon. No embeddings. No vector database. No MCP. No background updater. The SQLite engine is bundled into the Rust binaries; users do not need a system SQLite package.
 
 ## What agents will do
 
 After `wi-init`, agents that follow `AGENTS.md` should:
 
-1. Run `wi --help` before first repository search.
-2. Use `wi <term>` to find files and line numbers.
-3. Read only the files returned by `wi`.
-4. Run `build_index` after structural code changes or when results look stale.
-5. If `wi` returns nothing for a name you expect to exist, fall back to grep/ripgrep/find.
+1. Run `build_index` before broad repository discovery.
+2. Run `wi --help` when they need filters, examples, or subcommands.
+3. Use `wi <term>` before grep/find/ls/Read to locate code.
+4. Use `wi pack <term>` for implementation work.
+5. Use `wi impact <term>` before editing a symbol or feature area.
+6. Read only files returned by `wi` unless the result is insufficient.
+7. Retry once after `build_index` before falling back to grep/find/Read.
 
 This gives agents a cheap first pass over the repo instead of burning tokens on blind file reads.
 
 ## Install
 
-Requires Rust/Cargo and Universal Ctags.
+Requires Rust/Cargo and Universal Ctags. Universal Ctags is an external user-installed dependency for indexing until thinindex has a native parser; release archives/installers do not bundle ctags.
 
 Arch Linux:
 
@@ -80,6 +82,8 @@ ctags --version
 
 `ctags --version` should mention Universal Ctags.
 
+Install and uninstall are idempotent. They install or remove only commands under the selected `BIN_DIR`; they do not delete repo-local `.dev_index` caches.
+
 ## Initialize a repo
 
 Run this inside a repository:
@@ -125,6 +129,12 @@ Build or refresh the index:
 build_index
 ```
 
+Show current syntax, filters, examples, and subcommands:
+
+```bash
+wi --help
+```
+
 Search:
 
 ```bash
@@ -134,6 +144,15 @@ wi pixel -l css
 wi ranking -t function
 wi HeaderNavigation -n 10
 wi HeaderNavigation -v
+```
+
+Reference and context commands:
+
+```bash
+wi refs HeaderNavigation
+wi pack HeaderNavigation
+wi impact HeaderNavigation
+wi bench
 ```
 
 Options:
@@ -190,7 +209,7 @@ Index files live in:
   index.sqlite
 ```
 
-If the index schema changes, `build_index` may delete and rebuild `.dev_index/`.
+`.dev_index/index.sqlite` is a disposable local cache. If the index schema changes, `build_index` may delete and rebuild `.dev_index/`. Old JSONL `.dev_index` caches from pre-alpha builds are automatically rebuilt by `build_index`.
 
 ## Ignore extra paths
 
@@ -215,14 +234,10 @@ Remove commands:
 make uninstall
 ```
 
-Clean a repo before uninstalling:
+This removes installed commands only. It does not delete any repo-local `.dev_index/`, `.thinindexignore`, `AGENTS.md`, or `CLAUDE.md` files.
+
+Remove a repo-local index before uninstalling:
 
 ```bash
 wi-init --remove
-```
-
-If already uninstalled, clean manually:
-
-```bash
-rm -rf .dev_index
 ```
