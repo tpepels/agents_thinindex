@@ -14,6 +14,8 @@ The context commands use the same local data:
 - `wi pack <term>` returns a compact read set for implementation work.
 - `wi impact <term>` returns evidence-backed files to inspect before edits.
 
+Native Rust parsing is supported for useful repository landmarks: functions, methods, structs, enums, traits, modules, constants/statics, type aliases, and imports. Other language parsers are still intentionally conservative while they mature.
+
 The index is local-first and repo-local. It lives under `.dev_index/` and is intended to be disposable.
 
 ## Why agents need it
@@ -142,7 +144,7 @@ thinindex is intentionally conservative:
 - Agents can still ignore repository instructions.
 - Generated, build, vendor, dependency, and large fixture paths should be ignored.
 - Bundled parser dependencies must be permissively licensed and audited before commercial release artifacts.
-- Native parser support is intentionally incomplete while language-specific parsers mature.
+- Native Rust parser support is useful but not a complete Rust AST or macro expansion engine.
 
 ## Free/local and future Pro
 

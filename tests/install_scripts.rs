@@ -170,6 +170,12 @@ fn docs_describe_self_contained_parser_and_release_audit_boundary() {
         "roadmap should describe the native parser path as current"
     );
     assert!(
+        readme.contains("Native Rust parsing is supported")
+            && roadmap.contains("Rust native parsing currently covers")
+            && product_boundary.contains("introduces no third-party parser or grammar dependency"),
+        "docs should describe Rust native parser support and dependency status"
+    );
+    assert!(
         product_boundary.contains("permissively licensed and audited")
             && product_boundary.contains("dependency license audit coverage"),
         "product boundary should preserve release audit blockers"

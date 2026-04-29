@@ -22,7 +22,7 @@ Current storage is `.dev_index/index.sqlite`. The entire `.dev_index/` directory
 
 Current instruction surfaces are `AGENTS.md` and, when already present, `CLAUDE.md`. `wi-init` creates or normalizes the canonical `## Repository search` block and does not create a separate instruction file.
 
-Indexing uses native Rust parser code and project-owned extra extractors. No external parser command is required for the shipped local workflow.
+Indexing uses native Rust parser code and project-owned extra extractors. No external parser command is required for the shipped local workflow. Rust native parsing currently covers functions, methods, structs, enums, traits, modules, constants/statics, type aliases, and imports.
 
 ## Product direction
 
@@ -80,7 +80,7 @@ Do not add new command families or broader search semantics without a plan that 
 
 ## Parser and packaging
 
-The native parser boundary is current infrastructure. Language-specific parser quality is still incomplete and should improve incrementally without changing storage or command semantics.
+The native parser boundary is current infrastructure. Rust native parsing is supported for common code landmarks. Other language-specific parser quality is still incomplete and should improve incrementally without changing storage or command semantics.
 
 Before proprietary Windows/macOS/Linux packages are viable, thinindex needs:
 

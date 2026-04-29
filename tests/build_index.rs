@@ -26,6 +26,15 @@ fn assert_ref_exists(refs: &[thinindex::model::ReferenceRecord], ref_kind: &str,
     );
 }
 
+fn assert_record_exists(records: &[thinindex::model::IndexRecord], kind: &str, name: &str) {
+    assert!(
+        records
+            .iter()
+            .any(|record| record.kind == kind && record.name == name && record.source == "native"),
+        "expected native {kind} record `{name}`, got:\n{records:#?}"
+    );
+}
+
 #[test]
 fn build_creates_index_files() {
     let repo = temp_repo();
@@ -56,6 +65,41 @@ def top_level_function():
         records
             .iter()
             .any(|record| record.name == "PromptService" || record.name == "top_level_function")
+    );
+}
+
+#[test]
+fn rust_fixture_indexes_native_symbols() {
+    let repo = fixture_repo("rust_repo");
+    let root = repo.path();
+
+    run_build(root);
+
+    let snapshot = load_index_snapshot_from_sqlite(root);
+    run_named_index_integrity_checks("rust fixture", &snapshot, &["src/lib.rs"]);
+
+    for (kind, name) in [
+        ("function", "standalone_function"),
+        ("method", "new"),
+        ("method", "build_index"),
+        ("struct", "PromptService"),
+        ("enum", "SearchMode"),
+        ("trait", "ParserBackend"),
+        ("module", "parser"),
+        ("constant", "INDEX_SCHEMA_VERSION"),
+        ("constant", "DEFAULT_LIMIT"),
+        ("variable", "GLOBAL_COUNTER"),
+        ("type", "RecordMap"),
+        ("import", "Path"),
+        ("import", "Backend"),
+    ] {
+        assert_record_exists(&snapshot.records, kind, name);
+    }
+
+    let wi = run_wi(root, &["build_index", "-l", "rs"]);
+    assert!(
+        wi.contains("src/lib.rs") && wi.contains("build_index"),
+        "expected Rust build_index search result, got:\n{wi}"
     );
 }
 

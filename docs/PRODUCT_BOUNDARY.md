@@ -64,6 +64,8 @@ The following must remain part of the local/free core:
 
 All bundled parser dependencies and grammar dependencies must be permissively licensed and audited before release packaging.
 
+The current Rust parser support uses in-repository Rust code and introduces no third-party parser or grammar dependency.
+
 Before packaging work proceeds, thinindex also needs:
 
 - `THIRD_PARTY_NOTICES`
