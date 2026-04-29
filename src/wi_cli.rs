@@ -23,6 +23,8 @@ Repository search rules:
 Examples:
   wi IndexRecord
   wi build_index
+  wi refs PromptService
+  wi pack PromptService
   wi .headerNavigation -t css_class
   wi -t css_variable -- --paper-bg
   wi '#mainHeader' -t html_id
@@ -31,8 +33,12 @@ Examples:
     next_line_help = false
 )]
 pub struct WiArgs {
-    #[arg(help = "Search term, e.g. HeaderNavigation, PromptService, --css-variable")]
-    pub query: String,
+    #[arg(
+        required = true,
+        num_args = 1..,
+        help = "Search term or subcommand, e.g. HeaderNavigation, refs PromptService, pack PromptService, --css-variable"
+    )]
+    pub terms: Vec<String>,
 
     #[arg(
         short = 't',
@@ -78,4 +84,36 @@ pub struct WiArgs {
         help = "Directory inside the repository"
     )]
     pub repo: PathBuf,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WiCommand {
+    Search,
+    Refs,
+    Pack,
+}
+
+impl WiArgs {
+    pub fn command(&self) -> WiCommand {
+        match self.terms.first().map(String::as_str) {
+            Some("refs") if self.terms.len() > 1 => WiCommand::Refs,
+            Some("pack") if self.terms.len() > 1 => WiCommand::Pack,
+            _ => WiCommand::Search,
+        }
+    }
+
+    pub fn query(&self) -> String {
+        match self.command() {
+            WiCommand::Search => self.terms.join(" "),
+            WiCommand::Refs | WiCommand::Pack => self.terms[1..].join(" "),
+        }
+    }
+
+    pub fn usage_query(&self) -> String {
+        match self.command() {
+            WiCommand::Search => self.query(),
+            WiCommand::Refs => format!("refs {}", self.query()),
+            WiCommand::Pack => format!("pack {}", self.query()),
+        }
+    }
 }

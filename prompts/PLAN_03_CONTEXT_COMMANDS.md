@@ -12,6 +12,14 @@ Add:
 
 Do not add ML prediction. Output must be deterministic, compact, and explainable.
 
+Phase tracking:
+- [x] Add CLI parsing/help for `wi refs <term>` and `wi pack <term>`.
+- [x] Add SQLite-backed refs/read-pack rendering with deterministic limits and dedupe.
+- [x] Preserve existing `wi <term>` behavior and usage logging.
+- [x] Add tests for refs/pack output, ordering, limits, missing refs, and compatibility.
+- [x] Run required formatting, tests, lint, smoke commands, and ignored tests.
+- [x] Commit with `Add wi refs and pack context commands`.
+
 Prerequisite:
 PLAN_00_SQLITE_INDEX_STORAGE.md, PLAN_01_REFERENCE_GRAPH_FOUNDATION.md, and PLAN_02_DETERMINISTIC_REFERENCE_EXTRACTION.md must be complete and green. `.dev_index/index.sqlite` is the canonical storage file and contains populated `records`, `files`, `usage_events`, and `refs` tables.
 

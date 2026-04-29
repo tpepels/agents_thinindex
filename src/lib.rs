@@ -1,3 +1,4 @@
+pub mod context;
 pub mod ctags;
 pub mod extras;
 pub mod indexer;

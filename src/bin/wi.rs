@@ -3,11 +3,12 @@ use std::env;
 use anyhow::Result;
 use anyhow::bail;
 use clap::Parser;
-use thinindex::wi_cli::WiArgs;
 use thinindex::{
+    context::{render_pack_command, render_refs_command},
     indexer::{find_repo_root, index_is_fresh},
     search::{SearchOptions, format_result, search},
     stats::{self, UsageEvent},
+    wi_cli::{WiArgs, WiCommand},
 };
 
 fn main() {
@@ -19,9 +20,15 @@ fn main() {
 
 fn run() -> Result<()> {
     let args = WiArgs::parse();
-    let query = args.query.clone();
-    let repo = env::current_dir()?;
-    let root = find_repo_root(&repo)?;
+    let command = args.command();
+    let query = args.query();
+    let usage_query = args.usage_query();
+    let start = if args.repo.is_absolute() {
+        args.repo.clone()
+    } else {
+        env::current_dir()?.join(&args.repo)
+    };
+    let root = find_repo_root(&start)?;
 
     match index_is_fresh(&root) {
         Ok(false) => bail!("index is stale; run `build_index`"),
@@ -33,7 +40,11 @@ fn run() -> Result<()> {
     let used_lang = args.lang.is_some();
     let used_path = args.path.is_some();
     let used_limit = args.limit.is_some();
-    let limit = args.limit.unwrap_or(30);
+    let limit = match command {
+        WiCommand::Search => args.limit.unwrap_or(30),
+        WiCommand::Refs => args.limit.unwrap_or(20),
+        WiCommand::Pack => args.limit.unwrap_or(10),
+    };
 
     let options = SearchOptions {
         kind: args.kind,
@@ -44,17 +55,37 @@ fn run() -> Result<()> {
         verbose: args.verbose,
     };
 
-    let results = search(&root, &query, &options)?;
-    let result_count = results.len();
+    let result_count = match command {
+        WiCommand::Search => {
+            let results = search(&root, &query, &options)?;
+            let result_count = results.len();
 
-    for result in &results {
-        println!("{}", format_result(result, options.verbose));
-    }
+            for result in &results {
+                println!("{}", format_result(result, options.verbose));
+            }
+
+            result_count
+        }
+        WiCommand::Refs => {
+            let output = render_refs_command(&root, &query, &options)?;
+            if !output.text.is_empty() {
+                print!("{}", output.text);
+            }
+            output.result_count
+        }
+        WiCommand::Pack => {
+            let output = render_pack_command(&root, &query, &options)?;
+            if !output.text.is_empty() {
+                print!("{}", output.text);
+            }
+            output.result_count
+        }
+    };
 
     let event = UsageEvent {
         ts: stats::current_unix_seconds(),
-        query: query.clone(),
-        query_len: query.chars().count(),
+        query: usage_query.clone(),
+        query_len: usage_query.chars().count(),
         result_count,
         hit: result_count > 0,
         used_type,

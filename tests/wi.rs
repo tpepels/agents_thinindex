@@ -3,6 +3,72 @@ mod common;
 use assert_cmd::prelude::*;
 use common::*;
 
+fn write_context_fixture(root: &std::path::Path) {
+    write_file(
+        root,
+        "src/prompt_service.py",
+        r#"
+class PromptService:
+    pass
+"#,
+    );
+    write_file(
+        root,
+        "src/consumer.py",
+        r#"
+from prompt_service import PromptService
+
+def consume():
+    return PromptService()
+"#,
+    );
+    write_file(root, "docs/guide.md", "[PromptService](PromptService)\n");
+    write_file(
+        root,
+        "tests/test_prompt_service.py",
+        r#"
+from prompt_service import PromptService
+
+def test_prompt_service():
+    assert PromptService()
+"#,
+    );
+    write_file(
+        root,
+        "frontend/components/HeaderNavigation.tsx",
+        r#"
+export function HeaderNavigation() {
+  return <header className="headerNavigation" data-testid="header-nav">Header</header>;
+}
+"#,
+    );
+    write_file(
+        root,
+        "frontend/styles/header.css",
+        r#"
+.headerNavigation {
+  color: var(--paper-bg);
+}
+"#,
+    );
+}
+
+fn context_ref_rows(output: &str) -> Vec<&str> {
+    output
+        .lines()
+        .skip_while(|line| *line != "References:")
+        .skip(1)
+        .filter(|line| line.starts_with("- "))
+        .collect()
+}
+
+fn suggested_rows(output: &str) -> Vec<&str> {
+    output
+        .lines()
+        .filter(|line| line.starts_with("- ") && !line.ends_with("none"))
+        .collect()
+}
+
 #[test]
 fn wi_finds_python_symbol() {
     if !has_ctags() {
@@ -186,6 +252,256 @@ class PromptService:
         .stdout(predicates::str::contains("lang:"))
         .stdout(predicates::str::contains("source:"))
         .stdout(predicates::str::contains("text:"));
+}
+
+#[test]
+fn wi_help_mentions_context_commands() {
+    wi_bin()
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("wi refs PromptService"))
+        .stdout(predicates::str::contains("wi pack PromptService"));
+}
+
+#[test]
+fn wi_refs_prompt_service_includes_primary_and_refs() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    run_build(root);
+
+    let output = run_wi(root, &["refs", "PromptService"]);
+
+    assert!(
+        output.contains("Primary:"),
+        "missing Primary group:\n{output}"
+    );
+    assert!(
+        output.contains("References:"),
+        "missing References group:\n{output}"
+    );
+    assert!(
+        output.contains("src/prompt_service.py"),
+        "missing primary file:\n{output}"
+    );
+    assert!(
+        output.contains("src/consumer.py") && output.contains("import PromptService"),
+        "missing import reference:\n{output}"
+    );
+    assert!(
+        output.contains("tests/test_prompt_service.py")
+            && output.contains("test_reference PromptService"),
+        "missing test reference:\n{output}"
+    );
+    assert!(
+        output.contains("docs/guide.md") && output.contains("markdown_link PromptService"),
+        "missing markdown link reference:\n{output}"
+    );
+    assert!(output.contains("reason:"), "missing reasons:\n{output}");
+}
+
+#[test]
+fn wi_refs_order_is_deterministic_and_ranked() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    run_build(root);
+
+    let first = run_wi(root, &["refs", "PromptService"]);
+    let second = run_wi(root, &["refs", "PromptService"]);
+
+    assert_eq!(first, second);
+    assert!(first.find("Primary:") < first.find("References:"));
+    let import_pos = first.find("src/consumer.py").expect("import ref present");
+    let test_pos = first
+        .find("tests/test_prompt_service.py")
+        .expect("test ref present");
+    let doc_pos = first.rfind("docs/guide.md").expect("doc ref present");
+    assert!(
+        import_pos < test_pos && test_pos < doc_pos,
+        "expected import before test before doc, got:\n{first}"
+    );
+}
+
+#[test]
+fn wi_refs_respects_limit() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    for i in 0..5 {
+        write_file(
+            root,
+            &format!("src/consumer_{i}.py"),
+            "from prompt_service import PromptService\n",
+        );
+    }
+    run_build(root);
+
+    let output = run_wi(root, &["refs", "PromptService", "-n", "2"]);
+    let rows = context_ref_rows(&output);
+
+    assert_eq!(rows.len(), 2, "expected two refs, got:\n{output}");
+    assert!(
+        output.contains("Primary:"),
+        "primary should still print:\n{output}"
+    );
+}
+
+#[test]
+fn wi_refs_missing_refs_shows_primary_non_error() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_file(root, "src/lonely.py", "class LonelyService: pass\n");
+    run_build(root);
+
+    let output = run_wi(root, &["refs", "LonelyService"]);
+
+    assert!(
+        output.contains("Primary:"),
+        "primary should print:\n{output}"
+    );
+    assert!(
+        output.contains("no references found for LonelyService"),
+        "missing no-refs message:\n{output}"
+    );
+}
+
+#[test]
+fn wi_pack_prompt_service_groups_compact_read_set() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    run_build(root);
+
+    let output = run_wi(root, &["pack", "PromptService"]);
+
+    for heading in [
+        "Primary:",
+        "Tests:",
+        "Callers/importers:",
+        "Docs:",
+        "Related UI/style/config:",
+    ] {
+        assert!(output.contains(heading), "missing {heading}\n{output}");
+    }
+    assert!(
+        output.contains("src/prompt_service.py")
+            && output.contains("tests/test_prompt_service.py")
+            && output.contains("src/consumer.py")
+            && output.contains("docs/guide.md"),
+        "missing expected read-plan files:\n{output}"
+    );
+    assert!(output.contains("reason:"), "missing reasons:\n{output}");
+    assert!(
+        !output.contains("class PromptService:") && !output.contains("def consume():"),
+        "pack must not dump source contents:\n{output}"
+    );
+}
+
+#[test]
+fn wi_refs_includes_related_ui_for_style_query() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    run_build(root);
+
+    let output = run_wi(root, &["refs", ".headerNavigation"]);
+
+    assert!(
+        output.contains("References:") && output.contains("html_usage .headerNavigation"),
+        "expected related UI/style refs, got:\n{output}"
+    );
+}
+
+#[test]
+fn wi_pack_dedupes_files_and_respects_limit() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    for i in 0..5 {
+        write_file(
+            root,
+            &format!("src/extra_consumer_{i}.py"),
+            "from prompt_service import PromptService\nPromptService()\n",
+        );
+    }
+    run_build(root);
+
+    let output = run_wi(root, &["pack", "PromptService", "-n", "4"]);
+    let rows = suggested_rows(&output);
+    let mut paths = std::collections::BTreeSet::new();
+
+    assert!(
+        rows.len() <= 4,
+        "expected at most four suggested rows, got:\n{output}"
+    );
+    for row in rows {
+        let path = row
+            .trim_start_matches("- ")
+            .split(':')
+            .next()
+            .expect("path before colon");
+        assert!(
+            paths.insert(path.to_string()),
+            "duplicate path in:\n{output}"
+        );
+    }
+}
+
+#[test]
+fn wi_refs_without_term_remains_normal_search() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+    write_file(root, "src/refs_symbol.py", "def refs():\n    return 1\n");
+    run_build(root);
+
+    let output = run_wi(root, &["refs"]);
+
+    assert!(
+        output.contains("src/refs_symbol.py") && !output.contains("Primary:"),
+        "`wi refs` without a term should remain normal search, got:\n{output}"
+    );
 }
 
 #[test]
