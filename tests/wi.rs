@@ -591,7 +591,7 @@ class PromptService:
 }
 
 #[test]
-fn wi_auto_rebuilds_when_a_file_changes_after_initial_build() {
+fn wi_reports_stale_index_when_a_file_changes_after_initial_build() {
     if !has_ctags() {
         eprintln!("skipping: ctags unavailable");
         return;
@@ -617,8 +617,8 @@ class OldName:
         "OldName should be found before edit, got:\n{before}"
     );
 
-    // Edit the file in-place, replacing the symbol. wi must auto-rebuild and
-    // surface the new symbol without an explicit build_index call.
+    // Edit the file in-place, replacing the symbol. wi should not rebuild
+    // automatically; it should tell the user to run build_index.
     write_file(
         root,
         "src/foo.py",
@@ -628,16 +628,28 @@ class NewName:
 "#,
     );
 
-    let after_old = run_wi(root, &["OldName"]);
+    let output = wi_bin()
+        .current_dir(root)
+        .arg("OldName")
+        .output()
+        .expect("run stale wi");
     assert!(
-        !after_old.contains("src/foo.py"),
-        "OldName must be gone after auto-rebuild, got:\n{after_old}"
+        !output.status.success(),
+        "stale wi should fail\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("run `build_index`"),
+        "stale wi should tell user to run build_index, got:\n{stderr}"
     );
 
+    run_build(root);
     let after_new = run_wi(root, &["NewName"]);
     assert!(
         after_new.contains("src/foo.py"),
-        "NewName must appear after auto-rebuild, got:\n{after_new}"
+        "NewName must appear after explicit rebuild, got:\n{after_new}"
     );
 }
 

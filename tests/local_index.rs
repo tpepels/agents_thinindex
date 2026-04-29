@@ -2,7 +2,7 @@ mod common;
 
 use std::{fs, path::Path};
 
-use common::run_named_index_integrity_checks;
+use common::{load_index_snapshot_from_sqlite, run_named_index_integrity_checks};
 use thinindex::indexer::build_index;
 
 #[test]
@@ -27,17 +27,11 @@ fn local_index_passes_shared_integrity_checks() {
         )
     });
 
-    let index_path = dev_index.join("index.jsonl");
-    let index = fs::read_to_string(&index_path).unwrap_or_else(|error| {
-        panic!(
-            "failed to read rebuilt local index at {}\nerror: {error}",
-            index_path.display()
-        )
-    });
+    let snapshot = load_index_snapshot_from_sqlite(root);
 
     run_named_index_integrity_checks(
         "thinindex local repo",
-        &index,
+        &snapshot,
         &[
             "src/indexer.rs",
             "src/search.rs",

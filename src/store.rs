@@ -1,49 +1,24 @@
-/// Removes the entire .dev_index directory and recreates it.
-pub fn reset_dev_index(root: &Path) -> Result<()> {
-    let dir = index_dir(root);
-    if dir.exists() {
-        fs::remove_dir_all(&dir).with_context(|| format!("failed to remove {}", dir.display()))?;
-    }
-    fs::create_dir_all(&dir).with_context(|| format!("failed to create {}", dir.display()))?;
-    Ok(())
-}
-use crate::model::INDEX_SCHEMA_VERSION;
-pub fn is_manifest_stale(manifest: &Manifest) -> bool {
-    manifest.schema_version != INDEX_SCHEMA_VERSION
-}
-
-pub fn remove_index_files(root: &Path) -> Result<()> {
-    let index = index_path(root);
-    let manifest = manifest_path(root);
-    // Remove index.jsonl and manifest.json, but keep wi_usage.jsonl if present
-    let _ = fs::remove_file(&index);
-    let _ = fs::remove_file(&manifest);
-    Ok(())
-}
 use std::{
-    fs::{self, File},
-    io::{BufRead, BufReader, BufWriter, Write},
+    collections::BTreeMap,
+    fs,
     path::{Path, PathBuf},
+    time::{SystemTime, UNIX_EPOCH},
 };
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
+use rusqlite::{Connection, OptionalExtension, params};
 
-use crate::model::{IndexRecord, Manifest};
+use crate::model::{FileMeta, INDEX_SCHEMA_VERSION, IndexRecord, Manifest};
 
 pub const DEV_INDEX_DIR: &str = ".dev_index";
-pub const MANIFEST_FILE: &str = "manifest.json";
-pub const INDEX_FILE: &str = "index.jsonl";
+pub const SQLITE_FILE: &str = "index.sqlite";
 
 pub fn index_dir(root: &Path) -> PathBuf {
     root.join(DEV_INDEX_DIR)
 }
 
-pub fn manifest_path(root: &Path) -> PathBuf {
-    index_dir(root).join(MANIFEST_FILE)
-}
-
-pub fn index_path(root: &Path) -> PathBuf {
-    index_dir(root).join(INDEX_FILE)
+pub fn sqlite_path(root: &Path) -> PathBuf {
+    index_dir(root).join(SQLITE_FILE)
 }
 
 pub fn ensure_index_dir(root: &Path) -> Result<()> {
@@ -55,110 +30,350 @@ pub fn ensure_index_dir(root: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn load_manifest(root: &Path) -> Result<Manifest> {
-    let path = manifest_path(root);
-    if !path.exists() {
-        return Ok(Manifest::new());
+/// Removes the entire .dev_index directory and recreates it.
+pub fn reset_dev_index(root: &Path) -> Result<()> {
+    let dir = index_dir(root);
+    if dir.exists() {
+        fs::remove_dir_all(&dir).with_context(|| format!("failed to remove {}", dir.display()))?;
     }
-    let text = match fs::read_to_string(&path) {
-        Ok(t) => t,
-        Err(_) => return Ok(Manifest::new()),
-    };
-    match serde_json::from_str::<Manifest>(&text) {
-        Ok(manifest) => Ok(manifest),
-        Err(_) => Ok(Manifest {
-            schema_version: 0,
-            files: Default::default(),
-        }),
+    fs::create_dir_all(&dir).with_context(|| format!("failed to create {}", dir.display()))?;
+    Ok(())
+}
+
+pub fn prepare_for_build(root: &Path) -> Result<(Manifest, Option<&'static str>)> {
+    if old_jsonl_storage_exists(root) {
+        reset_dev_index(root)?;
+        let conn = create_database(root)?;
+        return Ok((
+            load_manifest_from_conn(&conn)?,
+            Some("old index storage found; rebuilding .dev_index"),
+        ));
+    }
+
+    let path = sqlite_path(root);
+    if !path.exists() {
+        let conn = create_database(root)?;
+        return Ok((load_manifest_from_conn(&conn)?, None));
+    }
+
+    match open_existing_database(root).and_then(|conn| {
+        validate_schema_version(&conn)?;
+        load_manifest_from_conn(&conn)
+    }) {
+        Ok(manifest) => Ok((manifest, None)),
+        Err(error) => {
+            let message = if schema_version_mismatch(&error) {
+                "index schema changed; rebuilding .dev_index"
+            } else {
+                "index database invalid; rebuilding .dev_index"
+            };
+            reset_dev_index(root)?;
+            let conn = create_database(root)?;
+            Ok((load_manifest_from_conn(&conn)?, Some(message)))
+        }
     }
 }
 
-pub fn save_manifest(root: &Path, manifest: &Manifest) -> Result<()> {
-    ensure_index_dir(root)?;
-
-    let path = manifest_path(root);
-    let tmp = path.with_extension("json.tmp");
-
-    let text = serde_json::to_string_pretty(manifest).context("failed to serialize manifest")?;
-
-    fs::write(&tmp, text).with_context(|| format!("failed to write {}", tmp.display()))?;
-
-    fs::rename(&tmp, &path)
-        .with_context(|| format!("failed to replace manifest: {}", path.display()))?;
-
-    Ok(())
+pub fn load_manifest(root: &Path) -> Result<Manifest> {
+    let conn = open_ready_database(root)?;
+    load_manifest_from_conn(&conn)
 }
 
 pub fn load_records(root: &Path) -> Result<Vec<IndexRecord>> {
-    let path = index_path(root);
+    let conn = open_ready_database(root)?;
+    load_records_from_conn(&conn)
+}
 
-    if !path.exists() {
-        return Ok(Vec::new());
+pub fn save_index_snapshot(
+    root: &Path,
+    manifest: &Manifest,
+    records: &[IndexRecord],
+) -> Result<()> {
+    let mut conn = open_ready_database(root)?;
+    let tx = conn.transaction().with_context(|| {
+        format!(
+            "failed to begin transaction: {}",
+            sqlite_path(root).display()
+        )
+    })?;
+
+    tx.execute("DELETE FROM records", [])
+        .context("failed to clear records table")?;
+    tx.execute("DELETE FROM files", [])
+        .context("failed to clear files table")?;
+
+    {
+        let mut stmt = tx
+            .prepare(
+                "INSERT INTO files(path, mtime_ns, size)
+                 VALUES (?1, ?2, ?3)",
+            )
+            .context("failed to prepare file insert")?;
+
+        for (path, meta) in &manifest.files {
+            stmt.execute(params![
+                path,
+                i64_from_u128(meta.mtime_ns, "mtime_ns")?,
+                i64_from_u64(meta.size, "size")?,
+            ])
+            .with_context(|| format!("failed to insert file metadata for {path}"))?;
+        }
     }
 
-    let file =
-        File::open(&path).with_context(|| format!("failed to open index: {}", path.display()))?;
-
-    let reader = BufReader::new(file);
-    let mut records = Vec::new();
-
-    for (idx, line) in reader.lines().enumerate() {
-        let line = line.with_context(|| {
-            format!(
-                "failed to read line {} from index: {}",
-                idx + 1,
-                path.display()
+    {
+        let mut stmt = tx
+            .prepare(
+                "INSERT INTO records(path, line, col, lang, kind, name, text, source)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             )
-        })?;
+            .context("failed to prepare record insert")?;
 
-        if line.trim().is_empty() {
-            continue;
+        for record in records {
+            stmt.execute(params![
+                record.path,
+                i64_from_usize(record.line, "line")?,
+                i64_from_usize(record.col, "col")?,
+                record.lang,
+                record.kind,
+                record.name,
+                record.text,
+                record.source,
+            ])
+            .with_context(|| {
+                format!(
+                    "failed to insert index record at {}:{}:{}",
+                    record.path, record.line, record.col
+                )
+            })?;
         }
+    }
 
-        let record: IndexRecord = serde_json::from_str(&line).with_context(|| {
-            format!(
-                "failed to parse index JSON on line {}: {}",
-                idx + 1,
-                path.display()
-            )
-        })?;
+    upsert_meta(&tx, "schema_version", &INDEX_SCHEMA_VERSION.to_string())?;
+    upsert_meta(&tx, "updated_at", &now_unix_seconds().to_string())?;
 
-        records.push(record);
+    tx.commit()
+        .with_context(|| format!("failed to commit {}", sqlite_path(root).display()))?;
+
+    Ok(())
+}
+
+pub fn indexed_file_count(root: &Path) -> Result<usize> {
+    let conn = open_ready_database(root)?;
+    let count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM files", [], |row| row.get(0))
+        .context("failed to count indexed files")?;
+
+    usize_from_i64(count, "file count")
+}
+
+pub fn open_ready_database(root: &Path) -> Result<Connection> {
+    let conn = open_existing_database(root)?;
+    validate_schema_version(&conn)?;
+    Ok(conn)
+}
+
+pub fn old_jsonl_storage_exists(root: &Path) -> bool {
+    let dir = index_dir(root);
+    ["manifest.json", "index.jsonl", "wi_usage.jsonl"]
+        .iter()
+        .any(|name| dir.join(name).exists())
+}
+
+fn create_database(root: &Path) -> Result<Connection> {
+    ensure_index_dir(root)?;
+    let path = sqlite_path(root);
+    let conn =
+        Connection::open(&path).with_context(|| format!("failed to open {}", path.display()))?;
+    initialize_schema(&conn)?;
+    Ok(conn)
+}
+
+fn open_existing_database(root: &Path) -> Result<Connection> {
+    if old_jsonl_storage_exists(root) && !sqlite_path(root).exists() {
+        bail!("old JSONL index storage found; run `build_index`");
+    }
+
+    let path = sqlite_path(root);
+    if !path.exists() {
+        bail!("index database missing; run `build_index`");
+    }
+
+    Connection::open(&path)
+        .with_context(|| format!("failed to open {}; run `build_index`", path.display()))
+}
+
+fn initialize_schema(conn: &Connection) -> Result<()> {
+    conn.execute_batch(
+        "
+        PRAGMA journal_mode = WAL;
+        CREATE TABLE IF NOT EXISTS meta (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS files (
+            path TEXT PRIMARY KEY,
+            mtime_ns INTEGER NOT NULL,
+            size INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS records (
+            path TEXT NOT NULL,
+            line INTEGER NOT NULL,
+            col INTEGER NOT NULL,
+            lang TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            name TEXT NOT NULL,
+            text TEXT NOT NULL,
+            source TEXT NOT NULL,
+            UNIQUE(path, line, col)
+        );
+        CREATE INDEX IF NOT EXISTS records_name_idx ON records(name);
+        CREATE INDEX IF NOT EXISTS records_kind_idx ON records(kind);
+        CREATE INDEX IF NOT EXISTS records_lang_idx ON records(lang);
+        CREATE INDEX IF NOT EXISTS records_path_idx ON records(path);
+        CREATE INDEX IF NOT EXISTS records_source_idx ON records(source);
+        CREATE TABLE IF NOT EXISTS usage_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp INTEGER NOT NULL,
+            query TEXT NOT NULL,
+            query_len INTEGER NOT NULL,
+            result_count INTEGER NOT NULL,
+            hit INTEGER NOT NULL,
+            used_type INTEGER NOT NULL,
+            used_lang INTEGER NOT NULL,
+            used_path INTEGER NOT NULL,
+            used_limit INTEGER NOT NULL,
+            repo TEXT NOT NULL,
+            indexed_files INTEGER NOT NULL
+        );
+        ",
+    )
+    .context("failed to initialize SQLite schema")?;
+
+    let now = now_unix_seconds().to_string();
+    upsert_meta(conn, "schema_version", &INDEX_SCHEMA_VERSION.to_string())?;
+    upsert_meta(conn, "created_at", &now)?;
+    upsert_meta(conn, "updated_at", &now)?;
+
+    Ok(())
+}
+
+fn validate_schema_version(conn: &Connection) -> Result<()> {
+    let value: Option<String> = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key = 'schema_version'",
+            [],
+            |row| row.get(0),
+        )
+        .optional()
+        .context("failed to read index schema version; run `build_index`")?;
+
+    let Some(value) = value else {
+        bail!("index schema version missing; run `build_index`");
+    };
+
+    let version = value.parse::<u32>().with_context(|| {
+        format!("index schema version is invalid ({value:?}); run `build_index`")
+    })?;
+
+    if version != INDEX_SCHEMA_VERSION {
+        bail!(
+            "index schema version {version} does not match {INDEX_SCHEMA_VERSION}; run `build_index`"
+        );
+    }
+
+    Ok(())
+}
+
+fn schema_version_mismatch(error: &anyhow::Error) -> bool {
+    let text = format!("{error:#}");
+    text.contains("does not match")
+}
+
+fn upsert_meta(conn: &Connection, key: &str, value: &str) -> Result<()> {
+    conn.execute(
+        "INSERT INTO meta(key, value)
+         VALUES (?1, ?2)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        params![key, value],
+    )
+    .with_context(|| format!("failed to write meta key {key}"))?;
+
+    Ok(())
+}
+
+fn load_manifest_from_conn(conn: &Connection) -> Result<Manifest> {
+    let mut stmt = conn
+        .prepare("SELECT path, mtime_ns, size FROM files ORDER BY path")
+        .context("failed to prepare file metadata query")?;
+
+    let mut rows = stmt.query([]).context("failed to query file metadata")?;
+    let mut files = BTreeMap::new();
+
+    while let Some(row) = rows.next().context("failed to read file metadata row")? {
+        let path: String = row.get(0).context("failed to read file path")?;
+        let mtime_ns: i64 = row.get(1).context("failed to read file mtime")?;
+        let size: i64 = row.get(2).context("failed to read file size")?;
+
+        files.insert(
+            path,
+            FileMeta {
+                mtime_ns: u128_from_i64(mtime_ns, "mtime_ns")?,
+                size: u64_from_i64(size, "size")?,
+            },
+        );
+    }
+
+    Ok(Manifest {
+        schema_version: INDEX_SCHEMA_VERSION,
+        files,
+    })
+}
+
+fn load_records_from_conn(conn: &Connection) -> Result<Vec<IndexRecord>> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT path, line, col, lang, kind, name, text, source
+             FROM records
+             ORDER BY path, line, col, kind, name, source",
+        )
+        .context("failed to prepare record query")?;
+
+    let rows = stmt
+        .query_map([], |row| {
+            let line: i64 = row.get(1)?;
+            let col: i64 = row.get(2)?;
+
+            Ok((
+                row.get::<_, String>(0)?,
+                line,
+                col,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, String>(6)?,
+                row.get::<_, String>(7)?,
+            ))
+        })
+        .context("failed to query records")?;
+
+    let mut records = Vec::new();
+    for row in rows {
+        let (path, line, col, lang, kind, name, text, source) =
+            row.context("failed to read record row")?;
+
+        records.push(IndexRecord {
+            path,
+            line: usize_from_i64(line, "line")?,
+            col: usize_from_i64(col, "col")?,
+            lang,
+            kind,
+            name,
+            text,
+            source,
+        });
     }
 
     Ok(records)
-}
-
-pub fn save_records(root: &Path, records: &[IndexRecord]) -> Result<()> {
-    ensure_index_dir(root)?;
-
-    let path = index_path(root);
-    let tmp = path.with_extension("jsonl.tmp");
-
-    let file = File::create(&tmp).with_context(|| format!("failed to create {}", tmp.display()))?;
-
-    let mut writer = BufWriter::new(file);
-
-    for record in records {
-        let line = serde_json::to_string(record).context("failed to serialize index record")?;
-
-        writer
-            .write_all(line.as_bytes())
-            .with_context(|| format!("failed to write {}", tmp.display()))?;
-
-        writer
-            .write_all(b"\n")
-            .with_context(|| format!("failed to write newline to {}", tmp.display()))?;
-    }
-
-    writer
-        .flush()
-        .with_context(|| format!("failed to flush {}", tmp.display()))?;
-
-    fs::rename(&tmp, &path)
-        .with_context(|| format!("failed to replace index: {}", path.display()))?;
-
-    Ok(())
 }
 
 pub fn remove_records_for_paths(records: Vec<IndexRecord>, paths: &[String]) -> Vec<IndexRecord> {
@@ -178,4 +393,35 @@ pub fn sort_records(records: &mut [IndexRecord]) {
             .then(a.name.cmp(&b.name))
             .then(a.source.cmp(&b.source))
     });
+}
+
+fn now_unix_seconds() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
+}
+
+fn i64_from_u128(value: u128, label: &str) -> Result<i64> {
+    i64::try_from(value).map_err(|_| anyhow!("{label} is too large for SQLite INTEGER: {value}"))
+}
+
+fn i64_from_u64(value: u64, label: &str) -> Result<i64> {
+    i64::try_from(value).map_err(|_| anyhow!("{label} is too large for SQLite INTEGER: {value}"))
+}
+
+fn i64_from_usize(value: usize, label: &str) -> Result<i64> {
+    i64::try_from(value).map_err(|_| anyhow!("{label} is too large for SQLite INTEGER: {value}"))
+}
+
+fn u128_from_i64(value: i64, label: &str) -> Result<u128> {
+    u128::try_from(value).map_err(|_| anyhow!("{label} must be non-negative, got {value}"))
+}
+
+fn u64_from_i64(value: i64, label: &str) -> Result<u64> {
+    u64::try_from(value).map_err(|_| anyhow!("{label} must be non-negative, got {value}"))
+}
+
+fn usize_from_i64(value: i64, label: &str) -> Result<usize> {
+    usize::try_from(value).map_err(|_| anyhow!("{label} must be non-negative, got {value}"))
 }

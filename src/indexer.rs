@@ -12,10 +12,10 @@ use ignore::WalkBuilder;
 use crate::{
     ctags::{check_ctags, index_with_ctags},
     extras::index_extras,
-    model::{FileMeta, IndexRecord, Manifest},
+    model::{FileMeta, IndexRecord},
     store::{
-        is_manifest_stale, load_manifest, load_records, remove_records_for_paths, save_manifest,
-        save_records, sort_records,
+        load_manifest, load_records, prepare_for_build, remove_records_for_paths,
+        save_index_snapshot, sort_records,
     },
 };
 
@@ -52,13 +52,7 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
     let root = find_repo_root(start)?;
     let ctags_status = check_ctags()?;
 
-    let mut manifest = load_manifest(&root)?;
-
-    let reset_message = reset_reason(&manifest);
-    if reset_message.is_some() {
-        crate::store::reset_dev_index(&root)?;
-        manifest = Manifest::new();
-    }
+    let (mut manifest, reset_message) = prepare_for_build(&root)?;
 
     let existing_records = load_records(&root)?;
 
@@ -121,8 +115,7 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
     debug_assert_unique_record_locations(&records);
     sort_records(&mut records);
 
-    save_records(&root, &records)?;
-    save_manifest(&root, &manifest)?;
+    save_index_snapshot(&root, &manifest, &records)?;
 
     Ok(BuildStats {
         root,
@@ -142,10 +135,6 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
 pub fn index_is_fresh(start: &Path) -> Result<bool> {
     let root = find_repo_root(start)?;
     let manifest = load_manifest(&root)?;
-
-    if reset_reason(&manifest).is_some() {
-        return Ok(false);
-    }
 
     let files = discover_files(&root)?;
     let mut current_paths: BTreeSet<String> = BTreeSet::new();
@@ -239,20 +228,6 @@ fn debug_assert_unique_record_locations(records: &[IndexRecord]) {
             record.source
         );
     }
-}
-
-fn reset_reason(manifest: &Manifest) -> Option<&'static str> {
-    // `load_manifest` should return `Manifest::new()` for a missing manifest in a fresh repo.
-    // It should return schema_version 0 only for malformed/legacy manifests that require reset.
-    if manifest.schema_version == 0 {
-        return Some("index manifest invalid; rebuilding .dev_index");
-    }
-
-    if is_manifest_stale(manifest) {
-        return Some("index schema changed; rebuilding .dev_index");
-    }
-
-    None
 }
 
 fn discover_files(root: &Path) -> Result<Vec<PathBuf>> {

@@ -1,7 +1,5 @@
 mod common;
 
-use std::fs;
-
 use common::*;
 
 #[test]
@@ -26,28 +24,16 @@ class PromptService:
     run_build(root);
     run_wi(root, &["PromptService"]);
 
-    let log_path = root.join(".dev_index/wi_usage.jsonl");
-    assert!(
-        log_path.exists(),
-        "wi_usage.jsonl should exist after wi run"
-    );
-
-    let contents = fs::read_to_string(&log_path).expect("read usage log");
-    let first_line = contents
-        .lines()
-        .next()
-        .expect("at least one line in usage log");
-
-    let parsed: serde_json::Value =
-        serde_json::from_str(first_line).expect("parse usage log line as JSON");
+    let events = thinindex::stats::read_usage_events(root).expect("read usage events");
+    let event = events.first().expect("at least one usage event");
 
     assert!(
-        parsed.get("query").is_some(),
-        "missing 'query' field in usage event: {first_line}"
+        !event.query.is_empty(),
+        "missing query field in usage event: {event:?}"
     );
     assert!(
-        parsed.get("result_count").is_some(),
-        "missing 'result_count' field in usage event: {first_line}"
+        event.result_count > 0,
+        "missing result_count field in usage event: {event:?}"
     );
 }
 
@@ -73,25 +59,13 @@ class PromptService:
     run_build(root);
     run_wi(root, &["NoSuchSymbolPleaseMissXYZ"]);
 
-    let log_path = root.join(".dev_index/wi_usage.jsonl");
-    let contents = fs::read_to_string(&log_path).expect("read usage log");
-    let last_line = contents
-        .lines()
-        .rfind(|line| !line.trim().is_empty())
-        .expect("at least one line in usage log");
+    let events = thinindex::stats::read_usage_events(root).expect("read usage events");
+    let event = events.last().expect("at least one usage event");
 
-    let parsed: serde_json::Value =
-        serde_json::from_str(last_line).expect("parse usage log line as JSON");
-
+    assert!(!event.hit, "expected hit=false in miss event: {event:?}");
     assert_eq!(
-        parsed.get("hit").and_then(|value| value.as_bool()),
-        Some(false),
-        "expected hit=false in miss event: {last_line}"
-    );
-    assert_eq!(
-        parsed.get("result_count").and_then(|value| value.as_u64()),
-        Some(0),
-        "expected result_count=0 in miss event: {last_line}"
+        event.result_count, 0,
+        "expected result_count=0 in miss event: {event:?}"
     );
 }
 
@@ -153,8 +127,15 @@ class PromptService:
 
 #[test]
 fn wi_stats_no_usage_message() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
     let repo = temp_repo();
     let root = repo.path();
+    write_file(root, "src/main.py", "class PromptService: pass\n");
+    run_build(root);
 
     let output = wi_stats_bin()
         .current_dir(root)

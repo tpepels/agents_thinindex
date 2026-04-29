@@ -1,16 +1,13 @@
 use std::{
-    fs::{self, OpenOptions},
-    io::Write,
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
 
 use anyhow::{Context, Result};
+use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
-use crate::store::{ensure_index_dir, index_dir};
-
-pub const USAGE_FILE: &str = "wi_usage.jsonl";
+use crate::store::open_ready_database;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UsageEvent {
@@ -48,62 +45,105 @@ pub fn current_unix_seconds() -> u64 {
 }
 
 pub fn manifest_indexed_files(root: &Path) -> usize {
-    match crate::store::load_manifest(root) {
-        Ok(manifest) => manifest.files.len(),
-        Err(_) => 0,
-    }
+    crate::store::indexed_file_count(root).unwrap_or_default()
 }
 
 pub fn append_usage_event(root: &Path, event: &UsageEvent) -> Result<()> {
-    ensure_index_dir(root)?;
+    let conn = open_ready_database(root)?;
 
-    let path = index_dir(root).join(USAGE_FILE);
-
-    let mut file = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&path)
-        .with_context(|| format!("failed to open usage log: {}", path.display()))?;
-
-    let mut line = serde_json::to_vec(event).context("failed to serialize usage event")?;
-    line.push(b'\n');
-
-    // Single write_all so concurrent `wi` invocations cannot interleave bytes
-    // mid-record under O_APPEND.
-    file.write_all(&line)
-        .with_context(|| format!("failed to write usage log: {}", path.display()))?;
+    conn.execute(
+        "INSERT INTO usage_events(
+            timestamp, query, query_len, result_count, hit,
+            used_type, used_lang, used_path, used_limit, repo, indexed_files
+         )
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        params![
+            i64::try_from(event.ts).context("usage timestamp is too large")?,
+            &event.query,
+            i64::try_from(event.query_len).context("usage query_len is too large")?,
+            i64::try_from(event.result_count).context("usage result_count is too large")?,
+            bool_to_i64(event.hit),
+            bool_to_i64(event.used_type),
+            bool_to_i64(event.used_lang),
+            bool_to_i64(event.used_path),
+            bool_to_i64(event.used_limit),
+            &event.repo,
+            i64::try_from(event.indexed_files).context("usage indexed_files is too large")?,
+        ],
+    )
+    .context("failed to insert usage event")?;
 
     Ok(())
 }
 
 pub fn read_usage_events(root: &Path) -> Result<Vec<UsageEvent>> {
-    let path = index_dir(root).join(USAGE_FILE);
+    let conn = open_ready_database(root)?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT timestamp, query, query_len, result_count, hit,
+                    used_type, used_lang, used_path, used_limit, repo, indexed_files
+             FROM usage_events
+             ORDER BY id",
+        )
+        .context("failed to prepare usage event query")?;
 
-    if !path.exists() {
-        return Ok(Vec::new());
-    }
-
-    let text = fs::read_to_string(&path)
-        .with_context(|| format!("failed to read usage log: {}", path.display()))?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, i64>(4)?,
+                row.get::<_, i64>(5)?,
+                row.get::<_, i64>(6)?,
+                row.get::<_, i64>(7)?,
+                row.get::<_, i64>(8)?,
+                row.get::<_, String>(9)?,
+                row.get::<_, i64>(10)?,
+            ))
+        })
+        .context("failed to query usage events")?;
 
     let mut events = Vec::new();
+    for row in rows {
+        let (
+            ts,
+            query,
+            query_len,
+            result_count,
+            hit,
+            used_type,
+            used_lang,
+            used_path,
+            used_limit,
+            repo,
+            indexed_files,
+        ) = row.context("failed to read usage event row")?;
 
-    for (idx, line) in text.lines().enumerate() {
-        if line.trim().is_empty() {
-            continue;
-        }
-
-        match serde_json::from_str::<UsageEvent>(line) {
-            Ok(event) => events.push(event),
-            Err(error) => eprintln!(
-                "warning: skipping malformed usage event on line {} of {}: {error}",
-                idx + 1,
-                path.display()
-            ),
-        }
+        events.push(UsageEvent {
+            ts: u64::try_from(ts).context("usage timestamp must be non-negative")?,
+            query,
+            query_len: usize::try_from(query_len)
+                .context("usage query_len must be non-negative")?,
+            result_count: usize::try_from(result_count)
+                .context("usage result_count must be non-negative")?,
+            hit: hit != 0,
+            used_type: used_type != 0,
+            used_lang: used_lang != 0,
+            used_path: used_path != 0,
+            used_limit: used_limit != 0,
+            repo,
+            indexed_files: usize::try_from(indexed_files)
+                .context("usage indexed_files must be non-negative")?,
+        });
     }
 
     Ok(events)
+}
+
+fn bool_to_i64(value: bool) -> i64 {
+    if value { 1 } else { 0 }
 }
 
 pub fn compute_windows(events: &[UsageEvent], now: u64) -> Vec<WindowStats> {
@@ -326,6 +366,7 @@ mod tests {
     fn append_and_read_round_trip() {
         let dir = tempdir().expect("tempdir");
         let root = dir.path();
+        crate::store::prepare_for_build(root).expect("create sqlite index");
 
         let event = UsageEvent {
             ts: 1_700_000_000,
@@ -348,34 +389,25 @@ mod tests {
     }
 
     #[test]
-    fn read_usage_events_missing_file_is_empty() {
+    fn read_usage_events_empty_database_is_empty() {
         let dir = tempdir().expect("tempdir");
+        crate::store::prepare_for_build(dir.path()).expect("create sqlite index");
         let events = read_usage_events(dir.path()).expect("read");
         assert!(events.is_empty());
     }
 
     #[test]
-    fn read_usage_events_skips_malformed_lines() {
+    fn append_and_read_preserves_order() {
         let dir = tempdir().expect("tempdir");
         let root = dir.path();
+        crate::store::prepare_for_build(root).expect("create sqlite index");
 
-        let good = sample_event(1_700_000_000, true, 3);
-        append_usage_event(root, &good).expect("append good event");
-
-        // Simulate a corrupted line from a concurrent-append interleave: two
-        // valid JSON objects glued together with no newline between them.
-        let path = index_dir(root).join(USAGE_FILE);
-        let glued = format!(
-            "{}{}\n",
-            serde_json::to_string(&good).unwrap(),
-            serde_json::to_string(&good).unwrap(),
-        );
-        let mut file = OpenOptions::new().append(true).open(&path).unwrap();
-        file.write_all(glued.as_bytes()).unwrap();
-
-        append_usage_event(root, &good).expect("append second good event");
+        let first = sample_event(1_700_000_000, true, 3);
+        let second = sample_event(1_700_000_001, false, 0);
+        append_usage_event(root, &first).expect("append first event");
+        append_usage_event(root, &second).expect("append second event");
 
         let events = read_usage_events(root).expect("read");
-        assert_eq!(events, vec![good.clone(), good]);
+        assert_eq!(events, vec![first, second]);
     }
 }

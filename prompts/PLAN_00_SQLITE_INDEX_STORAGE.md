@@ -7,6 +7,14 @@ Replace the current repo-local JSONL/manifest storage with SQLite before adding 
 
 This pass changes storage only. Do not add reference graph, `wi refs`, `wi pack`, prediction, or impact analysis.
 
+Phase tracking:
+- [x] Add SQLite dependency/schema/storage helpers and bump `INDEX_SCHEMA_VERSION`.
+- [x] Move `build_index`, `wi`, and `wi-stats` to `.dev_index/index.sqlite`.
+- [x] Replace JSONL/manifest/usage tests and shared integrity helpers with SQLite assertions.
+- [x] Preserve AGENTS.md/CLAUDE.md canonical Repository search block behavior.
+- [x] Run required formatting, tests, lint, ignored tests, and smoke commands.
+- [x] Commit with `Migrate thinindex storage to SQLite`.
+
 Product rule:
 SQLite is the canonical `.dev_index` storage layer. Do not maintain parallel JSONL storage unless a test/export command explicitly asks for it.
 

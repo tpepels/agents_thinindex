@@ -671,7 +671,7 @@ fn fixture_repo_remove_command_removes_index() {
 
     wi_init_bin().current_dir(root).assert().success();
 
-    assert!(root.join(".dev_index/index.jsonl").exists());
+    assert!(root.join(".dev_index/index.sqlite").exists());
 
     wi_init_bin()
         .current_dir(root)
@@ -696,7 +696,7 @@ fn fixture_keep_index_remove_preserves_dev_index() {
 
     wi_init_bin().current_dir(root).assert().success();
 
-    assert!(root.join(".dev_index/index.jsonl").exists());
+    assert!(root.join(".dev_index/index.sqlite").exists());
 
     wi_init_bin()
         .current_dir(root)
@@ -704,5 +704,5 @@ fn fixture_keep_index_remove_preserves_dev_index() {
         .assert()
         .success();
 
-    assert!(root.join(".dev_index/index.jsonl").exists());
+    assert!(root.join(".dev_index/index.sqlite").exists());
 }

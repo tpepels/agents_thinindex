@@ -17,12 +17,11 @@ No daemon. No embeddings. No vector database. No MCP. No background updater.
 
 After `wi-init`, agents that follow `AGENTS.md` should:
 
-1. Read `WI.md`.
-2. Run `build_index` before broad discovery.
-3. Use `wi <term>` to find files and line numbers.
-4. Read only the files returned by `wi`.
-5. Run `build_index` again after each implementation phase or structural code change.
-6. If `wi` returns nothing, rerun `build_index` once and retry before broader discovery.
+1. Run `wi --help` before first repository search.
+2. Use `wi <term>` to find files and line numbers.
+3. Read only the files returned by `wi`.
+4. Run `build_index` after structural code changes or when results look stale.
+5. If `wi` returns nothing for a name you expect to exist, fall back to grep/ripgrep/find.
 
 This gives agents a cheap first pass over the repo instead of burning tokens on blind file reads.
 
@@ -91,16 +90,16 @@ wi-init
 
 This will:
 
-- create `WI.md`
 - create `.thinindexignore`
-- add a short reference to `AGENTS.md`
+- create or normalize the canonical Repository search block in `AGENTS.md`
+- normalize an existing `CLAUDE.md` when present
 - add `.dev_index/` to `.gitignore` if `.gitignore` exists and does not already ignore it
 - run `build_index` once
 - create `.dev_index/`
 
 It does not install cron or any background service.
 
-To overwrite `WI.md` and `.thinindexignore` from bundled templates:
+To overwrite `.thinindexignore` from the bundled template:
 
 ```bash
 wi-init --force
@@ -158,10 +157,10 @@ wi -- --paper-bg
 
 `wi-stats` shows usage, hits, misses, hit ratio, average results, and terminal hit/miss graphs for 1/2/5/30-day windows.
 
-Data is collected automatically each time `wi` is run, stored at:
+Data is collected automatically each time `wi` is run, stored in:
 
 ```text
-.dev_index/wi_usage.jsonl
+.dev_index/index.sqlite
 ```
 
 Run:
@@ -188,9 +187,7 @@ Index files live in:
 
 ```text
 .dev_index/
-  manifest.json
-  index.jsonl
-  wi_usage.jsonl
+  index.sqlite
 ```
 
 If the index schema changes, `build_index` may delete and rebuild `.dev_index/`.
@@ -228,7 +225,4 @@ If already uninstalled, clean manually:
 
 ```bash
 rm -rf .dev_index
-rm -f WI.md
 ```
-
-Then remove the WI.md reference from `AGENTS.md` if desired.

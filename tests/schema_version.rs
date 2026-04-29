@@ -3,122 +3,36 @@ mod common;
 use std::fs;
 
 use common::*;
+use rusqlite::{Connection, params};
 
-#[test]
-fn index_schema_version_missing_triggers_rebuild() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
+fn sqlite_path(root: &std::path::Path) -> std::path::PathBuf {
+    root.join(".dev_index/index.sqlite")
+}
 
-    let repo = temp_repo();
-    let root = repo.path();
+fn schema_version(root: &std::path::Path) -> u32 {
+    let conn = Connection::open(sqlite_path(root)).expect("open sqlite index");
+    let value: String = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key = 'schema_version'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("read schema_version");
 
-    write_file(
-        root,
-        "src/main.py",
-        r#"
-class FreshService:
-    pass
-"#,
-    );
+    value.parse().expect("schema_version should parse")
+}
 
-    let dev_index = root.join(".dev_index");
-    fs::create_dir_all(&dev_index).unwrap();
-
-    let manifest_path = dev_index.join("manifest.json");
-    fs::write(&manifest_path, r#"{"files":{}}"#).unwrap();
-    fs::write(dev_index.join("index.jsonl"), "stale\n").unwrap();
-    fs::write(dev_index.join("wi_usage.jsonl"), "usage\n").unwrap();
-
-    let output = run_build(root);
-
-    assert!(
-        output.contains("index schema changed; rebuilding .dev_index")
-            || output.contains("index manifest invalid; rebuilding .dev_index"),
-        "should print rebuild message, got:\n{output}"
-    );
-
-    let manifest: serde_json::Value =
-        serde_json::from_str(&fs::read_to_string(&manifest_path).unwrap()).unwrap();
-
-    assert_eq!(
-        manifest.get("schema_version").unwrap().as_u64().unwrap(),
-        thinindex::model::INDEX_SCHEMA_VERSION as u64,
-        "manifest should have current schema_version after rebuild"
-    );
-
-    let index = fs::read_to_string(dev_index.join("index.jsonl")).unwrap();
-    assert!(
-        !index.contains("stale"),
-        "index.jsonl should not contain stale records:\n{index}"
-    );
-    assert!(
-        index.contains("FreshService"),
-        "index.jsonl should contain fresh rebuilt records:\n{index}"
-    );
-
-    assert!(
-        !dev_index.join("wi_usage.jsonl").exists(),
-        "schema reset should remove old wi_usage.jsonl"
-    );
+fn force_schema_version(root: &std::path::Path, version: u32) {
+    let conn = Connection::open(sqlite_path(root)).expect("open sqlite index");
+    conn.execute(
+        "UPDATE meta SET value = ?1 WHERE key = 'schema_version'",
+        params![version.to_string()],
+    )
+    .expect("update schema_version");
 }
 
 #[test]
-fn index_schema_version_mismatch_triggers_rebuild() {
-    if !has_ctags() {
-        eprintln!("skipping: ctags unavailable");
-        return;
-    }
-
-    let repo = temp_repo();
-    let root = repo.path();
-
-    write_file(
-        root,
-        "src/main.py",
-        r#"
-class FreshService:
-    pass
-"#,
-    );
-
-    let dev_index = root.join(".dev_index");
-    fs::create_dir_all(&dev_index).unwrap();
-
-    let manifest_path = dev_index.join("manifest.json");
-    fs::write(&manifest_path, r#"{"schema_version":999,"files":{}}"#).unwrap();
-    fs::write(dev_index.join("index.jsonl"), "stale\n").unwrap();
-
-    let output = run_build(root);
-
-    assert!(
-        output.contains("index schema changed; rebuilding .dev_index"),
-        "should print schema changed message, got:\n{output}"
-    );
-
-    let manifest: serde_json::Value =
-        serde_json::from_str(&fs::read_to_string(&manifest_path).unwrap()).unwrap();
-
-    assert_eq!(
-        manifest.get("schema_version").unwrap().as_u64().unwrap(),
-        thinindex::model::INDEX_SCHEMA_VERSION as u64,
-        "manifest should have current schema_version after rebuild"
-    );
-
-    let index = fs::read_to_string(dev_index.join("index.jsonl")).unwrap();
-    assert!(
-        !index.contains("stale"),
-        "index.jsonl should not contain stale records:\n{index}"
-    );
-    assert!(
-        index.contains("FreshService"),
-        "index.jsonl should contain fresh rebuilt records:\n{index}"
-    );
-}
-
-#[test]
-fn index_schema_version_reset_removes_usage_log() {
+fn old_jsonl_storage_triggers_rebuild() {
     if !has_ctags() {
         eprintln!("skipping: ctags unavailable");
         return;
@@ -131,30 +45,116 @@ fn index_schema_version_reset_removes_usage_log() {
 
     let dev_index = root.join(".dev_index");
     fs::create_dir_all(&dev_index).unwrap();
-
-    fs::write(
-        dev_index.join("manifest.json"),
-        r#"{"schema_version":999,"files":{}}"#,
-    )
-    .unwrap();
+    fs::write(dev_index.join("manifest.json"), r#"{"files":{}}"#).unwrap();
     fs::write(dev_index.join("index.jsonl"), "stale\n").unwrap();
     fs::write(dev_index.join("wi_usage.jsonl"), "usage\n").unwrap();
 
     let output = run_build(root);
 
     assert!(
+        output.contains("old index storage found; rebuilding .dev_index"),
+        "should print old-storage rebuild message, got:\n{output}"
+    );
+    assert!(sqlite_path(root).exists());
+    assert!(!dev_index.join("manifest.json").exists());
+    assert!(!dev_index.join("index.jsonl").exists());
+    assert!(!dev_index.join("wi_usage.jsonl").exists());
+    assert_eq!(schema_version(root), thinindex::model::INDEX_SCHEMA_VERSION);
+
+    let records = thinindex::store::load_records(root).unwrap();
+    assert!(records.iter().any(|record| record.name == "FreshService"));
+}
+
+#[test]
+fn sqlite_schema_version_missing_triggers_rebuild() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "src/main.py", "class FreshService: pass\n");
+    run_build(root);
+
+    let conn = Connection::open(sqlite_path(root)).expect("open sqlite index");
+    conn.execute("DELETE FROM meta WHERE key = 'schema_version'", [])
+        .expect("delete schema_version");
+
+    let output = run_build(root);
+
+    assert!(
+        output.contains("index schema changed; rebuilding .dev_index")
+            || output.contains("index database invalid; rebuilding .dev_index"),
+        "should print rebuild message, got:\n{output}"
+    );
+    assert_eq!(schema_version(root), thinindex::model::INDEX_SCHEMA_VERSION);
+
+    let records = thinindex::store::load_records(root).unwrap();
+    assert!(records.iter().any(|record| record.name == "FreshService"));
+}
+
+#[test]
+fn sqlite_schema_version_mismatch_triggers_rebuild() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "src/main.py", "class FreshService: pass\n");
+    run_build(root);
+    force_schema_version(root, 999);
+
+    let output = run_build(root);
+
+    assert!(
+        output.contains("index schema changed; rebuilding .dev_index"),
+        "should print schema changed message, got:\n{output}"
+    );
+    assert_eq!(schema_version(root), thinindex::model::INDEX_SCHEMA_VERSION);
+
+    let records = thinindex::store::load_records(root).unwrap();
+    assert!(records.iter().any(|record| record.name == "FreshService"));
+}
+
+#[test]
+fn sqlite_schema_version_reset_removes_usage_events() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "src/main.py", "class FreshService: pass\n");
+    run_build(root);
+    run_wi(root, &["FreshService"]);
+    assert!(
+        !thinindex::stats::read_usage_events(root)
+            .unwrap()
+            .is_empty()
+    );
+
+    force_schema_version(root, 999);
+    let output = run_build(root);
+
+    assert!(
         output.contains("index schema changed; rebuilding .dev_index"),
         "expected schema rebuild message, got:\n{output}"
     );
-
-    let index = fs::read_to_string(dev_index.join("index.jsonl")).unwrap();
-    assert!(!index.contains("stale"));
-    assert!(index.contains("FreshService"));
-
     assert!(
-        !dev_index.join("wi_usage.jsonl").exists(),
-        "schema reset should remove old wi_usage.jsonl"
+        thinindex::stats::read_usage_events(root)
+            .unwrap()
+            .is_empty()
     );
+
+    let records = thinindex::store::load_records(root).unwrap();
+    assert!(records.iter().any(|record| record.name == "FreshService"));
 }
 
 #[test]
@@ -167,21 +167,14 @@ fn index_schema_version_no_rebuild_when_same() {
     let repo = temp_repo();
     let root = repo.path();
 
-    write_file(
-        root,
-        "src/main.py",
-        r#"
-class FreshService:
-    pass
-"#,
-    );
+    write_file(root, "src/main.py", "class FreshService: pass\n");
 
     run_build(root);
     let output = run_build(root);
 
     assert!(
-        !output.contains("index schema changed; rebuilding .dev_index"),
-        "should not print schema changed message on same version, got:\n{output}"
+        !output.contains("rebuilding .dev_index"),
+        "should not print rebuild message on same version, got:\n{output}"
     );
     assert!(
         output.contains("changed files: 0"),
@@ -190,7 +183,7 @@ class FreshService:
 }
 
 #[test]
-fn malformed_manifest_rebuilds_cleanly_and_removes_dev_index() {
+fn malformed_sqlite_rebuilds_cleanly() {
     if !has_ctags() {
         eprintln!("skipping: ctags unavailable");
         return;
@@ -203,23 +196,16 @@ fn malformed_manifest_rebuilds_cleanly_and_removes_dev_index() {
 
     let dev_index = root.join(".dev_index");
     fs::create_dir_all(&dev_index).unwrap();
-    fs::write(dev_index.join("manifest.json"), "not json").unwrap();
-    fs::write(dev_index.join("index.jsonl"), "stale\n").unwrap();
-    fs::write(dev_index.join("wi_usage.jsonl"), "usage\n").unwrap();
+    fs::write(sqlite_path(root), "not sqlite").unwrap();
 
     let output = run_build(root);
 
     assert!(
-        output.contains("rebuilding .dev_index"),
-        "expected rebuild message for malformed manifest, got:\n{output}"
+        output.contains("index database invalid; rebuilding .dev_index"),
+        "expected rebuild message for malformed sqlite, got:\n{output}"
     );
+    assert_eq!(schema_version(root), thinindex::model::INDEX_SCHEMA_VERSION);
 
-    let index = fs::read_to_string(dev_index.join("index.jsonl")).unwrap();
-    assert!(!index.contains("stale"));
-    assert!(index.contains("FreshService"));
-
-    assert!(
-        !dev_index.join("wi_usage.jsonl").exists(),
-        "malformed manifest rebuild should remove old wi_usage.jsonl"
-    );
+    let records = thinindex::store::load_records(root).unwrap();
+    assert!(records.iter().any(|record| record.name == "FreshService"));
 }

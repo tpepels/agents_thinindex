@@ -30,11 +30,16 @@ def top_level_function():
     run_build(root);
 
     assert!(root.join(".dev_index").exists());
-    assert!(root.join(".dev_index/manifest.json").exists());
-    assert!(root.join(".dev_index/index.jsonl").exists());
+    assert!(root.join(".dev_index/index.sqlite").exists());
+    assert!(!root.join(".dev_index/manifest.json").exists());
+    assert!(!root.join(".dev_index/index.jsonl").exists());
 
-    let index = fs::read_to_string(root.join(".dev_index/index.jsonl")).expect("read index");
-    assert!(index.contains("PromptService") || index.contains("top_level_function"));
+    let records = thinindex::store::load_records(root).expect("load records");
+    assert!(
+        records
+            .iter()
+            .any(|record| record.name == "PromptService" || record.name == "top_level_function")
+    );
 }
 
 #[test]
@@ -208,11 +213,11 @@ def build_prompt():
 
     run_build(root);
 
-    let index = fs::read_to_string(root.join(".dev_index/index.jsonl")).expect("read index");
+    let snapshot = load_index_snapshot_from_sqlite(root);
 
     run_named_index_integrity_checks(
         "fixture index integrity",
-        &index,
+        &snapshot,
         &[
             "docs/guide.md",
             "frontend/page.html",
@@ -252,26 +257,27 @@ class PromptService:
     // Build must succeed even though a binary file is present.
     run_build(root);
 
-    let index = fs::read_to_string(root.join(".dev_index/index.jsonl")).expect("read index");
+    let records = thinindex::store::load_records(root).expect("load records");
 
     // The text file is indexed.
     assert!(
-        index.contains("src/service.py"),
-        "expected text file to be indexed, got:\n{index}"
+        records.iter().any(|record| record.path == "src/service.py"),
+        "expected text file to be indexed, got:\n{records:#?}"
     );
 
     // The binary file is not.
     assert!(
-        !index.contains("assets/icon.bin"),
-        "binary file must not be indexed, got:\n{index}"
+        !records
+            .iter()
+            .any(|record| record.path == "assets/icon.bin"),
+        "binary file must not be indexed, got:\n{records:#?}"
     );
 
-    // Manifest also excludes it — otherwise we'd re-attempt it every build.
-    let manifest =
-        fs::read_to_string(root.join(".dev_index/manifest.json")).expect("read manifest");
+    // File metadata also excludes it — otherwise we'd re-attempt it every build.
+    let manifest = thinindex::store::load_manifest(root).expect("load manifest");
     assert!(
-        !manifest.contains("assets/icon.bin"),
-        "binary file must not be tracked in manifest, got:\n{manifest}"
+        !manifest.files.contains_key("assets/icon.bin"),
+        "binary file must not be tracked in file metadata, got:\n{manifest:#?}"
     );
 }
 

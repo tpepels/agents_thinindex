@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use common::run_named_index_integrity_checks;
+use common::{load_index_snapshot_from_sqlite, run_named_index_integrity_checks};
 use thinindex::indexer::build_index;
 
 const PROJECT_MARKERS: &[&str] = &[
@@ -72,15 +72,9 @@ fn real_repos_pass_shared_integrity_checks() {
             panic!("failed to build index for {}: {error:#}", path.display())
         });
 
-        let index_path = dev_index.join("index.jsonl");
-        let index = fs::read_to_string(&index_path).unwrap_or_else(|error| {
-            panic!(
-                "failed to read rebuilt index at {}: {error}",
-                index_path.display()
-            )
-        });
+        let snapshot = load_index_snapshot_from_sqlite(path);
 
-        run_named_index_integrity_checks(name, &index, &[]);
+        run_named_index_integrity_checks(name, &snapshot, &[]);
     }
 }
 
