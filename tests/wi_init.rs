@@ -9,14 +9,16 @@ const AGENTS_REPOSITORY_SEARCH_HEADING: &str = "## Repository search";
 const AGENTS_REPOSITORY_SEARCH_BLOCK: &str = "\
 ## Repository search
 
-`wi` soft-replaces ripgrep/grep/find for code search in this repo. You must use it.
+<!-- thinindex-repo-search-block: v1 -->
+
+`wi` is an index of *named* things in this repo — functions, classes, methods, CSS classes/variables, HTML ids, section headings, TODO/FIXME — not full text or paths. Use `wi` whenever you'd grep for a name; use grep/rg/find directly for free text or paths.
 
 - Run `wi --help` before your first repository search and treat its output as part of these instructions.
 - Run `build_index` before broad discovery and after structural changes.
-- Use `wi <term>` before reaching for grep/find/ls/Read.
+- Use `wi <name>` to find symbols, definitions, CSS classes, HTML ids, section headings, etc.
+- For free text (string literals, comments, prose) or paths, use grep/rg/find directly — that's the right tool, not a fallback.
 - Read only files returned by `wi` unless the result is insufficient.
-- If `wi` returns no useful result, rerun `build_index` once and retry.
-- Fall back to grep/find/Read only after that retry fails.";
+- If `wi` misses a name you expect to exist, rerun `build_index` once and retry before grepping.";
 
 // WI.md and related assertions removed as WI.md is no longer generated or required.
 
@@ -203,7 +205,7 @@ fn wi_init_does_not_duplicate_agents_repository_search_block() {
 }
 
 #[test]
-fn wi_init_preserves_at_agents_md_import_in_claude_md() {
+fn wi_init_leaves_at_agents_md_only_claude_md_unchanged() {
     if !has_ctags() {
         eprintln!("skipping: ctags unavailable");
         return;
@@ -218,15 +220,89 @@ fn wi_init_preserves_at_agents_md_import_in_claude_md() {
 
     let claude = fs::read_to_string(root.join("CLAUDE.md")).expect("read CLAUDE.md");
 
+    assert_eq!(
+        claude, "@AGENTS.md\n",
+        "CLAUDE.md that is only `@AGENTS.md` should be left alone, got:\n{claude}"
+    );
+}
+
+#[test]
+fn wi_init_normalizes_claude_md_with_at_agents_md_and_extra_content() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "CLAUDE.md", "@AGENTS.md\n\nproject-specific note\n");
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    let claude = fs::read_to_string(root.join("CLAUDE.md")).expect("read CLAUDE.md");
+
     assert!(
         claude.contains("@AGENTS.md"),
         "@AGENTS.md import directive should be preserved, got:\n{claude}"
     );
     assert!(
-        !claude.starts_with("# AGENTS"),
-        "CLAUDE.md should not be rewritten with a `# AGENTS` H1, got:\n{claude}"
+        claude.contains("project-specific note"),
+        "extra content should be preserved, got:\n{claude}"
     );
     assert_agents_has_canonical_repository_search_block(&claude);
+}
+
+#[test]
+fn wi_init_leaves_versioned_block_unchanged() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "AGENTS.md",
+        &format!("# AGENTS\n\n{AGENTS_REPOSITORY_SEARCH_BLOCK}\n"),
+    );
+
+    let before = fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    let after = fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
+
+    assert_eq!(
+        before, after,
+        "wi-init must not rewrite AGENTS.md when it already has the current versioned block"
+    );
+}
+
+#[test]
+fn wi_init_leaves_newer_versioned_block_unchanged() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    // Pretend a future wi-init wrote v999 — current wi-init must not downgrade it.
+    let future = "# AGENTS\n\n## Repository search\n\n<!-- thinindex-repo-search-block: v999 -->\n\nfuture wording goes here.\n";
+    write_file(root, "AGENTS.md", future);
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    let after = fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
+
+    assert_eq!(
+        after, future,
+        "wi-init must not overwrite a newer versioned block, got:\n{after}"
+    );
 }
 
 #[test]
