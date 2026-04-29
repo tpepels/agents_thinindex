@@ -82,11 +82,43 @@ fn install_script_uses_release_build_with_bundled_sqlite_dependency() {
 }
 
 #[test]
-fn docs_do_not_reintroduce_wi_md_or_system_sqlite_requirement() {
+fn docs_describe_current_agent_navigation_storage_and_commands() {
     let readme = repo_file("README.md");
+    let roadmap = repo_file("docs/ROADMAP.md");
     let uninstall = repo_file("uninstall.sh");
 
-    assert!(!readme.contains("WI.md"), "README must not mention WI.md");
+    assert!(
+        readme.contains("local agent-navigation layer"),
+        "README should position thinindex as an agent-navigation layer"
+    );
+    assert!(
+        readme.contains("wi --help"),
+        "README should direct users to wi --help"
+    );
+    assert!(
+        readme.contains("wi pack <term>") && readme.contains("wi impact <term>"),
+        "README should document pack and impact commands"
+    );
+    assert!(
+        readme.contains("wi bench"),
+        "README should document the benchmark command"
+    );
+    assert!(
+        readme.contains(".dev_index/index.sqlite") && readme.contains("disposable local cache"),
+        "README should document disposable SQLite cache behavior"
+    );
+    assert!(
+        roadmap.contains(".dev_index/index.sqlite"),
+        "roadmap should describe SQLite as current storage"
+    );
+    assert!(
+        !readme.contains("faster grep") && !roadmap.contains("faster grep"),
+        "docs should not position thinindex as faster grep"
+    );
+    assert!(
+        !readme.contains("ML prediction") && !roadmap.contains("ML prediction"),
+        "docs should not claim ML prediction"
+    );
     assert!(
         !uninstall.contains("WI.md"),
         "uninstall.sh must not mention WI.md"
@@ -95,9 +127,58 @@ fn docs_do_not_reintroduce_wi_md_or_system_sqlite_requirement() {
         readme.contains("SQLite engine is bundled"),
         "README should document bundled SQLite behavior"
     );
+}
+
+#[test]
+fn docs_do_not_describe_legacy_files_as_current_instruction_or_storage() {
+    let readme = repo_file("README.md");
+    let roadmap = repo_file("docs/ROADMAP.md");
+
+    for (name, contents) in [("README.md", readme), ("docs/ROADMAP.md", roadmap)] {
+        assert!(
+            !contents.contains("@WI.md")
+                && !contents.contains("WI.md /")
+                && !contents.contains("WI.md integration")
+                && !contents.contains("See WI.md")
+                && !contents.contains("See `WI.md`"),
+            "{name} must not describe WI.md as a generated/current instruction surface"
+        );
+        assert!(
+            !contents.contains(".dev_index/index.jsonl")
+                && !contents.contains(".dev_index/manifest.json")
+                && !contents.contains(".dev_index/wi_usage.jsonl"),
+            "{name} must not describe JSONL files as current canonical storage"
+        );
+    }
+}
+
+#[test]
+fn docs_state_ctags_is_external_and_blocks_proprietary_packaging() {
+    let readme = repo_file("README.md");
+    let roadmap = repo_file("docs/ROADMAP.md");
+    let release = repo_file("docs/RELEASE_CHECKLIST.md");
+
     assert!(
-        readme.contains(".dev_index/index.sqlite") && readme.contains("disposable local cache"),
-        "README should document disposable SQLite cache behavior"
+        readme.contains("external user-installed dependency")
+            && readme.contains("must not bundle Universal Ctags"),
+        "README should describe ctags as external-only"
+    );
+    assert!(
+        readme.contains("Proprietary Windows/macOS/Linux packages are blocked")
+            && readme.contains("permissively licensed"),
+        "README should document native permissive parser packaging blocker"
+    );
+    assert!(
+        roadmap.contains("Proprietary cross-platform packages are blocked")
+            && roadmap.contains("permissively licensed bundled parser dependencies"),
+        "roadmap should preserve ctags/native-parser packaging blocker"
+    );
+    assert!(
+        release.contains("Do not bundle Universal Ctags")
+            && release.contains(
+                "blocked until the native parser work removes the ctags runtime dependency"
+            ),
+        "release checklist should prohibit bundled ctags in proprietary release artifacts"
     );
 }
 

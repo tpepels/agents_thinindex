@@ -1,35 +1,152 @@
 # thinindex
 
-Agents waste tokens when they explore a codebase by reading files blindly.
+thinindex is a local agent-navigation layer for coding repositories. It builds a repo-local SQLite index so coding agents and the developers supervising them can start with file:line landmarks instead of broad file reads.
 
-`thinindex` gives them a cheap repo-local structured index first. Agents use `wi` to get compact file/line targets before reading files.
+No daemon. No embeddings. No vector database. No source upload. The SQLite engine is bundled into the Rust binaries, so users do not need a system SQLite package.
 
-It installs:
+## What thinindex is
 
-- `build_index` — builds/updates `.dev_index/`
-- `wi` — searches the index and returns compact file/line results
-- `wi-init` — sets up a repo for agent use
-- `wi-stats` — shows usage stats and ASCII hit/miss graphs for 1/2/5/30-day windows
+thinindex indexes named repository landmarks: functions, classes, methods, CSS selectors, HTML ids/classes, Markdown headings, TODO/FIXME markers, and related deterministic references. The `wi` command returns compact file:line results from that index.
 
-No daemon. No embeddings. No vector database. No MCP. No background updater. The SQLite engine is bundled into the Rust binaries; users do not need a system SQLite package.
+The context commands use the same local data:
 
-## What agents will do
+- `wi refs <term>` shows deterministic references around a landmark.
+- `wi pack <term>` returns a compact read set for implementation work.
+- `wi impact <term>` returns evidence-backed files to inspect before edits.
 
-After `wi-init`, agents that follow `AGENTS.md` should:
+The index is local-first and repo-local. It lives under `.dev_index/` and is intended to be disposable.
 
-1. Run `build_index` before broad repository discovery.
-2. Run `wi --help` when they need filters, examples, or subcommands.
+## Why agents need it
+
+Agents waste context when they explore a codebase by reading files blindly. thinindex gives them a cheap first pass:
+
+- use file:line landmarks before broad reads
+- read fewer irrelevant files
+- gather compact read sets from refs, pack, and impact
+- measure index and command behavior with local benchmarks
+
+thinindex is for navigation. It is not a hosted search service, an IDE replacement, an LSP replacement, or full semantic code understanding.
+
+## Quickstart
+
+Install the binaries, then run these commands inside a repository:
+
+```bash
+wi-init
+build_index
+wi --help
+wi <term>
+wi pack <term>
+wi impact <term>
+```
+
+Example:
+
+```bash
+wi build_index
+wi pack build_index
+wi impact build_index
+```
+
+Run `wi --help` for the current command syntax, filters, examples, and subcommands. Keep that help output as the source of truth for CLI details.
+
+## Agent workflow
+
+The canonical agent workflow is:
+
+1. Before broad repository discovery, run `build_index`.
+2. Run `wi --help` if search filters, examples, or subcommands are needed.
 3. Use `wi <term>` before grep/find/ls/Read to locate code.
-4. Use `wi pack <term>` for implementation work.
-5. Use `wi impact <term>` before editing a symbol or feature area.
+4. For implementation work, prefer `wi pack <term>` to get a compact read set.
+5. Before editing a symbol or feature area, run `wi impact <term>` to find related tests/docs/callers.
 6. Read only files returned by `wi` unless the result is insufficient.
-7. Retry once after `build_index` before falling back to grep/find/Read.
+7. If `wi` returns no useful result, rerun `build_index` once and retry.
+8. Fall back to grep/find/Read only after that retry fails.
 
-This gives agents a cheap first pass over the repo instead of burning tokens on blind file reads.
+`wi-init` creates or normalizes this workflow in `AGENTS.md` and normalizes an existing `CLAUDE.md` when present. It does not generate a `WI.md` instruction file.
 
-## Install
+## Commands
 
-Requires Rust/Cargo and Universal Ctags. Universal Ctags is an external user-installed dependency for indexing until thinindex has a native parser; release archives/installers do not bundle ctags.
+Installed commands:
+
+- `build_index`: builds or updates `.dev_index/index.sqlite`.
+- `wi <term>`: searches named landmarks and returns compact file:line results.
+- `wi refs <term>`: shows deterministic references for matching landmarks.
+- `wi pack <term>`: returns a compact, deduplicated read set for implementation work.
+- `wi impact <term>`: returns conservative related files with concrete reasons.
+- `wi bench`: measures build, search, context-command, size, count, latency, and integrity behavior.
+- `wi-stats`: shows local usage stats and hit/miss graphs.
+- `wi-init`: prepares a repository for agent use.
+- `wi-init --remove`: removes the repo-local index.
+
+Search filters and examples are documented by `wi --help`, not duplicated here.
+
+All installed binaries support `--version`.
+
+## Storage model
+
+The canonical index path is:
+
+```text
+.dev_index/index.sqlite
+```
+
+`.dev_index` is a disposable local cache. Do not commit it. If the schema changes, `build_index` may rebuild it automatically.
+
+Pre-alpha JSONL `.dev_index` caches are also disposable. `build_index` detects the old cache shape and rebuilds `.dev_index/index.sqlite`.
+
+`wi` does not silently rebuild a missing or stale index. It tells users to run `build_index` so rebuilds are explicit.
+
+Usage stats are stored in the same SQLite database. `make uninstall` removes installed binaries only; it does not remove repo-local caches.
+
+## Real-repo hardening
+
+Normal tests use fixtures and do not depend on local clones. Real-repo validation is opt-in:
+
+- `test_repos/` is ignored and local-only.
+- Clone third-party repositories there manually when needed.
+- No third-party repository contents are committed.
+- `test_repos/MANIFEST.toml` records local benchmark and integrity targets when present.
+- Ignored tests validate indexing, references, context commands, and benchmark behavior against those repos.
+
+Run real-repo checks with:
+
+```bash
+cargo test --test local_index -- --ignored
+cargo test --test real_repos -- --ignored
+cargo test --test bench_repos -- --ignored
+```
+
+## Benchmarks/value measurement
+
+`wi bench` measures local behavior without asserting fragile timing promises. The benchmark reports:
+
+- build time
+- database size
+- record and reference counts
+- hit/miss behavior for deterministic queries
+- search latency
+- pack and impact output sizes
+- integrity status
+
+Use those numbers to evaluate whether thinindex helps a particular repository and workflow. Do not infer broad agent-performance gains from a single benchmark run.
+
+## Limitations
+
+thinindex is intentionally conservative:
+
+- It is not full semantic code understanding.
+- It is not an IDE or LSP replacement.
+- References are deterministic and incomplete.
+- Impact output is evidence-backed but not exhaustive.
+- Agents can still ignore repository instructions.
+- Generated, build, vendor, dependency, and large fixture paths should be ignored.
+- Proprietary packaging is blocked until Universal Ctags is removed from the required parser path.
+- Bundled parser dependencies must be permissively licensed and audited before commercial release artifacts.
+
+## Install/uninstall
+
+Requires Rust/Cargo and Universal Ctags. Universal Ctags is an external user-installed dependency for indexing until thinindex has a permissively licensed native parser. Release archives and installers must not bundle Universal Ctags.
 
 Arch Linux:
 
@@ -56,7 +173,7 @@ macOS with Homebrew:
 brew install rust universal-ctags
 ```
 
-Then install `thinindex`:
+Install:
 
 ```bash
 make install
@@ -67,8 +184,6 @@ Default install location:
 ```text
 $HOME/.local/bin
 ```
-
-Make sure that is on your `PATH`.
 
 Check:
 
@@ -82,162 +197,51 @@ ctags --version
 
 `ctags --version` should mention Universal Ctags.
 
-Install and uninstall are idempotent. They install or remove only commands under the selected `BIN_DIR`; they do not delete repo-local `.dev_index` caches.
-
-## Initialize a repo
-
-Run this inside a repository:
-
-```bash
-wi-init
-```
-
-This will:
-
-- create `.thinindexignore`
-- create or normalize the canonical Repository search block in `AGENTS.md`
-- normalize an existing `CLAUDE.md` when present
-- add `.dev_index/` to `.gitignore` if `.gitignore` exists and does not already ignore it
-- run `build_index` once
-- create `.dev_index/`
-
-It does not install cron or any background service.
-
-To overwrite `.thinindexignore` from the bundled template:
-
-```bash
-wi-init --force
-```
-
-To remove the index from a repo:
-
-```bash
-wi-init --remove
-```
-
-To remove setup but keep the index:
-
-```bash
-wi-init --remove --keep-index
-```
-
-## Use
-
-Build or refresh the index:
-
-```bash
-build_index
-```
-
-Show current syntax, filters, examples, and subcommands:
-
-```bash
-wi --help
-```
-
-Search:
-
-```bash
-wi HeaderNavigation
-wi prompt -p app
-wi pixel -l css
-wi ranking -t function
-wi HeaderNavigation -n 10
-wi HeaderNavigation -v
-```
-
-Reference and context commands:
-
-```bash
-wi refs HeaderNavigation
-wi pack HeaderNavigation
-wi impact HeaderNavigation
-wi bench
-```
-
-Options:
-
-```text
--t <kind>   filter by kind/type
--l <lang>   filter by language
--p <path>   filter by path substring
--s <source> filter by source
--n <n>      result limit
--v          verbose output
-```
-
-For search terms that start with `-`:
-
-```bash
-wi -- --paper-bg
-```
-
-## Usage stats
-
-`wi-stats` shows usage, hits, misses, hit ratio, average results, and terminal hit/miss graphs for 1/2/5/30-day windows.
-
-Data is collected automatically each time `wi` is run, stored in:
-
-```text
-.dev_index/index.sqlite
-```
-
-Run:
-
-```bash
-wi-stats
-```
-
-There are no flags.
-
-## What gets indexed
-
-Primary symbols come from Universal Ctags.
-
-Extra extraction includes:
-
-- CSS selectors and variables
-- HTML ids/classes/data attributes
-- Markdown headings/checklists/links
-- JSX component usage
-- TODO/FIXME markers
-
-Index files live in:
-
-```text
-.dev_index/
-  index.sqlite
-```
-
-`.dev_index/index.sqlite` is a disposable local cache. If the index schema changes, `build_index` may delete and rebuild `.dev_index/`. Old JSONL `.dev_index` caches from pre-alpha builds are automatically rebuilt by `build_index`.
-
-## Ignore extra paths
-
-`thinindex` respects normal `.gitignore` rules.
-
-`wi-init` writes a default `.thinindexignore` in the repo root using gitignore-style patterns. Edit or extend it to add thinindex-only ignores:
-
-```text
-generated/
-*.large.json
-.env*
-!generated/keep.py
-```
-
-Use this for generated files, large fixtures, local artifacts, or anything agents should not discover through `wi`.
-
-## Uninstall
-
-Remove commands:
+Uninstall installed binaries:
 
 ```bash
 make uninstall
 ```
 
-This removes installed commands only. It does not delete any repo-local `.dev_index/`, `.thinindexignore`, `AGENTS.md`, or `CLAUDE.md` files.
+Uninstall does not delete `.dev_index`, `.thinindexignore`, `AGENTS.md`, or `CLAUDE.md`.
 
-Remove a repo-local index before uninstalling:
+Remove a repo-local index:
 
 ```bash
 wi-init --remove
 ```
+
+## Packaging/licensing caveat
+
+SQLite is bundled through the Rust dependency configuration, but Universal Ctags is not bundled. Universal Ctags may be used only as an external user-installed dependency while it remains required.
+
+Proprietary Windows/macOS/Linux packages are blocked until the parser path no longer requires Universal Ctags and the replacement native parser stack is permissively licensed and audited.
+
+## Development
+
+Build and test:
+
+```bash
+cargo fmt --check
+cargo test
+cargo clippy --all-targets --all-features -- -D warnings
+```
+
+Manual smoke:
+
+```bash
+rm -rf .dev_index
+cargo run --bin build_index
+cargo run --bin wi -- build_index
+cargo run --bin wi -- refs build_index
+cargo run --bin wi -- pack build_index
+cargo run --bin wi -- impact build_index
+cargo run --bin wi-stats
+```
+
+Generated and local files:
+
+- `.dev_index/` is ignored and disposable.
+- `.thinindexignore` is repo-local configuration for thinindex-only ignores.
+- `AGENTS.md` is the canonical repository instruction surface created by `wi-init`.
+- Existing `CLAUDE.md` files are normalized when present; `wi-init` does not create one.

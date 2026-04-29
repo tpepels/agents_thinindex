@@ -221,3 +221,10 @@ Report:
 - whether ignored local test passed
 - whether ignored real-repo test ran, skipped, or failed
 - commit hash
+
+Phase tracking:
+- [x] Rewrite README around the agent-navigation positioning and required sections.
+- [x] Update roadmap to separate shipped behavior from future work and remove stale storage/instruction claims.
+- [x] Add focused documentation governance tests for README, roadmap, storage, commands, and packaging caveats.
+- [x] Run required verification.
+- [x] Commit scoped documentation/test updates.
