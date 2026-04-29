@@ -10,9 +10,15 @@ use clap::Parser;
 use thinindex::indexer::{build_index, find_repo_root};
 
 const THININDEXIGNORE_TEMPLATE: &str = include_str!("../../templates/.thinindexignore");
-const AGENTS_REPOSITORY_SEARCH_HEADING: &str = "## Repository search";
-const REPOSITORY_SEARCH_BLOCK: &str = "\
-## Repository search\n\n- Before broad repository discovery, run `build_index`.\n- Run `wi --help` if you need search filters or examples.\n- Use `wi <term>` before grep/find/ls/Read to locate code.\n- Read only files returned by `wi` unless the result is insufficient.\n- If `wi` returns no useful result, rerun `build_index` once and retry.\n- Fall back to grep/find/Read only after that retry fails.";
+const REPOSITORY_SEARCH_HEADING: &str = "## Repository search";
+const REPOSITORY_SEARCH_BLOCK: &str = "## Repository search
+
+- Before broad repository discovery, run `build_index`.
+- Run `wi --help` if you need search filters or examples.
+- Use `wi <term>` before grep/find/ls/Read to locate code.
+- Read only files returned by `wi` unless the result is insufficient.
+- If `wi` returns no useful result, rerun `build_index` once and retry.
+- Fall back to grep/find/Read only after that retry fails.";
 
 #[derive(Debug, Parser)]
 #[command(
@@ -272,7 +278,7 @@ fn update_agents_md(root: &Path) -> Result<()> {
     if path.exists() {
         let existing = fs::read_to_string(&path)
             .with_context(|| format!("failed to read {}", path.display()))?;
-        let updated = normalize_agents_md(&existing);
+        let updated = normalize_repository_search_block(&existing, "# AGENTS\n\n");
 
         if updated == existing {
             return Ok(());
@@ -292,8 +298,8 @@ fn update_agents_md(root: &Path) -> Result<()> {
     Ok(())
 }
 
-fn normalize_agents_md(existing: &str) -> String {
-    if agents_md_is_current(existing) {
+fn normalize_repository_search_block(existing: &str, empty_base_prefix: &str) -> String {
+    if has_canonical_block(existing) {
         return existing.to_string();
     }
 
@@ -302,13 +308,13 @@ fn normalize_agents_md(existing: &str) -> String {
     let base = without_legacy_markers.trim_end();
 
     if base.is_empty() {
-        format!("# AGENTS\n\n{REPOSITORY_SEARCH_BLOCK}\n")
+        format!("{empty_base_prefix}{REPOSITORY_SEARCH_BLOCK}\n")
     } else {
         format!("{base}\n\n{REPOSITORY_SEARCH_BLOCK}\n")
     }
 }
 
-fn agents_md_is_current(existing: &str) -> bool {
+fn has_canonical_block(existing: &str) -> bool {
     repository_search_heading_count(existing) == 1
         && existing.contains(REPOSITORY_SEARCH_BLOCK)
         && !contains_legacy_repository_search_marker(existing)
@@ -317,7 +323,7 @@ fn agents_md_is_current(existing: &str) -> bool {
 fn repository_search_heading_count(existing: &str) -> usize {
     existing
         .lines()
-        .filter(|line| line.trim() == AGENTS_REPOSITORY_SEARCH_HEADING)
+        .filter(|line| line.trim() == REPOSITORY_SEARCH_HEADING)
         .count()
 }
 
@@ -330,7 +336,7 @@ fn remove_repository_search_sections(existing: &str) -> String {
     let mut lines = existing.lines().peekable();
 
     while let Some(line) = lines.next() {
-        if line.trim() == AGENTS_REPOSITORY_SEARCH_HEADING {
+        if line.trim() == REPOSITORY_SEARCH_HEADING {
             while let Some(next_line) = lines.peek() {
                 if is_markdown_h1_or_h2(next_line) {
                     break;
@@ -362,7 +368,6 @@ fn is_legacy_repository_search_line(line: &str) -> bool {
         || trimmed.contains("See `WI.md` for repository search/index usage.")
         || trimmed
             .contains("Before broad repository discovery, run `build_index`, then use `wi <term>`")
-        || trimmed == "@AGENTS.md"
 }
 
 fn is_markdown_h1_or_h2(line: &str) -> bool {
@@ -380,7 +385,7 @@ fn update_claude_md(root: &Path) -> Result<()> {
     let existing =
         fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
 
-    let updated = normalize_agents_md(&existing);
+    let updated = normalize_repository_search_block(&existing, "");
     if updated == existing {
         return Ok(());
     }

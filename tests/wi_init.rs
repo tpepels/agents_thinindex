@@ -201,7 +201,7 @@ fn wi_init_does_not_duplicate_agents_repository_search_block() {
 }
 
 #[test]
-fn wi_init_updates_existing_claude_md() {
+fn wi_init_preserves_at_agents_md_import_in_claude_md() {
     if !has_ctags() {
         eprintln!("skipping: ctags unavailable");
         return;
@@ -215,7 +215,45 @@ fn wi_init_updates_existing_claude_md() {
     wi_init_bin().current_dir(root).assert().success();
 
     let claude = fs::read_to_string(root.join("CLAUDE.md")).expect("read CLAUDE.md");
+
+    assert!(
+        claude.contains("@AGENTS.md"),
+        "@AGENTS.md import directive should be preserved, got:\n{claude}"
+    );
+    assert!(
+        !claude.starts_with("# AGENTS"),
+        "CLAUDE.md should not be rewritten with a `# AGENTS` H1, got:\n{claude}"
+    );
     assert_agents_has_canonical_repository_search_block(&claude);
+}
+
+#[test]
+fn wi_init_does_not_emit_agents_h1_when_claude_md_filters_to_empty() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    // @WI.md is a legacy marker that gets filtered out, leaving an empty base.
+    write_file(root, "CLAUDE.md", "@WI.md\n");
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    let claude = fs::read_to_string(root.join("CLAUDE.md")).expect("read CLAUDE.md");
+
+    assert_agents_has_canonical_repository_search_block(&claude);
+    assert!(
+        !claude.contains("# AGENTS"),
+        "CLAUDE.md must never contain a `# AGENTS` heading, got:\n{claude}"
+    );
+    assert_eq!(
+        claude,
+        format!("{AGENTS_REPOSITORY_SEARCH_BLOCK}\n"),
+        "CLAUDE.md with empty base should be exactly the canonical block plus trailing newline, got:\n{claude}"
+    );
 }
 
 #[test]
