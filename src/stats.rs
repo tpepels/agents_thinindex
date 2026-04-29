@@ -65,13 +65,13 @@ pub fn append_usage_event(root: &Path, event: &UsageEvent) -> Result<()> {
         .open(&path)
         .with_context(|| format!("failed to open usage log: {}", path.display()))?;
 
-    let line = serde_json::to_string(event).context("failed to serialize usage event")?;
+    let mut line = serde_json::to_vec(event).context("failed to serialize usage event")?;
+    line.push(b'\n');
 
-    file.write_all(line.as_bytes())
+    // Single write_all so concurrent `wi` invocations cannot interleave bytes
+    // mid-record under O_APPEND.
+    file.write_all(&line)
         .with_context(|| format!("failed to write usage log: {}", path.display()))?;
-
-    file.write_all(b"\n")
-        .with_context(|| format!("failed to write usage log newline: {}", path.display()))?;
 
     Ok(())
 }
@@ -93,15 +93,14 @@ pub fn read_usage_events(root: &Path) -> Result<Vec<UsageEvent>> {
             continue;
         }
 
-        let event: UsageEvent = serde_json::from_str(line).with_context(|| {
-            format!(
-                "failed to parse usage event on line {}: {}",
+        match serde_json::from_str::<UsageEvent>(line) {
+            Ok(event) => events.push(event),
+            Err(error) => eprintln!(
+                "warning: skipping malformed usage event on line {} of {}: {error}",
                 idx + 1,
                 path.display()
-            )
-        })?;
-
-        events.push(event);
+            ),
+        }
     }
 
     Ok(events)
@@ -353,5 +352,30 @@ mod tests {
         let dir = tempdir().expect("tempdir");
         let events = read_usage_events(dir.path()).expect("read");
         assert!(events.is_empty());
+    }
+
+    #[test]
+    fn read_usage_events_skips_malformed_lines() {
+        let dir = tempdir().expect("tempdir");
+        let root = dir.path();
+
+        let good = sample_event(1_700_000_000, true, 3);
+        append_usage_event(root, &good).expect("append good event");
+
+        // Simulate a corrupted line from a concurrent-append interleave: two
+        // valid JSON objects glued together with no newline between them.
+        let path = index_dir(root).join(USAGE_FILE);
+        let glued = format!(
+            "{}{}\n",
+            serde_json::to_string(&good).unwrap(),
+            serde_json::to_string(&good).unwrap(),
+        );
+        let mut file = OpenOptions::new().append(true).open(&path).unwrap();
+        file.write_all(glued.as_bytes()).unwrap();
+
+        append_usage_event(root, &good).expect("append second good event");
+
+        let events = read_usage_events(root).expect("read");
+        assert_eq!(events, vec![good.clone(), good]);
     }
 }
