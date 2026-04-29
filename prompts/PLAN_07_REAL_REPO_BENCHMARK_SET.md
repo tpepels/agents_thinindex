@@ -9,6 +9,14 @@ Create a curated real-repo benchmark set mechanism so thinindex can be tested ag
 
 This pass organizes `test_repos/` benchmarking. It does not add new search semantics, reference extraction rules, ML prediction, or new context commands.
 
+Phase tracking:
+- [x] Add `test_repos/MANIFEST.toml` parsing with skip, kind, queries, and expected paths.
+- [x] Preserve fallback immediate-child repo discovery when no manifest exists.
+- [x] Wire manifest repo selection into ignored real-repo integrity and benchmark tests.
+- [x] Add normal tests for manifest parsing and missing manifest repo failures.
+- [x] Run required formatting, tests, lint, ignored tests, and bench smoke.
+- [x] Commit with `Add real-repo benchmark manifest support`.
+
 Product rule:
 Real-repo benchmarks must measure agent-navigation usefulness without making normal `cargo test` depend on downloaded third-party repos.
 

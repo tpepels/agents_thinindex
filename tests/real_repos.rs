@@ -1,85 +1,73 @@
 mod common;
 
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::Path};
 
 use common::{load_index_snapshot_from_sqlite, run_named_index_integrity_checks};
-use thinindex::indexer::build_index;
-
-const PROJECT_MARKERS: &[&str] = &[
-    ".git",
-    "Cargo.toml",
-    "package.json",
-    "pyproject.toml",
-    "go.mod",
-    ".gitignore",
-    "src",
-];
+use thinindex::{
+    bench::{BenchmarkRepo, BenchmarkRepoSet, load_benchmark_repo_set},
+    indexer::build_index,
+};
 
 #[test]
 #[ignore = "rebuilds .dev_index for every repo under test_repos/; run with: cargo test --test real_repos -- --ignored"]
 fn real_repos_pass_shared_integrity_checks() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("test_repos");
 
-    if !root.exists() {
-        println!("skipped: test_repos/ missing");
-        return;
-    }
+    let repo_set = load_benchmark_repo_set(&root)
+        .unwrap_or_else(|error| panic!("failed to load benchmark repo set: {error:#}"));
 
-    let mut repos: Vec<PathBuf> = fs::read_dir(&root)
-        .unwrap_or_else(|error| panic!("failed to read {}: {error}", root.display()))
-        .filter_map(|entry| entry.ok())
-        .map(|entry| entry.path())
-        .filter(|path| path.is_dir() && is_repo_root(path))
-        .collect();
-
-    repos.sort();
-
-    if repos.is_empty() {
-        println!("skipped: test_repos/ has no repo directories");
-        return;
-    }
-
-    let names: Vec<String> = repos
-        .iter()
-        .map(|path| {
-            path.file_name()
-                .map(|n| n.to_string_lossy().into_owned())
-                .unwrap_or_else(|| path.display().to_string())
-        })
-        .collect();
-
-    println!("real_repos testing {} repo(s):", repos.len());
-    for name in &names {
-        println!("  - {name}");
-    }
-
-    for (path, name) in repos.iter().zip(names.iter()) {
-        let dev_index = path.join(".dev_index");
-
-        if dev_index.exists() {
-            fs::remove_dir_all(&dev_index).unwrap_or_else(|error| {
-                panic!(
-                    "failed to remove .dev_index for {}: {error}",
-                    dev_index.display()
-                )
-            });
+    let BenchmarkRepoSet::Repos {
+        manifest_used,
+        repos,
+    } = repo_set
+    else {
+        match repo_set {
+            BenchmarkRepoSet::MissingRoot => println!("skipped: test_repos/ missing"),
+            BenchmarkRepoSet::Empty => println!("skipped: test_repos/ has no repo directories"),
+            BenchmarkRepoSet::Repos { .. } => unreachable!(),
         }
+        return;
+    };
 
-        build_index(path).unwrap_or_else(|error| {
-            panic!("failed to build index for {}: {error:#}", path.display())
-        });
+    println!(
+        "real_repos testing {} repo(s){}:",
+        repos.len(),
+        if manifest_used {
+            " from MANIFEST.toml"
+        } else {
+            ""
+        }
+    );
+    for repo in &repos {
+        println!("  - {} ({})", repo.name, repo.path.display());
+    }
 
-        let snapshot = load_index_snapshot_from_sqlite(path);
-
-        run_named_index_integrity_checks(name, &snapshot, &[]);
+    for repo in repos {
+        check_repo(&repo);
     }
 }
 
-fn is_repo_root(path: &Path) -> bool {
-    PROJECT_MARKERS
-        .iter()
-        .any(|marker| path.join(marker).exists())
+fn check_repo(repo: &BenchmarkRepo) {
+    let dev_index = repo.path.join(".dev_index");
+
+    if dev_index.exists() {
+        fs::remove_dir_all(&dev_index).unwrap_or_else(|error| {
+            panic!(
+                "failed to remove .dev_index for {}: {error}",
+                dev_index.display()
+            )
+        });
+    }
+
+    build_index(&repo.path).unwrap_or_else(|error| {
+        panic!(
+            "failed to build index for {}: {error:#}",
+            repo.path.display()
+        )
+    });
+
+    let snapshot = load_index_snapshot_from_sqlite(&repo.path);
+    let expected_paths: Vec<&str> = repo.expected_paths.iter().map(String::as_str).collect();
+
+    run_named_index_integrity_checks(&repo.name, &snapshot, &expected_paths);
 }

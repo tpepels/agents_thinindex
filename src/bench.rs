@@ -1,11 +1,11 @@
 use std::{
     collections::BTreeSet,
     fs,
-    path::Path,
+    path::{Path, PathBuf},
     time::{Duration, Instant},
 };
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 
 use crate::{
     context::{render_impact_command, render_pack_command, render_refs_command},
@@ -15,10 +15,21 @@ use crate::{
 };
 
 const DEFAULT_QUERY_LIMIT: usize = 20;
+const PROJECT_MARKERS: &[&str] = &[
+    ".git",
+    "Cargo.toml",
+    "package.json",
+    "pyproject.toml",
+    "go.mod",
+    ".gitignore",
+    "src",
+];
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BenchmarkReport {
     pub repo_name: String,
+    pub repo_path: String,
+    pub repo_kind: Option<String>,
     pub build_duration: Option<Duration>,
     pub db_size_bytes: u64,
     pub indexed_file_count: usize,
@@ -45,6 +56,27 @@ pub struct BenchmarkReport {
 pub struct BenchmarkRunOptions {
     pub queries: Option<Vec<String>>,
     pub build_duration: Option<Duration>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BenchmarkRepo {
+    pub name: String,
+    pub path: PathBuf,
+    pub kind: Option<String>,
+    pub description: Option<String>,
+    pub queries: Option<Vec<String>>,
+    pub expected_paths: Vec<String>,
+    pub from_manifest: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BenchmarkRepoSet {
+    MissingRoot,
+    Empty,
+    Repos {
+        manifest_used: bool,
+        repos: Vec<BenchmarkRepo>,
+    },
 }
 
 pub fn run_benchmark(root: &Path, options: BenchmarkRunOptions) -> Result<BenchmarkReport> {
@@ -127,6 +159,8 @@ pub fn run_benchmark(root: &Path, options: BenchmarkRunOptions) -> Result<Benchm
 
     Ok(BenchmarkReport {
         repo_name,
+        repo_path: root.display().to_string(),
+        repo_kind: None,
         build_duration: options.build_duration,
         db_size_bytes,
         indexed_file_count: manifest.files.len(),
@@ -153,6 +187,10 @@ pub fn run_benchmark(root: &Path, options: BenchmarkRunOptions) -> Result<Benchm
 pub fn render_benchmark_report(report: &BenchmarkReport) -> String {
     let mut out = String::new();
     out.push_str(&format!("Repo: {}\n", report.repo_name));
+    out.push_str(&format!("- path: {}\n", report.repo_path));
+    if let Some(kind) = &report.repo_kind {
+        out.push_str(&format!("- kind: {kind}\n"));
+    }
     out.push_str(&format!(
         "- build: {}\n",
         report
@@ -200,6 +238,122 @@ pub fn render_benchmark_report(report: &BenchmarkReport) -> String {
     out
 }
 
+pub fn load_benchmark_repo_set(test_repos_root: &Path) -> Result<BenchmarkRepoSet> {
+    if !test_repos_root.exists() {
+        return Ok(BenchmarkRepoSet::MissingRoot);
+    }
+
+    let manifest_path = test_repos_root.join("MANIFEST.toml");
+    if manifest_path.exists() {
+        let text = fs::read_to_string(&manifest_path)
+            .with_context(|| format!("failed to read {}", manifest_path.display()))?;
+        let repos = parse_benchmark_manifest(&text, test_repos_root)?;
+
+        if repos.is_empty() {
+            return Ok(BenchmarkRepoSet::Empty);
+        }
+
+        return Ok(BenchmarkRepoSet::Repos {
+            manifest_used: true,
+            repos,
+        });
+    }
+
+    let mut repos = Vec::new();
+    for entry in fs::read_dir(test_repos_root)
+        .with_context(|| format!("failed to read {}", test_repos_root.display()))?
+    {
+        let path = entry
+            .with_context(|| format!("failed to read entry under {}", test_repos_root.display()))?
+            .path();
+
+        if !path.is_dir() || !is_repo_root(&path) {
+            continue;
+        }
+
+        let name = path
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_else(|| path.display().to_string());
+
+        repos.push(BenchmarkRepo {
+            name,
+            path,
+            kind: None,
+            description: None,
+            queries: None,
+            expected_paths: Vec::new(),
+            from_manifest: false,
+        });
+    }
+
+    repos.sort_by(|a, b| a.name.cmp(&b.name).then(a.path.cmp(&b.path)));
+
+    if repos.is_empty() {
+        Ok(BenchmarkRepoSet::Empty)
+    } else {
+        Ok(BenchmarkRepoSet::Repos {
+            manifest_used: false,
+            repos,
+        })
+    }
+}
+
+pub fn parse_benchmark_manifest(text: &str, test_repos_root: &Path) -> Result<Vec<BenchmarkRepo>> {
+    let mut repos = Vec::new();
+    let mut current: Option<ManifestRepoBuilder> = None;
+
+    for (index, raw_line) in text.lines().enumerate() {
+        let line_no = index + 1;
+        let line = strip_toml_comment(raw_line).trim().to_string();
+
+        if line.is_empty() {
+            continue;
+        }
+
+        if line == "[[repo]]" {
+            if let Some(builder) = current.take()
+                && let Some(repo) = finish_manifest_repo(builder, test_repos_root)?
+            {
+                repos.push(repo);
+            }
+            current = Some(ManifestRepoBuilder::default());
+            continue;
+        }
+
+        let Some(builder) = current.as_mut() else {
+            bail!("MANIFEST.toml line {line_no}: expected [[repo]] before fields");
+        };
+        let Some((raw_key, raw_value)) = line.split_once('=') else {
+            bail!("MANIFEST.toml line {line_no}: expected key = value");
+        };
+        let key = raw_key.trim();
+        let value = raw_value.trim();
+
+        match key {
+            "name" => builder.name = Some(parse_toml_string(value, line_no)?),
+            "path" => builder.path = Some(parse_toml_string(value, line_no)?),
+            "kind" => builder.kind = Some(parse_toml_string(value, line_no)?),
+            "description" => builder.description = Some(parse_toml_string(value, line_no)?),
+            "queries" => builder.queries = Some(parse_toml_string_array(value, line_no)?),
+            "expected_paths" => {
+                builder.expected_paths = Some(parse_toml_string_array(value, line_no)?)
+            }
+            "skip" => builder.skip = parse_toml_bool(value, line_no)?,
+            other => bail!("MANIFEST.toml line {line_no}: unknown repo field `{other}`"),
+        }
+    }
+
+    if let Some(builder) = current.take()
+        && let Some(repo) = finish_manifest_repo(builder, test_repos_root)?
+    {
+        repos.push(repo);
+    }
+
+    repos.sort_by(|a, b| a.name.cmp(&b.name).then(a.path.cmp(&b.path)));
+    Ok(repos)
+}
+
 fn load_benchmark_queries(root: &Path, records: &[IndexRecord]) -> Result<Vec<String>> {
     let query_file = root.join(".thinindex-bench.txt");
     if query_file.exists() {
@@ -220,6 +374,72 @@ fn load_benchmark_queries(root: &Path, records: &[IndexRecord]) -> Result<Vec<St
     }
 
     Ok(fallback_queries(records))
+}
+
+#[derive(Debug, Default)]
+struct ManifestRepoBuilder {
+    name: Option<String>,
+    path: Option<String>,
+    kind: Option<String>,
+    description: Option<String>,
+    queries: Option<Vec<String>>,
+    expected_paths: Option<Vec<String>>,
+    skip: bool,
+}
+
+fn finish_manifest_repo(
+    builder: ManifestRepoBuilder,
+    test_repos_root: &Path,
+) -> Result<Option<BenchmarkRepo>> {
+    if builder.skip {
+        return Ok(None);
+    }
+
+    let Some(name) = builder.name else {
+        bail!("MANIFEST.toml repo entry missing required field `name`");
+    };
+    let Some(raw_path) = builder.path else {
+        bail!("MANIFEST.toml repo `{name}` missing required field `path`");
+    };
+    let queries = sanitize_queries(builder.queries.ok_or_else(|| {
+        anyhow::anyhow!("MANIFEST.toml repo `{name}` missing required field `queries`")
+    })?)
+    .into_iter()
+    .take(DEFAULT_QUERY_LIMIT)
+    .collect::<Vec<_>>();
+
+    if queries.is_empty() {
+        bail!("MANIFEST.toml repo `{name}` must define at least one query");
+    }
+
+    let path = resolve_manifest_repo_path(test_repos_root, &raw_path);
+    if !path.exists() {
+        bail!(
+            "MANIFEST.toml repo `{name}` path does not exist: {}",
+            path.display()
+        );
+    }
+
+    Ok(Some(BenchmarkRepo {
+        name,
+        path,
+        kind: builder.kind,
+        description: builder.description,
+        queries: Some(queries),
+        expected_paths: builder.expected_paths.unwrap_or_default(),
+        from_manifest: true,
+    }))
+}
+
+fn resolve_manifest_repo_path(test_repos_root: &Path, raw_path: &str) -> PathBuf {
+    if raw_path == "." {
+        return test_repos_root
+            .parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| test_repos_root.to_path_buf());
+    }
+
+    test_repos_root.join(raw_path)
 }
 
 fn fallback_queries(records: &[IndexRecord]) -> Vec<String> {
@@ -246,6 +466,148 @@ fn sanitize_queries(queries: Vec<String>) -> Vec<String> {
     }
 
     cleaned
+}
+
+fn strip_toml_comment(line: &str) -> String {
+    let mut out = String::new();
+    let mut in_string = false;
+    let mut escaped = false;
+
+    for ch in line.chars() {
+        if escaped {
+            out.push(ch);
+            escaped = false;
+            continue;
+        }
+
+        match ch {
+            '\\' if in_string => {
+                out.push(ch);
+                escaped = true;
+            }
+            '"' => {
+                out.push(ch);
+                in_string = !in_string;
+            }
+            '#' if !in_string => break,
+            _ => out.push(ch),
+        }
+    }
+
+    out
+}
+
+fn parse_toml_string(value: &str, line_no: usize) -> Result<String> {
+    let value = value.trim();
+    if !value.starts_with('"') || !value.ends_with('"') || value.len() < 2 {
+        bail!("MANIFEST.toml line {line_no}: expected quoted string");
+    }
+
+    unescape_toml_string(&value[1..value.len() - 1], line_no)
+}
+
+fn parse_toml_string_array(value: &str, line_no: usize) -> Result<Vec<String>> {
+    let value = value.trim();
+    if !value.starts_with('[') || !value.ends_with(']') {
+        bail!("MANIFEST.toml line {line_no}: expected string array");
+    }
+
+    let mut items = Vec::new();
+    let mut chars = value[1..value.len() - 1].chars().peekable();
+
+    loop {
+        while chars.peek().is_some_and(|ch| ch.is_whitespace()) {
+            chars.next();
+        }
+
+        if chars.peek().is_none() {
+            break;
+        }
+
+        if chars.next() != Some('"') {
+            bail!("MANIFEST.toml line {line_no}: expected quoted array item");
+        }
+
+        let mut raw = String::new();
+        let mut escaped = false;
+        let mut closed = false;
+        for ch in chars.by_ref() {
+            if escaped {
+                raw.push('\\');
+                raw.push(ch);
+                escaped = false;
+                continue;
+            }
+
+            match ch {
+                '\\' => escaped = true,
+                '"' => {
+                    closed = true;
+                    break;
+                }
+                _ => raw.push(ch),
+            }
+        }
+
+        if !closed {
+            bail!("MANIFEST.toml line {line_no}: unterminated array string");
+        }
+
+        items.push(unescape_toml_string(&raw, line_no)?);
+
+        while chars.peek().is_some_and(|ch| ch.is_whitespace()) {
+            chars.next();
+        }
+
+        match chars.peek() {
+            Some(',') => {
+                chars.next();
+            }
+            Some(_) => bail!("MANIFEST.toml line {line_no}: expected comma between array items"),
+            None => break,
+        }
+    }
+
+    Ok(items)
+}
+
+fn parse_toml_bool(value: &str, line_no: usize) -> Result<bool> {
+    match value.trim() {
+        "true" => Ok(true),
+        "false" => Ok(false),
+        _ => bail!("MANIFEST.toml line {line_no}: expected boolean"),
+    }
+}
+
+fn unescape_toml_string(value: &str, line_no: usize) -> Result<String> {
+    let mut out = String::new();
+    let mut chars = value.chars();
+
+    while let Some(ch) = chars.next() {
+        if ch != '\\' {
+            out.push(ch);
+            continue;
+        }
+
+        match chars.next() {
+            Some('"') => out.push('"'),
+            Some('\\') => out.push('\\'),
+            Some('n') => out.push('\n'),
+            Some('t') => out.push('\t'),
+            Some(other) => {
+                bail!("MANIFEST.toml line {line_no}: unsupported escape sequence \\{other}")
+            }
+            None => bail!("MANIFEST.toml line {line_no}: trailing escape in string"),
+        }
+    }
+
+    Ok(out)
+}
+
+fn is_repo_root(path: &Path) -> bool {
+    PROJECT_MARKERS
+        .iter()
+        .any(|marker| path.join(marker).exists())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

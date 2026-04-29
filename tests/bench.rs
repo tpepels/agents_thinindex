@@ -3,7 +3,10 @@ mod common;
 use std::time::Duration;
 
 use common::*;
-use thinindex::bench::{BenchmarkRunOptions, render_benchmark_report, run_benchmark};
+use thinindex::bench::{
+    BenchmarkRepoSet, BenchmarkRunOptions, load_benchmark_repo_set, render_benchmark_report,
+    run_benchmark,
+};
 
 fn write_benchmark_fixture(root: &std::path::Path) {
     write_file(
@@ -117,6 +120,7 @@ fn wi_bench_prints_compact_report_without_logging_usage() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     for needle in [
         "Repo:",
+        "- path:",
         "- build:",
         "- db:",
         "- files:",
@@ -139,5 +143,78 @@ fn wi_bench_prints_compact_report_without_logging_usage() {
     assert!(
         events.is_empty(),
         "wi bench should not create usage events: {events:?}"
+    );
+}
+
+#[test]
+fn benchmark_manifest_parsing_uses_non_skipped_repos() {
+    let temp = tempfile::tempdir().expect("create tempdir");
+    let root = temp.path();
+    let repo = root.join("python_app");
+    std::fs::create_dir_all(repo.join("src")).expect("create repo");
+    std::fs::create_dir_all(root.join("skipped_app")).expect("create skipped repo");
+    std::fs::write(
+        root.join("MANIFEST.toml"),
+        r#"
+[[repo]]
+name = "python-app"
+path = "python_app"
+kind = "python-cli"
+description = "fixture manifest repo"
+queries = ["PromptService", "config", "PromptService"]
+expected_paths = ["src/"]
+
+[[repo]]
+name = "skipped"
+path = "skipped_app"
+queries = ["ignored"]
+skip = true
+"#,
+    )
+    .expect("write manifest");
+
+    let repo_set = load_benchmark_repo_set(root).expect("load benchmark repo set");
+    let BenchmarkRepoSet::Repos {
+        manifest_used,
+        repos,
+    } = repo_set
+    else {
+        panic!("expected manifest repos, got {repo_set:?}");
+    };
+
+    assert!(manifest_used);
+    assert_eq!(repos.len(), 1);
+    assert_eq!(repos[0].name, "python-app");
+    assert_eq!(repos[0].path, repo);
+    assert_eq!(repos[0].kind.as_deref(), Some("python-cli"));
+    assert_eq!(
+        repos[0].queries.as_ref().expect("manifest queries"),
+        &vec!["PromptService".to_string(), "config".to_string()]
+    );
+    assert_eq!(repos[0].expected_paths, vec!["src/".to_string()]);
+    assert!(repos[0].from_manifest);
+}
+
+#[test]
+fn benchmark_manifest_missing_repo_fails_clearly() {
+    let temp = tempfile::tempdir().expect("create tempdir");
+    let root = temp.path();
+    std::fs::write(
+        root.join("MANIFEST.toml"),
+        r#"
+[[repo]]
+name = "missing"
+path = "missing_repo"
+queries = ["Missing"]
+"#,
+    )
+    .expect("write manifest");
+
+    let error = load_benchmark_repo_set(root).expect_err("missing manifest repo should fail");
+    let message = format!("{error:#}");
+
+    assert!(
+        message.contains("repo `missing` path does not exist"),
+        "unexpected error: {message}"
     );
 }
