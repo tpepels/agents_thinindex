@@ -13,10 +13,10 @@ use crate::{
     ctags::{check_ctags, index_with_ctags},
     extras::index_extras,
     model::{FileMeta, IndexRecord},
-    refs::extract_refs,
+    refs::{extract_refs, finalize_refs},
     store::{
-        load_manifest, load_records, load_refs, prepare_for_build, remove_records_for_paths,
-        remove_refs_for_paths, save_index_snapshot, sort_records, sort_refs,
+        load_manifest, load_records, prepare_for_build, remove_records_for_paths,
+        save_index_snapshot, sort_records, sort_refs,
     },
 };
 
@@ -56,7 +56,6 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
     let (mut manifest, reset_message) = prepare_for_build(&root)?;
 
     let existing_records = load_records(&root)?;
-    let existing_refs = load_refs(&root)?;
 
     let files = discover_files(&root)?;
     let current_paths: BTreeSet<String> = files
@@ -78,13 +77,13 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
     let mut changed_paths = Vec::new();
     let mut changed_files = Vec::new();
 
-    for path in files {
-        let rel = relpath(&root, &path)?;
-        let next_meta = file_meta(&path)?;
+    for path in &files {
+        let rel = relpath(&root, path)?;
+        let next_meta = file_meta(path)?;
 
         if manifest.files.get(&rel) != Some(&next_meta) {
             changed_paths.push(rel.clone());
-            changed_files.push((path, rel, next_meta));
+            changed_files.push((path.clone(), rel, next_meta));
         }
     }
 
@@ -92,7 +91,6 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
     stale_paths.extend(changed_paths.clone());
 
     let mut records = remove_records_for_paths(existing_records, &stale_paths);
-    let mut refs = remove_refs_for_paths(existing_refs, &stale_paths);
 
     if !changed_files.is_empty() {
         let changed_abs_paths: Vec<PathBuf> = changed_files
@@ -110,17 +108,17 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
             let mut extra_records = index_extras(&rel, &text);
             records.append(&mut extra_records);
 
-            let mut file_refs = extract_refs(&rel, &text);
-            refs.append(&mut file_refs);
-
             manifest.files.insert(rel, meta);
         }
     }
 
     dedupe_records_by_location(&mut records);
-    dedupe_refs_by_location(&mut refs);
     debug_assert_unique_record_locations(&records);
     sort_records(&mut records);
+
+    let mut refs = extract_all_refs(&root, &files, &records)?;
+    dedupe_refs_by_location(&mut refs);
+    refs = finalize_refs(refs);
     sort_refs(&mut refs);
 
     save_index_snapshot(&root, &manifest, &records, &refs)?;
@@ -236,6 +234,25 @@ fn debug_assert_unique_record_locations(records: &[IndexRecord]) {
             record.source
         );
     }
+}
+
+fn extract_all_refs(
+    root: &Path,
+    files: &[PathBuf],
+    records: &[IndexRecord],
+) -> Result<Vec<crate::model::ReferenceRecord>> {
+    let mut refs = Vec::new();
+
+    for path in files {
+        let rel = relpath(root, path)?;
+        let text = fs::read_to_string(path)
+            .with_context(|| format!("failed to read source file for refs: {}", path.display()))?;
+
+        let mut file_refs = extract_refs(&rel, &text, records);
+        refs.append(&mut file_refs);
+    }
+
+    Ok(refs)
 }
 
 fn dedupe_refs_by_location(refs: &mut Vec<crate::model::ReferenceRecord>) {

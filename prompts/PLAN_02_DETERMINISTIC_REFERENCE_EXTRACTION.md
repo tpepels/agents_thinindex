@@ -7,6 +7,13 @@ Populate the SQLite `refs` table with useful deterministic references from real 
 
 This pass improves reference extraction quality. It does not add `wi pack`, `wi impact`, prediction commands, or new user-facing read plans.
 
+Phase tracking:
+- [x] Add named caps/stoplist and deterministic extraction rules.
+- [x] Integrate extraction into `build_index` with deterministic SQLite refs.
+- [x] Extend fixture tests for extraction, stale cleanup, determinism, caps, and stoplist behavior.
+- [ ] Run required formatting, tests, lint, and ignored tests.
+- [ ] Commit with `Add deterministic reference extraction`.
+
 Prerequisite:
 PLAN_00_SQLITE_INDEX_STORAGE.md and PLAN_01_REFERENCE_GRAPH_FOUNDATION.md must be complete and green. `.dev_index/index.sqlite` is the canonical storage file and contains a `refs` table.
 

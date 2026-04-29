@@ -18,6 +18,14 @@ fn sqlite_table_exists(root: &std::path::Path, table: &str) -> bool {
     count == 1
 }
 
+fn assert_ref_exists(refs: &[thinindex::model::ReferenceRecord], ref_kind: &str, to_name: &str) {
+    assert!(
+        refs.iter()
+            .any(|reference| reference.ref_kind == ref_kind && reference.to_name == to_name),
+        "expected ref kind `{ref_kind}` to `{to_name}`, got:\n{refs:#?}"
+    );
+}
+
 #[test]
 fn build_creates_index_files() {
     if !has_ctags() {
@@ -253,6 +261,186 @@ def build_prompt():
         "expected markdown link reference to ../src/service.py, got:\n{:#?}",
         snapshot.refs
     );
+}
+
+#[test]
+fn fixture_reference_repo_extracts_plan_02_refs() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "src/prompt_service.py",
+        r#"
+class PromptService:
+    pass
+"#,
+    );
+    write_file(
+        root,
+        "src/consumer.py",
+        r#"
+from prompt_service import PromptService
+
+def consume():
+    return PromptService()
+"#,
+    );
+    write_file(
+        root,
+        "src/lib.rs",
+        r#"
+mod prompt_service;
+use crate::prompt_service::PromptService;
+"#,
+    );
+    write_file(
+        root,
+        "frontend/lib/prompt-service.ts",
+        r#"
+export class PromptService {}
+"#,
+    );
+    write_file(
+        root,
+        "frontend/components/HeaderNavigation.tsx",
+        r#"
+import { PromptService } from "../lib/prompt-service";
+
+export function HeaderNavigation() {
+  return <header className="headerNavigation" data-testid="header-nav">{PromptService.name}</header>;
+}
+"#,
+    );
+    write_file(
+        root,
+        "frontend/styles/header.css",
+        r#"
+:root {
+  --paper-bg: white;
+}
+
+.headerNavigation {
+  color: var(--paper-bg);
+}
+"#,
+    );
+    write_file(
+        root,
+        "frontend/page.html",
+        r#"
+<header id="mainHeader" class="headerNavigation" data-testid="main-header"></header>
+"#,
+    );
+    write_file(
+        root,
+        "docs/guide.md",
+        "[PromptService](../src/prompt_service.py)\n",
+    );
+    write_file(
+        root,
+        "tests/test_prompt_service.py",
+        r#"
+from prompt_service import PromptService
+
+def test_prompt_service():
+    assert PromptService()
+"#,
+    );
+
+    run_build(root);
+
+    let snapshot = load_index_snapshot_from_sqlite(root);
+    run_named_index_integrity_checks("plan 02 reference fixture", &snapshot, &[]);
+
+    let refs = snapshot.refs;
+    assert_ref_exists(&refs, "import", "PromptService");
+    assert_ref_exists(&refs, "import", "prompt_service");
+    assert_ref_exists(&refs, "markdown_link", "../src/prompt_service.py");
+    assert_ref_exists(&refs, "css_usage", ".headerNavigation");
+    assert_ref_exists(&refs, "css_usage", "--paper-bg");
+    assert_ref_exists(&refs, "html_usage", "#mainHeader");
+    assert_ref_exists(&refs, "html_usage", ".headerNavigation");
+    assert_ref_exists(&refs, "html_usage", "data-testid");
+    assert_ref_exists(&refs, "test_reference", "PromptService");
+}
+
+#[test]
+fn refs_are_deterministic_on_repeated_build() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "src/service.py", "class PromptService: pass\n");
+    write_file(
+        root,
+        "src/use_service.py",
+        "from service import PromptService\nPromptService()\n",
+    );
+    write_file(
+        root,
+        "docs/guide.md",
+        "[PromptService](../src/service.py)\n",
+    );
+
+    run_build(root);
+    let first = thinindex::store::load_refs(root).expect("load refs after first build");
+    let second_output = run_build(root);
+    let second = thinindex::store::load_refs(root).expect("load refs after second build");
+
+    assert!(
+        second_output.contains("changed files: 0"),
+        "second build should skip unchanged files, got:\n{second_output}"
+    );
+    assert_eq!(first, second);
+}
+
+#[test]
+fn changed_python_file_rewrites_stale_refs() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "src/service.py", "class PromptService: pass\n");
+    write_file(root, "src/consumer.py", "from service import OldService\n");
+
+    run_build(root);
+    let before = thinindex::store::load_refs(root).expect("load refs before");
+    assert_ref_exists(&before, "import", "OldService");
+
+    write_file(
+        root,
+        "src/consumer.py",
+        "from service import PromptService\n",
+    );
+
+    let second = run_build(root);
+    assert!(
+        second.contains("changed files: 1"),
+        "expected one changed file, got:\n{second}"
+    );
+
+    let after = thinindex::store::load_refs(root).expect("load refs after");
+    assert!(
+        !after
+            .iter()
+            .any(|reference| reference.to_name == "OldService"),
+        "stale Python import ref should be removed, got:\n{after:#?}"
+    );
+    assert_ref_exists(&after, "import", "PromptService");
 }
 
 #[test]
