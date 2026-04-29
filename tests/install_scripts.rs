@@ -157,6 +157,7 @@ fn docs_state_ctags_is_external_and_blocks_proprietary_packaging() {
     let readme = repo_file("README.md");
     let roadmap = repo_file("docs/ROADMAP.md");
     let release = repo_file("docs/RELEASE_CHECKLIST.md");
+    let product_boundary = repo_file("docs/PRODUCT_BOUNDARY.md");
 
     assert!(
         readme.contains("external user-installed dependency")
@@ -174,11 +175,67 @@ fn docs_state_ctags_is_external_and_blocks_proprietary_packaging() {
         "roadmap should preserve ctags/native-parser packaging blocker"
     );
     assert!(
+        product_boundary
+            .contains("Universal Ctags must not be bundled into proprietary release artifacts")
+            && product_boundary
+                .contains("A permissively licensed native parser backend is required"),
+        "product boundary should document ctags/native-parser packaging blocker"
+    );
+    assert!(
         release.contains("Do not bundle Universal Ctags")
             && release.contains(
                 "blocked until the native parser work removes the ctags runtime dependency"
             ),
         "release checklist should prohibit bundled ctags in proprietary release artifacts"
+    );
+}
+
+#[test]
+fn product_boundary_protects_local_core_and_defers_paid_systems() {
+    let readme = repo_file("README.md");
+    let roadmap = repo_file("docs/ROADMAP.md");
+    let product_boundary = repo_file("docs/PRODUCT_BOUNDARY.md");
+
+    assert!(
+        product_boundary.contains("local indexing")
+            && product_boundary.contains("`wi <term>`")
+            && product_boundary.contains("`wi --help`")
+            && product_boundary.contains("no-network local operation"),
+        "product boundary should protect the local/free core"
+    );
+    assert!(
+        product_boundary.contains("Do not charge for basic local search or basic repo indexing"),
+        "product boundary should prohibit charging for basic local search/indexing"
+    );
+    assert!(
+        product_boundary
+            .contains("These are roadmap candidates. They are not active feature gates"),
+        "candidate Pro features should not be documented as active gates"
+    );
+    assert!(
+        product_boundary.contains("license enforcement")
+            && product_boundary.contains("payments")
+            && product_boundary.contains("network calls")
+            && product_boundary.contains("feature lockouts"),
+        "product boundary should state paid/network/gating systems are not implemented"
+    );
+    assert!(
+        readme.contains("currently a local/free tool")
+            && readme.contains("There is no license enforcement")
+            && readme.contains("Future Pro candidates")
+            && readme.contains("candidates, not current restrictions"),
+        "README should frame Pro as deferred candidates, not current gates"
+    );
+    assert!(
+        roadmap.contains("No payment, account, license enforcement")
+            && roadmap.contains("Future paid work is documented"),
+        "roadmap should keep monetization separate from shipped behavior"
+    );
+    assert!(
+        !readme.contains("paid features are currently gated")
+            && !roadmap.contains("paid features are currently gated")
+            && !product_boundary.contains("paid features are currently gated"),
+        "docs must not claim current paid feature gating"
     );
 }
 

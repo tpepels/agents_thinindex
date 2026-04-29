@@ -92,6 +92,14 @@ Before proprietary Windows/macOS/Linux packages are viable, thinindex needs:
 
 The native parser should be introduced as product infrastructure, not as a change to search semantics by itself.
 
+## Product boundary
+
+The current tool is local/free. No payment, account, license enforcement, telemetry, cloud sync, remote indexing, feature lockout, release installer, or ctags bundling behavior is implemented.
+
+The free/local core must continue to include local indexing, `build_index`, `wi <term>`, basic filters, `wi --help`, `wi-init`, repository instruction setup, local cache rebuilds, `.dev_index/index.sqlite`, `wi-stats`, and no-network local operation.
+
+Future paid work is documented in [PRODUCT_BOUNDARY.md](PRODUCT_BOUNDARY.md). Candidate Pro value should come from proof, hardening, integrations, packaging convenience, and advanced workflows, not from paywalling basic local navigation.
+
 ## Future product work
 
 Future product work may include:

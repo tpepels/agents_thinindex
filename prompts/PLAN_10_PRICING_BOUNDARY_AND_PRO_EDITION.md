@@ -210,3 +210,10 @@ Report:
 - whether ignored local test passed
 - whether ignored real-repo test ran, skipped, or failed
 - commit hash
+
+Phase tracking:
+- [x] Add product boundary documentation.
+- [x] Align README and roadmap with local/free and candidate Pro positioning.
+- [x] Add focused docs governance tests for product boundary, packaging blockers, and deferred paid systems.
+- [x] Run required verification.
+- [x] Commit scoped PLAN_10 changes.

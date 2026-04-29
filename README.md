@@ -144,6 +144,14 @@ thinindex is intentionally conservative:
 - Proprietary packaging is blocked until Universal Ctags is removed from the required parser path.
 - Bundled parser dependencies must be permissively licensed and audited before commercial release artifacts.
 
+## Free/local and future Pro
+
+thinindex is currently a local/free tool. There is no license enforcement, payment flow, account login, cloud sync, telemetry, remote indexing, or feature lockout.
+
+The free/local core includes local indexing, `build_index`, `wi <term>`, basic filters, `wi --help`, `wi-init`, repo-local SQLite storage, `wi-stats`, AGENTS.md setup, existing CLAUDE.md normalization, local cache rebuilds, and no-network operation.
+
+Future Pro candidates are documented in [docs/PRODUCT_BOUNDARY.md](docs/PRODUCT_BOUNDARY.md). They are candidates, not current restrictions.
+
 ## Install/uninstall
 
 Requires Rust/Cargo and Universal Ctags. Universal Ctags is an external user-installed dependency for indexing until thinindex has a permissively licensed native parser. Release archives and installers must not bundle Universal Ctags.
