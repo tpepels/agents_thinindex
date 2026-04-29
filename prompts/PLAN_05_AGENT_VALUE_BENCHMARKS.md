@@ -9,6 +9,14 @@ Add a deterministic benchmark/evaluation layer that measures whether thinindex a
 
 This pass does not add new search semantics, ML prediction, or new reference extraction rules. It measures existing behavior and creates evidence for product value.
 
+Phase tracking:
+- [x] Add non-logging benchmark/evaluation logic over SQLite records and refs.
+- [x] Add `wi bench` CLI output and help text.
+- [x] Add normal fixture benchmark test with sane metric assertions.
+- [x] Add ignored real-repo benchmark support for `test_repos/`.
+- [x] Run required formatting, tests, lint, benchmark smoke, and ignored tests.
+- [x] Commit with `Add agent value benchmarks`.
+
 Product rule:
 Do not claim performance or agent-value improvements without measured evidence.
 

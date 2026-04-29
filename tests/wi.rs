@@ -299,7 +299,8 @@ fn wi_help_mentions_context_commands() {
         .success()
         .stdout(predicates::str::contains("wi refs PromptService"))
         .stdout(predicates::str::contains("wi pack PromptService"))
-        .stdout(predicates::str::contains("wi impact PromptService"));
+        .stdout(predicates::str::contains("wi impact PromptService"))
+        .stdout(predicates::str::contains("wi bench"));
 }
 
 #[test]

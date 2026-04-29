@@ -1,3 +1,4 @@
+pub mod bench;
 pub mod context;
 pub mod ctags;
 pub mod extras;

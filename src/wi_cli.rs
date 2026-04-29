@@ -26,6 +26,7 @@ Examples:
   wi refs PromptService
   wi pack PromptService
   wi impact PromptService
+  wi bench
   wi .headerNavigation -t css_class
   wi -t css_variable -- --paper-bg
   wi '#mainHeader' -t html_id
@@ -37,7 +38,7 @@ pub struct WiArgs {
     #[arg(
         required = true,
         num_args = 1..,
-        help = "Search term or subcommand, e.g. HeaderNavigation, refs PromptService, pack PromptService, impact PromptService, --css-variable"
+        help = "Search term or subcommand, e.g. HeaderNavigation, refs PromptService, pack PromptService, impact PromptService, bench, --css-variable"
     )]
     pub terms: Vec<String>,
 
@@ -93,6 +94,7 @@ pub enum WiCommand {
     Refs,
     Pack,
     Impact,
+    Bench,
 }
 
 impl WiArgs {
@@ -101,6 +103,7 @@ impl WiArgs {
             Some("refs") if self.terms.len() > 1 => WiCommand::Refs,
             Some("pack") if self.terms.len() > 1 => WiCommand::Pack,
             Some("impact") if self.terms.len() > 1 => WiCommand::Impact,
+            Some("bench") if self.terms.len() == 1 => WiCommand::Bench,
             _ => WiCommand::Search,
         }
     }
@@ -109,6 +112,7 @@ impl WiArgs {
         match self.command() {
             WiCommand::Search => self.terms.join(" "),
             WiCommand::Refs | WiCommand::Pack | WiCommand::Impact => self.terms[1..].join(" "),
+            WiCommand::Bench => String::new(),
         }
     }
 
@@ -118,6 +122,7 @@ impl WiArgs {
             WiCommand::Refs => format!("refs {}", self.query()),
             WiCommand::Pack => format!("pack {}", self.query()),
             WiCommand::Impact => format!("impact {}", self.query()),
+            WiCommand::Bench => "bench".to_string(),
         }
     }
 }

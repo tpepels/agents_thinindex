@@ -4,6 +4,7 @@ use anyhow::Result;
 use anyhow::bail;
 use clap::Parser;
 use thinindex::{
+    bench::{BenchmarkRunOptions, render_benchmark_report, run_benchmark},
     context::{render_impact_command, render_pack_command, render_refs_command},
     indexer::{find_repo_root, index_is_fresh},
     search::{SearchOptions, format_result, search},
@@ -45,6 +46,7 @@ fn run() -> Result<()> {
         WiCommand::Refs => args.limit.unwrap_or(20),
         WiCommand::Pack => args.limit.unwrap_or(10),
         WiCommand::Impact => args.limit.unwrap_or(15),
+        WiCommand::Bench => args.limit.unwrap_or(0),
     };
 
     let options = SearchOptions {
@@ -56,6 +58,7 @@ fn run() -> Result<()> {
         verbose: args.verbose,
     };
 
+    let mut log_usage = true;
     let result_count = match command {
         WiCommand::Search => {
             let results = search(&root, &query, &options)?;
@@ -88,7 +91,23 @@ fn run() -> Result<()> {
             }
             output.result_count
         }
+        WiCommand::Bench => {
+            let report = run_benchmark(
+                &root,
+                BenchmarkRunOptions {
+                    queries: None,
+                    build_duration: None,
+                },
+            )?;
+            print!("{}", render_benchmark_report(&report));
+            log_usage = false;
+            report.query_count
+        }
     };
+
+    if !log_usage {
+        return Ok(());
+    }
 
     let event = UsageEvent {
         ts: stats::current_unix_seconds(),
