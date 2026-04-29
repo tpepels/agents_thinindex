@@ -24,15 +24,16 @@ pub fn parse_file(rel_path: &str, text: &str) -> Vec<IndexRecord> {
         return parse_python_file(rel_path, &lang, text);
     }
 
+    if matches!(lang.as_str(), "js" | "jsx" | "ts" | "tsx") {
+        return parse_js_like_file(rel_path, &lang, text);
+    }
+
     let mut records = Vec::new();
 
     for (line_index, line) in text.lines().enumerate() {
         let line_no = line_index + 1;
 
         match lang.as_str() {
-            "js" | "jsx" | "ts" | "tsx" => {
-                parse_js_like_line(rel_path, &lang, line_no, line, &mut records);
-            }
             "md" => parse_markdown_line(rel_path, &lang, line_no, line, &mut records),
             "make" => parse_make_line(rel_path, &lang, line_no, line, &mut records),
             _ => {}
@@ -52,6 +53,13 @@ struct RustState {
 struct PythonState {
     class_indents: Vec<usize>,
     function_indents: Vec<usize>,
+}
+
+#[derive(Debug, Default)]
+struct JsState {
+    brace_depth: usize,
+    class_body_depths: Vec<usize>,
+    pending_class_body: bool,
 }
 
 fn parse_python_file(path: &str, lang: &str, text: &str) -> Vec<IndexRecord> {
@@ -505,42 +513,645 @@ fn leading_whitespace_width(line: &str) -> usize {
         .sum()
 }
 
+fn parse_js_like_file(path: &str, lang: &str, text: &str) -> Vec<IndexRecord> {
+    let mut records = Vec::new();
+    let mut state = JsState::default();
+
+    for (line_index, line) in text.lines().enumerate() {
+        let line_no = line_index + 1;
+        let code = js_code_before_line_comment(line);
+
+        if code.trim().is_empty() {
+            continue;
+        }
+
+        let in_class = state.in_class_body();
+        parse_js_like_line(path, lang, line_no, line, code, in_class, &mut records);
+        state.update(code, js_line_enters_class_body(code));
+    }
+
+    records
+}
+
+impl JsState {
+    fn in_class_body(&self) -> bool {
+        self.class_body_depths
+            .last()
+            .is_some_and(|class_depth| self.brace_depth >= *class_depth)
+    }
+
+    fn update(&mut self, code: &str, enters_class: bool) {
+        let depth_before = self.brace_depth;
+        let opens = code.chars().filter(|ch| *ch == '{').count();
+        let closes = code.chars().filter(|ch| *ch == '}').count();
+
+        if enters_class {
+            self.pending_class_body = true;
+        }
+
+        if self.pending_class_body && opens > 0 {
+            self.class_body_depths.push(depth_before + 1);
+            self.pending_class_body = false;
+        }
+
+        self.brace_depth = self.brace_depth.saturating_add(opens);
+        self.brace_depth = self.brace_depth.saturating_sub(closes);
+
+        while self
+            .class_body_depths
+            .last()
+            .is_some_and(|class_depth| self.brace_depth < *class_depth)
+        {
+            self.class_body_depths.pop();
+        }
+    }
+}
+
 fn parse_js_like_line(
     path: &str,
     lang: &str,
     line_no: usize,
     line: &str,
+    code: &str,
+    in_class: bool,
     records: &mut Vec<IndexRecord>,
 ) {
-    let trimmed = line.trim_start();
+    let trimmed = code.trim_start();
 
     if trimmed.starts_with("//") || trimmed.starts_with("/*") || trimmed.starts_with('*') {
         return;
     }
 
-    if let Some((col, name)) = keyword_name(line, "class") {
+    push_js_import_records(records, path, lang, line_no, line, code);
+    push_js_export_records(records, path, lang, line_no, line, code);
+
+    if let Some((col, name)) = keyword_name(code, "class") {
         push_record(records, path, lang, line_no, col, "class", name, line);
         return;
     }
 
-    if let Some((col, name)) = keyword_name(line, "function") {
+    if in_class && let Some((col, name)) = js_class_method_name(code) {
+        push_record(records, path, lang, line_no, col, "method", name, line);
+        return;
+    }
+
+    if let Some((col, name)) = keyword_name(code, "function") {
         push_record(records, path, lang, line_no, col, "function", name, line);
         return;
     }
 
-    for keyword in ["const", "let", "var"] {
-        if let Some((col, name)) = keyword_name(line, keyword) {
-            let after_name = col - 1 + name.len();
-            let rest = line.get(after_name..).unwrap_or_default();
-            let kind = if rest.contains("=>") {
-                "function"
-            } else {
-                "variable"
-            };
+    for (keyword, kind) in [("interface", "interface"), ("type", "type")] {
+        if let Some((col, name)) = keyword_name(code, keyword) {
             push_record(records, path, lang, line_no, col, kind, name, line);
             return;
         }
     }
+
+    if let Some((col, name, rest)) = js_variable_declaration(code) {
+        let kind = if js_assignment_is_function(rest) {
+            "function"
+        } else {
+            "variable"
+        };
+        push_record(records, path, lang, line_no, col, kind, name, line);
+    }
+}
+
+fn js_code_before_line_comment(line: &str) -> &str {
+    line.split_once("//").map(|(code, _)| code).unwrap_or(line)
+}
+
+fn js_line_enters_class_body(code: &str) -> bool {
+    keyword_name(code, "class").is_some() && code.contains('{')
+}
+
+fn push_js_import_records(
+    records: &mut Vec<IndexRecord>,
+    path: &str,
+    lang: &str,
+    line_no: usize,
+    line: &str,
+    code: &str,
+) {
+    let trimmed = code.trim_start();
+    let leading_spaces = code.len() - trimmed.len();
+    let Some(rest) = trimmed.strip_prefix("import ") else {
+        return;
+    };
+
+    let mut spec_start = leading_spaces + "import ".len();
+    let mut spec = rest.trim_start();
+    spec_start += rest.len() - spec.len();
+
+    if let Some(after_type) = strip_js_keyword_prefix(spec, "type") {
+        spec_start += spec.len() - after_type.len();
+        spec = after_type.trim_start();
+        spec_start += after_type.len() - spec.len();
+    }
+
+    if spec.starts_with(['"', '\'']) {
+        return;
+    }
+
+    let spec_end = spec
+        .find(" from ")
+        .or_else(|| spec.find('='))
+        .unwrap_or(spec.len());
+    let raw_import_spec = &spec[..spec_end];
+    let import_spec = raw_import_spec.trim();
+    let import_spec_base = spec_start + raw_import_spec.len() - raw_import_spec.trim_start().len();
+
+    push_js_binding_spec_records(
+        records,
+        path,
+        lang,
+        line_no,
+        line,
+        code,
+        import_spec,
+        import_spec_base,
+        "import",
+    );
+}
+
+fn push_js_export_records(
+    records: &mut Vec<IndexRecord>,
+    path: &str,
+    lang: &str,
+    line_no: usize,
+    line: &str,
+    code: &str,
+) {
+    let trimmed = code.trim_start();
+    let leading_spaces = code.len() - trimmed.len();
+    let Some(rest) = trimmed.strip_prefix("export ") else {
+        return;
+    };
+
+    let export_col = leading_spaces + 1;
+    let rest = rest.trim_start();
+    let rest_base =
+        leading_spaces + "export ".len() + (trimmed["export ".len()..].len() - rest.len());
+
+    if let Some(after_open) = rest.strip_prefix('{') {
+        let close = after_open.find('}').unwrap_or(after_open.len());
+        let inner = &after_open[..close];
+        push_js_named_binding_records(
+            records,
+            JsPushContext {
+                path,
+                lang,
+                line_no,
+                line,
+                code,
+                kind: "export",
+            },
+            inner,
+            rest_base + 1,
+        );
+        return;
+    }
+
+    if let Some(default_rest) = rest.strip_prefix("default ") {
+        let default_rest = default_rest.trim_start();
+        let default_base =
+            rest_base + "default ".len() + (rest["default ".len()..].len() - default_rest.len());
+
+        if let Some((relative_col, name)) = js_default_export_name(default_rest) {
+            let col = if default_rest.starts_with("function ") || default_rest.starts_with("class ")
+            {
+                export_col
+            } else {
+                default_base + relative_col
+            };
+            push_record(records, path, lang, line_no, col, "export", name, line);
+        }
+
+        return;
+    }
+
+    for keyword in [
+        "function",
+        "class",
+        "interface",
+        "type",
+        "const",
+        "let",
+        "var",
+    ] {
+        if let Some((_col, name)) = keyword_name(code, keyword) {
+            push_record(
+                records, path, lang, line_no, export_col, "export", name, line,
+            );
+            return;
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn push_js_binding_spec_records(
+    records: &mut Vec<IndexRecord>,
+    path: &str,
+    lang: &str,
+    line_no: usize,
+    line: &str,
+    code: &str,
+    spec: &str,
+    spec_base: usize,
+    kind: &str,
+) {
+    if spec.is_empty() {
+        return;
+    }
+
+    if let Some(open) = spec.find('{') {
+        let default_part = spec[..open].trim().trim_end_matches(',').trim();
+        push_js_single_binding_record(
+            records,
+            path,
+            lang,
+            line_no,
+            line,
+            code,
+            default_part,
+            spec_base,
+            kind,
+        );
+
+        let close = spec[open + 1..]
+            .find('}')
+            .map(|offset| open + 1 + offset)
+            .unwrap_or(spec.len());
+        let inner = &spec[open + 1..close];
+        push_js_named_binding_records(
+            records,
+            JsPushContext {
+                path,
+                lang,
+                line_no,
+                line,
+                code,
+                kind,
+            },
+            inner,
+            spec_base + open + 1,
+        );
+        return;
+    }
+
+    if spec.starts_with('*') {
+        if let Some((_, alias)) = spec.split_once(" as ") {
+            push_js_single_binding_record(
+                records,
+                path,
+                lang,
+                line_no,
+                line,
+                code,
+                alias.trim(),
+                spec_base,
+                kind,
+            );
+        }
+        return;
+    }
+
+    let default_part = spec.split(',').next().unwrap_or_default().trim();
+    push_js_single_binding_record(
+        records,
+        path,
+        lang,
+        line_no,
+        line,
+        code,
+        default_part,
+        spec_base,
+        kind,
+    );
+}
+
+#[derive(Debug, Clone, Copy)]
+struct JsPushContext<'a> {
+    path: &'a str,
+    lang: &'a str,
+    line_no: usize,
+    line: &'a str,
+    code: &'a str,
+    kind: &'a str,
+}
+
+fn push_js_named_binding_records(
+    records: &mut Vec<IndexRecord>,
+    ctx: JsPushContext<'_>,
+    inner: &str,
+    inner_base: usize,
+) {
+    let mut offset = 0;
+
+    for raw_part in inner.split(',') {
+        let leading = raw_part.len() - raw_part.trim_start().len();
+        let part = raw_part.trim();
+
+        if let Some(name) = js_named_binding_name(part) {
+            let binding_search_start = inner_base + offset + leading;
+            let binding_slice = &ctx.code[binding_search_start..];
+            let col = binding_slice
+                .find(&name)
+                .map(|relative| binding_search_start + relative + 1)
+                .unwrap_or(binding_search_start + 1);
+
+            push_record(
+                records,
+                ctx.path,
+                ctx.lang,
+                ctx.line_no,
+                col,
+                ctx.kind,
+                name,
+                ctx.line,
+            );
+        }
+
+        offset += raw_part.len() + 1;
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn push_js_single_binding_record(
+    records: &mut Vec<IndexRecord>,
+    path: &str,
+    lang: &str,
+    line_no: usize,
+    line: &str,
+    code: &str,
+    binding: &str,
+    spec_base: usize,
+    kind: &str,
+) {
+    let name = js_single_binding_name(binding);
+
+    if name.is_empty() {
+        return;
+    }
+
+    let binding_slice = &code[spec_base.min(code.len())..];
+    let col = binding_slice
+        .find(&name)
+        .map(|relative| spec_base + relative + 1)
+        .unwrap_or(spec_base + 1);
+
+    push_record(records, path, lang, line_no, col, kind, name, line);
+}
+
+fn js_named_binding_name(part: &str) -> Option<String> {
+    let part = part.trim();
+
+    if part.is_empty() {
+        return None;
+    }
+
+    let part = part.strip_prefix("type ").unwrap_or(part).trim_start();
+
+    if let Some((_, alias)) = part.rsplit_once(" as ") {
+        return Some(take_identifier(alias.trim()));
+    }
+
+    let name = take_identifier(part);
+
+    if name.is_empty() || name == "type" {
+        None
+    } else {
+        Some(name)
+    }
+}
+
+fn js_single_binding_name(binding: &str) -> String {
+    let binding = binding
+        .trim()
+        .strip_prefix("type ")
+        .unwrap_or(binding.trim())
+        .trim();
+    let name = take_identifier(binding);
+
+    if is_js_reserved_word(&name) {
+        String::new()
+    } else {
+        name
+    }
+}
+
+fn js_default_export_name(default_rest: &str) -> Option<(usize, String)> {
+    for keyword in ["function", "class"] {
+        if let Some((col, name)) = keyword_name(default_rest, keyword) {
+            return Some((col, name));
+        }
+    }
+
+    let name = take_identifier(default_rest);
+
+    if name.is_empty() || is_js_reserved_word(&name) {
+        None
+    } else {
+        Some((1, name))
+    }
+}
+
+fn js_variable_declaration(code: &str) -> Option<(usize, String, &str)> {
+    let trimmed = code.trim_start();
+    let mut offset = code.len() - trimmed.len();
+    let mut rest = trimmed;
+
+    for prefix in ["export", "declare"] {
+        if let Some(after_prefix) = strip_js_keyword_prefix(rest, prefix) {
+            offset += rest.len() - after_prefix.len();
+            rest = after_prefix.trim_start();
+            offset += after_prefix.len() - rest.len();
+        }
+    }
+
+    for keyword in ["const", "let", "var"] {
+        if let Some(after_keyword) = strip_js_keyword_prefix(rest, keyword) {
+            let name_start = offset + rest.len() - after_keyword.len();
+            let after_space = after_keyword.trim_start();
+            let name_start = name_start + after_keyword.len() - after_space.len();
+            let name = take_identifier(after_space);
+
+            if name.is_empty() || is_js_reserved_word(&name) {
+                return None;
+            }
+
+            let after_name = &after_space[name.len()..];
+            return Some((name_start + 1, name, after_name));
+        }
+    }
+
+    None
+}
+
+fn js_assignment_is_function(rest: &str) -> bool {
+    let before_semicolon = rest.split(';').next().unwrap_or(rest);
+
+    before_semicolon.contains("=>")
+        || before_semicolon.contains("= function")
+        || before_semicolon.contains("= async function")
+}
+
+fn js_class_method_name(code: &str) -> Option<(usize, String)> {
+    let trimmed = code.trim_start();
+    let mut offset = code.len() - trimmed.len();
+    let mut rest = trimmed;
+
+    if rest.starts_with('}') || rest.starts_with('{') || rest.starts_with(';') {
+        return None;
+    }
+
+    loop {
+        let mut changed = false;
+
+        for prefix in [
+            "public",
+            "private",
+            "protected",
+            "static",
+            "async",
+            "readonly",
+            "override",
+            "abstract",
+            "accessor",
+            "declare",
+            "get",
+            "set",
+        ] {
+            if let Some(after_prefix) = strip_js_keyword_prefix(rest, prefix) {
+                offset += rest.len() - after_prefix.len();
+                rest = after_prefix.trim_start();
+                offset += after_prefix.len() - rest.len();
+                changed = true;
+                break;
+            }
+        }
+
+        if !changed {
+            break;
+        }
+    }
+
+    if rest.starts_with('[') {
+        return None;
+    }
+
+    if rest.starts_with('#') {
+        offset += 1;
+        rest = &rest[1..];
+    }
+
+    let name = take_identifier(rest);
+
+    if name.is_empty() || is_js_reserved_word(&name) {
+        return None;
+    }
+
+    let mut after_name = &rest[name.len()..];
+
+    if after_name.starts_with('?') {
+        after_name = &after_name[1..];
+    }
+
+    after_name = strip_js_type_parameters(after_name.trim_start()).trim_start();
+
+    if after_name.starts_with('(')
+        || (after_name.starts_with('=')
+            && after_name.split(';').next().unwrap_or("").contains("=>"))
+    {
+        Some((offset + 1, name))
+    } else {
+        None
+    }
+}
+
+fn strip_js_keyword_prefix<'a>(value: &'a str, keyword: &str) -> Option<&'a str> {
+    let rest = value.strip_prefix(keyword)?;
+    let next = rest.chars().next();
+
+    if next.is_some_and(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '$') {
+        return None;
+    }
+
+    Some(rest)
+}
+
+fn strip_js_type_parameters(value: &str) -> &str {
+    let trimmed = value.trim_start();
+
+    if !trimmed.starts_with('<') {
+        return value;
+    }
+
+    let mut depth = 0usize;
+
+    for (index, ch) in trimmed.char_indices() {
+        match ch {
+            '<' => depth += 1,
+            '>' => {
+                depth = depth.saturating_sub(1);
+
+                if depth == 0 {
+                    return &trimmed[index + 1..];
+                }
+            }
+            _ => {}
+        }
+    }
+
+    value
+}
+
+fn is_js_reserved_word(name: &str) -> bool {
+    matches!(
+        name,
+        "" | "as"
+            | "async"
+            | "await"
+            | "break"
+            | "case"
+            | "catch"
+            | "class"
+            | "const"
+            | "constructor"
+            | "continue"
+            | "default"
+            | "delete"
+            | "do"
+            | "else"
+            | "export"
+            | "extends"
+            | "finally"
+            | "for"
+            | "from"
+            | "function"
+            | "get"
+            | "if"
+            | "import"
+            | "in"
+            | "instanceof"
+            | "let"
+            | "new"
+            | "return"
+            | "set"
+            | "static"
+            | "super"
+            | "switch"
+            | "this"
+            | "throw"
+            | "try"
+            | "type"
+            | "typeof"
+            | "var"
+            | "void"
+            | "while"
+            | "with"
+            | "yield"
+    )
 }
 
 fn parse_markdown_line(
@@ -747,7 +1358,7 @@ mod tests {
     fn parses_common_native_landmarks() {
         let records = parse_file(
             "src/lib.rs",
-            "pub const INDEX_SCHEMA_VERSION: u32 = 8;\npub fn build_index() {}\nstruct PromptService;\n",
+            "pub const INDEX_SCHEMA_VERSION: u32 = 9;\npub fn build_index() {}\nstruct PromptService;\n",
         );
 
         assert!(records.iter().any(|record| record.name == "build_index"));
@@ -826,6 +1437,109 @@ def helper_function():
         assert_eq!(async_method.kind, "method");
         assert_eq!(async_method.line, 16);
         assert_eq!(async_method.col, 15);
+    }
+
+    #[test]
+    fn parses_js_ts_jsx_tsx_symbols() {
+        let js_records = parse_file(
+            "frontend/navigation.js",
+            r#"
+import React, { useMemo as useHeaderMemo } from "react";
+import * as Metrics from "./metrics";
+
+export class HeaderController {
+  buildUrl(path) {
+    return path;
+  }
+
+  handleClick = () => {};
+}
+
+export function createHeaderController() {}
+export const useHeaderState = () => true;
+export { useHeaderState as exportedHeaderState };
+"#,
+        );
+
+        for (name, kind) in [
+            ("React", "import"),
+            ("useHeaderMemo", "import"),
+            ("Metrics", "import"),
+            ("HeaderController", "export"),
+            ("HeaderController", "class"),
+            ("buildUrl", "method"),
+            ("handleClick", "method"),
+            ("createHeaderController", "export"),
+            ("createHeaderController", "function"),
+            ("useHeaderState", "function"),
+            ("exportedHeaderState", "export"),
+        ] {
+            assert!(
+                js_records.iter().any(|record| record.name == name
+                    && record.kind == kind
+                    && record.source == NATIVE_SOURCE),
+                "missing {kind} {name}, got:\n{js_records:#?}"
+            );
+        }
+
+        let ts_records = parse_file(
+            "frontend/navigation.ts",
+            r#"
+import type { RemoteNavigationProps as RemoteProps } from "./remote";
+
+export interface HeaderNavigationProps {
+  title: string;
+}
+
+export type HeaderNavigationMode = "compact" | "full";
+
+export const createHeaderConfig = function () {
+  return {};
+};
+"#,
+        );
+
+        for (name, kind) in [
+            ("RemoteProps", "import"),
+            ("HeaderNavigationProps", "export"),
+            ("HeaderNavigationProps", "interface"),
+            ("HeaderNavigationMode", "type"),
+            ("createHeaderConfig", "function"),
+        ] {
+            assert!(
+                ts_records.iter().any(|record| record.name == name
+                    && record.kind == kind
+                    && record.source == NATIVE_SOURCE),
+                "missing {kind} {name}, got:\n{ts_records:#?}"
+            );
+        }
+
+        let tsx_records = parse_file(
+            "frontend/HeaderNavigation.tsx",
+            r#"
+import { HeaderButton } from "./HeaderButton";
+
+export function HeaderNavigation(props: HeaderNavigationProps) {
+  return <HeaderButton label={props.title} />;
+}
+
+export const HeaderShell = () => <HeaderNavigation title="Home" />;
+"#,
+        );
+
+        for (name, kind) in [
+            ("HeaderButton", "import"),
+            ("HeaderNavigation", "export"),
+            ("HeaderNavigation", "function"),
+            ("HeaderShell", "function"),
+        ] {
+            assert!(
+                tsx_records.iter().any(|record| record.name == name
+                    && record.kind == kind
+                    && record.source == NATIVE_SOURCE),
+                "missing {kind} {name}, got:\n{tsx_records:#?}"
+            );
+        }
     }
 
     #[test]

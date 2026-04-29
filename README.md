@@ -14,7 +14,7 @@ The context commands use the same local data:
 - `wi pack <term>` returns a compact read set for implementation work.
 - `wi impact <term>` returns evidence-backed files to inspect before edits.
 
-Native Rust parsing is supported for useful repository landmarks: functions, methods, structs, enums, traits, modules, constants/statics, type aliases, and imports. Native Python parsing is supported for classes, functions, methods, async functions/methods, imports, and conservative uppercase constants. Other language parsers are still intentionally conservative while they mature.
+Native Rust parsing is supported for useful repository landmarks: functions, methods, structs, enums, traits, modules, constants/statics, type aliases, and imports. Native Python parsing is supported for classes, functions, methods, async functions/methods, imports, and conservative uppercase constants. Native JavaScript/TypeScript/JSX/TSX parsing is supported for functions, arrow-function declarations, classes, practical class methods, imports, exports, interfaces/types, and JSX component usage through existing extras.
 
 The index is local-first and repo-local. It lives under `.dev_index/` and is intended to be disposable.
 
@@ -144,7 +144,7 @@ thinindex is intentionally conservative:
 - Agents can still ignore repository instructions.
 - Generated, build, vendor, dependency, and large fixture paths should be ignored.
 - Bundled parser dependencies must be permissively licensed and audited before commercial release artifacts.
-- Native Rust and Python parser support is useful but not a complete AST, macro expansion, or type-analysis engine.
+- Native Rust, Python, and JS/TS parser support is useful but not a complete AST, macro expansion, JSX syntax, or type-analysis engine.
 
 ## Free/local and future Pro
 

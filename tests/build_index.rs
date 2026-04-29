@@ -35,6 +35,20 @@ fn assert_record_exists(records: &[thinindex::model::IndexRecord], kind: &str, n
     );
 }
 
+fn assert_record_exists_with_source(
+    records: &[thinindex::model::IndexRecord],
+    source: &str,
+    kind: &str,
+    name: &str,
+) {
+    assert!(
+        records
+            .iter()
+            .any(|record| record.kind == kind && record.name == name && record.source == source),
+        "expected {source} {kind} record `{name}`, got:\n{records:#?}"
+    );
+}
+
 #[test]
 fn build_creates_index_files() {
     let repo = temp_repo();
@@ -154,6 +168,66 @@ fn python_fixture_indexes_native_symbols() {
     assert!(
         wi.contains("app/services/prompt_service.py") && wi.contains("PromptService"),
         "expected Python PromptService search result, got:\n{wi}"
+    );
+}
+
+#[test]
+fn js_ts_fixture_indexes_native_symbols_and_jsx_extras() {
+    let repo = fixture_repo("js_ts_repo");
+    let root = repo.path();
+
+    run_build(root);
+
+    let snapshot = load_index_snapshot_from_sqlite(root);
+    run_named_index_integrity_checks(
+        "js/ts fixture",
+        &snapshot,
+        &[
+            "frontend/lib/navigation.js",
+            "frontend/types/navigation.ts",
+            "frontend/components/HeaderNavigation.jsx",
+            "frontend/components/HeaderNavigation.tsx",
+        ],
+    );
+
+    for (kind, name) in [
+        ("import", "React"),
+        ("import", "useHeaderMemo"),
+        ("import", "Metrics"),
+        ("class", "NavigationStore"),
+        ("method", "mount"),
+        ("method", "handleClick"),
+        ("function", "createNavigationStore"),
+        ("function", "useNavigationStore"),
+        ("export", "RenamedNavigationStore"),
+        ("import", "RemoteProps"),
+        ("interface", "NavigationProps"),
+        ("type", "NavigationMode"),
+        ("function", "createNavigationConfig"),
+        ("import", "HeaderLink"),
+        ("function", "HeaderNavigation"),
+        ("import", "HeaderButton"),
+        ("import", "NavigationProps"),
+        ("type", "HeaderShellProps"),
+        ("function", "HeaderShell"),
+    ] {
+        assert_record_exists(&snapshot.records, kind, name);
+    }
+
+    for (kind, name) in [
+        ("component_usage", "HeaderLink"),
+        ("component_usage", "HeaderButton"),
+        ("component_usage", "HeaderShell"),
+        ("jsx_class", ".headerNavigation"),
+        ("data_attribute", "data-testid"),
+    ] {
+        assert_record_exists_with_source(&snapshot.records, "extras", kind, name);
+    }
+
+    let wi = run_wi(root, &["HeaderNavigation", "-l", "tsx"]);
+    assert!(
+        wi.contains("frontend/components/HeaderNavigation.tsx") && wi.contains("HeaderNavigation"),
+        "expected TSX HeaderNavigation search result, got:\n{wi}"
     );
 }
 
