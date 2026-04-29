@@ -394,6 +394,7 @@ fn update_claude_md(root: &Path) -> Result<()> {
 
     // If CLAUDE.md is just `@AGENTS.md`, the canonical block is already
     // reachable through the import — don't duplicate it here.
+    // TODO - Make this more tolerant (could be \n, lower-case whatever, only if there's @AGENTS.md in the file don't update)
     if existing.trim() == "@AGENTS.md" {
         return Ok(());
     }
