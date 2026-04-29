@@ -1,6 +1,6 @@
 # Product Boundary
 
-Thinindex is currently a local/free agent-navigation tool. This document defines the boundary for possible future paid work without adding license enforcement, payment integration, network behavior, telemetry, feature lockouts, release installers, or parser feature gates.
+Thinindex is currently a local/free agent-navigation tool. This document defines the boundary for possible future paid work without adding license enforcement, payment integration, network behavior, telemetry, feature lockouts, release installers, ctags bundling, or native parser replacement.
 
 ## Product principle
 
@@ -41,7 +41,7 @@ Possible future Pro value should be treated as candidates, not implemented gates
 - richer agent integration packs
 - exported agent-readiness reports
 - advanced reference graph quality features
-- signed installers and a managed update channel after licensing and release blockers are removed
+- signed installers and a managed update channel after parser/licensing blockers are removed
 - release-quality native parser backend if it materially improves bundled parser quality
 
 These are roadmap candidates. They are not active feature gates in the current tool.
@@ -62,18 +62,16 @@ The following must remain part of the local/free core:
 
 ## Packaging/licensing blockers
 
-All bundled parser dependencies and grammar dependencies must be permissively licensed and audited before release packaging.
+Universal Ctags must not be bundled into proprietary release artifacts. While ctags remains required, it may only be documented as an external user-installed dependency.
 
-Universal Ctags has been removed. It is not bundled, not called by the code, and not required by install docs or tests. Proprietary packaging is no longer blocked by Universal Ctags.
+A permissively licensed native parser backend is required before proprietary same-binary Pro packaging. All bundled parser dependencies and grammar dependencies must be audited before release packaging.
 
-The current Rust, Python, and JS/TS parser support uses in-repository Rust code and introduces no third-party parser or grammar dependency. CSS, HTML, Markdown, and JSX extras are also project-owned deterministic extractors.
+Before packaging work proceeds, thinindex also needs:
 
-Before packaging work proceeds, thinindex still needs:
-
-- `THIRD_PARTY_NOTICES` kept in sync with the audited dependency set
-- full Cargo.lock dependency license audit coverage
-- release documentation that matches the audited dependency set
-- installer and archive smoke tests on target platforms
+- `THIRD_PARTY_NOTICES`
+- dependency license audit coverage
+- a parser path that does not require bundled Universal Ctags
+- release documentation that keeps ctags external until that path exists
 
 ## What is not being built yet
 
@@ -88,13 +86,14 @@ This boundary does not add:
 - feature lockouts
 - network calls
 - release installers
-- parser paywalls
+- ctags bundling
+- native parser replacement
 
 ## Licensing/payment deferred decisions
 
 Pricing, license provider, activation flow, local license cache shape, paid update policy, and team licensing are deferred decisions.
 
-Do not encode pricing or edition limits in code until the product has evidence that a paid edition is useful and packaging/license audit work is complete.
+Do not encode pricing or edition limits in code until the product has evidence that a paid edition is useful and the parser/package blocker has been resolved.
 
 ## Evidence needed before charging
 

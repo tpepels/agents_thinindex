@@ -2,7 +2,7 @@
 
 Use superpowers:subagent-driven-development.
 
-Do not implement this until PLAN_00 through PLAN_14 are complete and green.
+Do not implement this until PLAN_00 through PLAN_15 are complete and green.
 
 Goal:
 Add release automation and CI checks that make thinindex releases repeatable, verified, and hard to ship with broken packaging/license surfaces.

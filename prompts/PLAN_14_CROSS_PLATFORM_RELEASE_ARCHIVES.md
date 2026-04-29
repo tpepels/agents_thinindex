@@ -2,7 +2,7 @@
 
 Use superpowers:subagent-driven-development.
 
-Do not implement this until PLAN_00 through PLAN_12 are complete and green.
+Do not implement this until PLAN_00 through PLAN_13 are complete and green.
 
 Goal:
 Add reproducible cross-platform release archive packaging for thinindex.
@@ -14,6 +14,7 @@ Release archives must be boring, explicit, and license-compliant. They must not 
 
 Hard requirements:
 - Do not bundle Universal Ctags.
+- Do not proceed if any active Universal Ctags code/test/install requirement remains or if the Tree-sitter grammar license audit is incomplete.
 - Do not reintroduce Universal Ctags.
 - Do not add GPL or AGPL dependencies.
 - Do not add license/payment/Pro gating behavior.

@@ -1,6 +1,6 @@
 # Guide
 
-- [ ] Add native parser integration
+- [ ] Add ctags integration
 - [x] Add search
 
 See [README](../README.md).

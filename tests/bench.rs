@@ -51,6 +51,11 @@ export function HeaderNavigation() {
 
 #[test]
 fn fixture_benchmark_reports_sane_metrics() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
     let repo = temp_repo();
     let root = repo.path();
     write_benchmark_fixture(root);
@@ -89,6 +94,11 @@ fn fixture_benchmark_reports_sane_metrics() {
 
 #[test]
 fn wi_bench_prints_compact_report_without_logging_usage() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
     let repo = temp_repo();
     let root = repo.path();
     write_benchmark_fixture(root);

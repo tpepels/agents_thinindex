@@ -790,7 +790,7 @@ mod tests {
     use super::*;
 
     fn record(path: &str, line: usize, col: usize, kind: &str, name: &str) -> IndexRecord {
-        IndexRecord::new(path, line, col, "rs", kind, name, name, "native")
+        IndexRecord::new(path, line, col, "rs", kind, name, name, "ctags")
     }
 
     #[test]

@@ -12,7 +12,6 @@ Run before cutting a thinindex release:
 - `cargo run --bin build_index -- --version`
 - `cargo run --bin wi-init -- --version`
 - `cargo run --bin wi-stats -- --version`
-- confirm `THIRD_PARTY_NOTICES` matches the audited dependency set
 - install smoke with a temp `BIN_DIR`
 - uninstall smoke with the same temp `BIN_DIR`
 
@@ -28,6 +27,5 @@ Manual repo smoke:
 
 Packaging note:
 
-- Universal Ctags is removed, not bundled, and not used.
-- Cross-platform release archives and installers require full Cargo.lock dependency license audit coverage.
-- Smoke-test generated artifacts on each target platform before publishing.
+- Do not bundle Universal Ctags.
+- Cross-platform release archives and installers are blocked until the native parser work removes the ctags runtime dependency.

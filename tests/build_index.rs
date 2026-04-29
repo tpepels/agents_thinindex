@@ -26,31 +26,13 @@ fn assert_ref_exists(refs: &[thinindex::model::ReferenceRecord], ref_kind: &str,
     );
 }
 
-fn assert_record_exists(records: &[thinindex::model::IndexRecord], kind: &str, name: &str) {
-    assert!(
-        records
-            .iter()
-            .any(|record| record.kind == kind && record.name == name && record.source == "native"),
-        "expected native {kind} record `{name}`, got:\n{records:#?}"
-    );
-}
-
-fn assert_record_exists_with_source(
-    records: &[thinindex::model::IndexRecord],
-    source: &str,
-    kind: &str,
-    name: &str,
-) {
-    assert!(
-        records
-            .iter()
-            .any(|record| record.kind == kind && record.name == name && record.source == source),
-        "expected {source} {kind} record `{name}`, got:\n{records:#?}"
-    );
-}
-
 #[test]
 fn build_creates_index_files() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
     let repo = temp_repo();
     let root = repo.path();
 
@@ -83,156 +65,12 @@ def top_level_function():
 }
 
 #[test]
-fn rust_fixture_indexes_native_symbols() {
-    let repo = fixture_repo("rust_repo");
-    let root = repo.path();
-
-    run_build(root);
-
-    let snapshot = load_index_snapshot_from_sqlite(root);
-    run_named_index_integrity_checks("rust fixture", &snapshot, &["src/lib.rs"]);
-
-    for (kind, name) in [
-        ("function", "standalone_function"),
-        ("method", "new"),
-        ("method", "build_index"),
-        ("struct", "PromptService"),
-        ("enum", "SearchMode"),
-        ("trait", "ParserBackend"),
-        ("module", "parser"),
-        ("constant", "INDEX_SCHEMA_VERSION"),
-        ("constant", "DEFAULT_LIMIT"),
-        ("variable", "GLOBAL_COUNTER"),
-        ("type", "RecordMap"),
-        ("import", "Path"),
-        ("import", "Backend"),
-    ] {
-        assert_record_exists(&snapshot.records, kind, name);
-    }
-
-    let wi = run_wi(root, &["build_index", "-l", "rs"]);
-    assert!(
-        wi.contains("src/lib.rs") && wi.contains("build_index"),
-        "expected Rust build_index search result, got:\n{wi}"
-    );
-}
-
-#[test]
-fn python_fixture_indexes_native_symbols() {
-    let repo = fixture_repo("python_repo");
-    let root = repo.path();
-
-    run_build(root);
-
-    let snapshot = load_index_snapshot_from_sqlite(root);
-    run_named_index_integrity_checks(
-        "python fixture",
-        &snapshot,
-        &["app/services/prompt_service.py"],
-    );
-
-    for (kind, name) in [
-        ("class", "PromptService"),
-        ("function", "create_prompt_service"),
-        ("function", "helper_function"),
-        ("method", "build_prompt"),
-        ("method", "fetch_prompt"),
-        ("import", "os"),
-        ("import", "pl"),
-        ("import", "Optional"),
-        ("import", "CHECKING"),
-        ("constant", "MAX_RETRIES"),
-        ("constant", "DEFAULT_MODEL"),
-    ] {
-        assert_record_exists(&snapshot.records, kind, name);
-    }
-
-    assert!(
-        !snapshot
-            .records
-            .iter()
-            .any(|record| record.name == "local_value"),
-        "lowercase assignment should not be indexed as a constant:\n{:#?}",
-        snapshot.records
-    );
-    assert!(
-        !snapshot
-            .records
-            .iter()
-            .any(|record| record.name == "LOCAL_CACHE"),
-        "method-local uppercase assignment should not be indexed as a constant:\n{:#?}",
-        snapshot.records
-    );
-
-    let wi = run_wi(root, &["PromptService", "-l", "py"]);
-    assert!(
-        wi.contains("app/services/prompt_service.py") && wi.contains("PromptService"),
-        "expected Python PromptService search result, got:\n{wi}"
-    );
-}
-
-#[test]
-fn js_ts_fixture_indexes_native_symbols_and_jsx_extras() {
-    let repo = fixture_repo("js_ts_repo");
-    let root = repo.path();
-
-    run_build(root);
-
-    let snapshot = load_index_snapshot_from_sqlite(root);
-    run_named_index_integrity_checks(
-        "js/ts fixture",
-        &snapshot,
-        &[
-            "frontend/lib/navigation.js",
-            "frontend/types/navigation.ts",
-            "frontend/components/HeaderNavigation.jsx",
-            "frontend/components/HeaderNavigation.tsx",
-        ],
-    );
-
-    for (kind, name) in [
-        ("import", "React"),
-        ("import", "useHeaderMemo"),
-        ("import", "Metrics"),
-        ("class", "NavigationStore"),
-        ("method", "mount"),
-        ("method", "handleClick"),
-        ("function", "createNavigationStore"),
-        ("function", "useNavigationStore"),
-        ("export", "RenamedNavigationStore"),
-        ("import", "RemoteProps"),
-        ("interface", "NavigationProps"),
-        ("type", "NavigationMode"),
-        ("function", "createNavigationConfig"),
-        ("import", "HeaderLink"),
-        ("function", "HeaderNavigation"),
-        ("import", "HeaderButton"),
-        ("import", "NavigationProps"),
-        ("type", "HeaderShellProps"),
-        ("function", "HeaderShell"),
-    ] {
-        assert_record_exists(&snapshot.records, kind, name);
-    }
-
-    for (kind, name) in [
-        ("component_usage", "HeaderLink"),
-        ("component_usage", "HeaderButton"),
-        ("component_usage", "HeaderShell"),
-        ("jsx_class", ".headerNavigation"),
-        ("data_attribute", "data-testid"),
-    ] {
-        assert_record_exists_with_source(&snapshot.records, "extras", kind, name);
-    }
-
-    let wi = run_wi(root, &["HeaderNavigation", "-l", "tsx"]);
-    assert!(
-        wi.contains("frontend/components/HeaderNavigation.tsx") && wi.contains("HeaderNavigation"),
-        "expected TSX HeaderNavigation search result, got:\n{wi}"
-    );
-}
-
-#[test]
 fn unchanged_files_are_skipped_on_second_build() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
     let repo = temp_repo();
     let root = repo.path();
 
@@ -256,6 +94,11 @@ class PromptService:
 
 #[test]
 fn changed_files_are_reindexed() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
     let repo = temp_repo();
     let root = repo.path();
 
@@ -294,6 +137,11 @@ class RankingService:
 
 #[test]
 fn deleted_files_are_removed_from_index() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
     let repo = temp_repo();
     let root = repo.path();
 
@@ -329,6 +177,11 @@ class DeletedService:
 }
 #[test]
 fn fixture_index_passes_shared_integrity_checks() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
     let repo = temp_repo();
     let root = repo.path();
 
@@ -412,6 +265,11 @@ def build_prompt():
 
 #[test]
 fn fixture_reference_repo_extracts_plan_02_refs() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
     let repo = temp_repo();
     let root = repo.path();
 
@@ -514,6 +372,11 @@ def test_prompt_service():
 
 #[test]
 fn refs_are_deterministic_on_repeated_build() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
     let repo = temp_repo();
     let root = repo.path();
 
@@ -543,6 +406,11 @@ fn refs_are_deterministic_on_repeated_build() {
 
 #[test]
 fn changed_python_file_rewrites_stale_refs() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
     let repo = temp_repo();
     let root = repo.path();
 
@@ -577,6 +445,11 @@ fn changed_python_file_rewrites_stale_refs() {
 
 #[test]
 fn changed_files_rewrite_stale_refs() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
     let repo = temp_repo();
     let root = repo.path();
 
@@ -617,6 +490,11 @@ fn changed_files_rewrite_stale_refs() {
 
 #[test]
 fn deleted_files_remove_refs() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
     let repo = temp_repo();
     let root = repo.path();
 
@@ -655,6 +533,11 @@ fn deleted_files_remove_refs() {
 
 #[test]
 fn binary_files_are_skipped() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
     let repo = temp_repo();
     let root = repo.path();
 
@@ -704,6 +587,11 @@ class PromptService:
 
 #[test]
 fn markdown_heading_is_canonicalized_to_section() {
+    if !has_ctags() {
+        eprintln!("skipping: ctags unavailable");
+        return;
+    }
+
     let repo = temp_repo();
     let root = repo.path();
 

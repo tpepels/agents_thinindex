@@ -153,69 +153,40 @@ fn docs_do_not_describe_legacy_files_as_current_instruction_or_storage() {
 }
 
 #[test]
-fn docs_describe_self_contained_parser_and_release_audit_boundary() {
+fn docs_state_ctags_is_external_and_blocks_proprietary_packaging() {
     let readme = repo_file("README.md");
     let roadmap = repo_file("docs/ROADMAP.md");
     let release = repo_file("docs/RELEASE_CHECKLIST.md");
     let product_boundary = repo_file("docs/PRODUCT_BOUNDARY.md");
-    let third_party = repo_file("THIRD_PARTY_NOTICES");
 
     assert!(
-        readme.contains("Indexing is self-contained")
-            && readme.contains("does not require an external parser command"),
-        "README should describe self-contained parser behavior"
+        readme.contains("external user-installed dependency")
+            && readme.contains("must not bundle Universal Ctags"),
+        "README should describe ctags as external-only"
     );
     assert!(
-        roadmap.contains("Indexing uses native Rust parser code")
-            && roadmap.contains("No external parser command is required")
-            && roadmap.contains("Universal Ctags has been removed"),
-        "roadmap should describe the native parser path as current"
+        readme.contains("Proprietary Windows/macOS/Linux packages are blocked")
+            && readme.contains("permissively licensed"),
+        "README should document native permissive parser packaging blocker"
     );
     assert!(
-        readme.contains("Supported parser coverage")
-            && readme.contains("Rust: functions")
-            && readme.contains("Python: classes")
-            && readme.contains("JavaScript/TypeScript/JSX/TSX: functions")
-            && readme.contains("CSS/HTML/Markdown: selectors")
-            && readme.contains("Known parser gaps include")
-            && roadmap.contains("Current parser coverage")
-            && roadmap.contains("Rust native parsing covers")
-            && roadmap.contains("Python native parsing covers")
-            && roadmap.contains("JavaScript/TypeScript/JSX/TSX native parsing covers")
-            && roadmap.contains("Known parser gaps include")
+        roadmap.contains("Proprietary cross-platform packages are blocked")
+            && roadmap.contains("permissively licensed bundled parser dependencies"),
+        "roadmap should preserve ctags/native-parser packaging blocker"
+    );
+    assert!(
+        product_boundary
+            .contains("Universal Ctags must not be bundled into proprietary release artifacts")
             && product_boundary
-                .contains("Rust, Python, and JS/TS parser support uses in-repository Rust code"),
-        "docs should describe Rust/Python/JS/TS native parser support and dependency status"
+                .contains("A permissively licensed native parser backend is required"),
+        "product boundary should document ctags/native-parser packaging blocker"
     );
     assert!(
-        product_boundary.contains("permissively licensed and audited")
-            && product_boundary.contains("dependency license audit coverage"),
-        "product boundary should preserve release audit blockers"
-    );
-    assert!(
-        release.contains("dependency license audit coverage")
-            && release.contains("Smoke-test generated artifacts"),
-        "release checklist should require release audit and artifact smoke tests"
-    );
-    assert!(
-        readme.contains("Universal Ctags is not bundled, not required, and not used")
-            && product_boundary
-                .contains("Proprietary packaging is no longer blocked by Universal Ctags")
-            && release.contains("Universal Ctags is removed, not bundled, and not used")
-            && third_party.contains("Universal Ctags")
-            && third_party.contains("Status: removed")
-            && third_party.contains("Tree-sitter grammars")
-            && third_party.contains("Status: not bundled"),
-        "docs and notices should describe ctags removal and parser dependency status"
-    );
-    assert!(
-        third_party.contains("anyhow: MIT OR Apache-2.0")
-            && third_party.contains("clap: MIT OR Apache-2.0")
-            && third_party.contains("ignore: Unlicense OR MIT")
-            && third_party.contains("regex: MIT OR Apache-2.0")
-            && third_party.contains("rusqlite: MIT")
-            && third_party.contains("serde: MIT OR Apache-2.0"),
-        "THIRD_PARTY_NOTICES should record direct runtime dependency licenses"
+        release.contains("Do not bundle Universal Ctags")
+            && release.contains(
+                "blocked until the native parser work removes the ctags runtime dependency"
+            ),
+        "release checklist should prohibit bundled ctags in proprietary release artifacts"
     );
 }
 

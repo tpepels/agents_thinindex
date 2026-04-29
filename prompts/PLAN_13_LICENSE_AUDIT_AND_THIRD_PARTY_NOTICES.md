@@ -2,7 +2,7 @@
 
 Use superpowers:subagent-driven-development.
 
-Do not implement this until PLAN_00 through PLAN_11 are complete and green.
+Do not implement this until PLAN_00 through PLAN_12G are complete and green.
 
 Goal:
 Add a repeatable dependency/license audit process and third-party notice generation so thinindex can move toward proprietary Windows/macOS/Linux packaging without hidden GPL/AGPL/copyleft risk.
@@ -15,6 +15,7 @@ No bundled dependency may be assumed commercially safe without an explicit licen
 Hard requirements:
 - Do not add GPL or AGPL dependencies.
 - Do not reintroduce Universal Ctags.
+- Confirm rewritten PLAN_11A through PLAN_11E removed Universal Ctags from active code/tests/install requirements and added the audited Tree-sitter framework/query pack.
 - Do not reintroduce JSONL storage.
 - Do not reintroduce `WI.md`.
 - Do not add license enforcement or payment code.

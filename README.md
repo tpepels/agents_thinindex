@@ -14,15 +14,6 @@ The context commands use the same local data:
 - `wi pack <term>` returns a compact read set for implementation work.
 - `wi impact <term>` returns evidence-backed files to inspect before edits.
 
-Native parsing is self-contained. Universal Ctags is not bundled, not required, and not used.
-
-Supported parser coverage:
-
-- Rust: functions, methods, structs, enums, traits, modules, constants/statics, type aliases, and imports.
-- Python: classes, functions, methods, async functions/methods, imports, and conservative uppercase constants.
-- JavaScript/TypeScript/JSX/TSX: functions, arrow-function declarations, classes, practical class methods, imports, exports, interfaces/types, and JSX component usage through existing extras.
-- CSS/HTML/Markdown: selectors, ids/classes, tags, headings, checklist items, links, TODO/FIXME, and related extras.
-
 The index is local-first and repo-local. It lives under `.dev_index/` and is intended to be disposable.
 
 ## Why agents need it
@@ -150,10 +141,8 @@ thinindex is intentionally conservative:
 - Impact output is evidence-backed but not exhaustive.
 - Agents can still ignore repository instructions.
 - Generated, build, vendor, dependency, and large fixture paths should be ignored.
+- Proprietary packaging is blocked until Universal Ctags is removed from the required parser path.
 - Bundled parser dependencies must be permissively licensed and audited before commercial release artifacts.
-- Native Rust, Python, and JS/TS parser support is useful but not a complete AST, macro expansion, JSX syntax, or type-analysis engine.
-- Known parser gaps include macro-expanded Rust, dynamic Python assignment patterns, multi-line JS/TS import/export forms, computed JS/TS class members, and full JSX/TypeScript type analysis.
-- Universal Ctags has been removed; proprietary packaging is no longer blocked by ctags, but still requires the dependency audit and release hardening documented in `THIRD_PARTY_NOTICES` and `docs/PRODUCT_BOUNDARY.md`.
 
 ## Free/local and future Pro
 
@@ -165,31 +154,31 @@ Future Pro candidates are documented in [docs/PRODUCT_BOUNDARY.md](docs/PRODUCT_
 
 ## Install/uninstall
 
-Requires Rust/Cargo. Indexing is self-contained and does not require an external parser command.
+Requires Rust/Cargo and Universal Ctags. Universal Ctags is an external user-installed dependency for indexing until thinindex has a permissively licensed native parser. Release archives and installers must not bundle Universal Ctags.
 
 Arch Linux:
 
 ```bash
-sudo pacman -S rust
+sudo pacman -S rust universal-ctags
 ```
 
 Debian / Ubuntu:
 
 ```bash
 sudo apt update
-sudo apt install cargo
+sudo apt install cargo universal-ctags
 ```
 
 Fedora:
 
 ```bash
-sudo dnf install rust cargo
+sudo dnf install rust cargo ctags
 ```
 
 macOS with Homebrew:
 
 ```bash
-brew install rust
+brew install rust universal-ctags
 ```
 
 Install:
@@ -211,7 +200,10 @@ build_index --version
 wi --version
 wi-init --version
 wi-stats --version
+ctags --version
 ```
+
+`ctags --version` should mention Universal Ctags.
 
 Uninstall installed binaries:
 
@@ -229,9 +221,9 @@ wi-init --remove
 
 ## Packaging/licensing caveat
 
-SQLite is bundled through the Rust dependency configuration. The parser path is native Rust code in this repository.
+SQLite is bundled through the Rust dependency configuration, but Universal Ctags is not bundled. Universal Ctags may be used only as an external user-installed dependency while it remains required.
 
-Proprietary Windows/macOS/Linux packages still require dependency license audit coverage and release artifact hardening before they are ready.
+Proprietary Windows/macOS/Linux packages are blocked until the parser path no longer requires Universal Ctags and the replacement native parser stack is permissively licensed and audited.
 
 ## Development
 

@@ -1,10 +1,9 @@
 pub mod bench;
 pub mod context;
+pub mod ctags;
 pub mod extras;
 pub mod indexer;
 pub mod model;
-pub mod native_parser;
-pub mod parser;
 pub mod refs;
 pub mod search;
 pub mod stats;

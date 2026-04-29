@@ -2,7 +2,7 @@
 
 Use superpowers:subagent-driven-development.
 
-Do not implement this until PLAN_00 through PLAN_13 are complete and green.
+Do not implement this until PLAN_00 through PLAN_14 are complete and green.
 
 Goal:
 Plan and add the first native installer/signing scaffolding for Windows, macOS, and Linux, without pretending full signing/notarization/repository publishing is complete.
