@@ -1,11 +1,52 @@
 use std::{collections::BTreeMap, path::Path, time::Duration};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use tree_sitter::{Language, Parser, Query, QueryCursor, StreamingIterator};
 
 use crate::model::IndexRecord;
 
 pub const TREE_SITTER_SOURCE: &str = "tree_sitter";
+pub const QUERY_NAME_CAPTURE: &str = "name";
+pub const QUERY_DEFINITION_CAPTURE_PREFIX: &str = "definition.";
+pub const QUERY_INTERNAL_CAPTURE_PREFIX: &str = "internal.";
+
+pub const ALLOWED_DEFINITION_CAPTURE_KINDS: &[&str] = &[
+    "class",
+    "constant",
+    "constructor",
+    "enum",
+    "export",
+    "field",
+    "function",
+    "import",
+    "interface",
+    "macro",
+    "method",
+    "module",
+    "namespace",
+    "object",
+    "property",
+    "struct",
+    "trait",
+    "type",
+    "variable",
+];
+
+pub const ALLOWED_NORMALIZED_CAPTURE_KINDS: &[&str] = &[
+    "class",
+    "constant",
+    "enum",
+    "export",
+    "function",
+    "import",
+    "interface",
+    "method",
+    "module",
+    "struct",
+    "trait",
+    "type",
+    "variable",
+];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LicenseEntry {
@@ -77,6 +118,10 @@ impl LanguageRegistry {
         }
 
         entries
+    }
+
+    pub fn adapters(&self) -> &[GrammarAdapter] {
+        &self.adapters
     }
 }
 
@@ -154,6 +199,7 @@ impl TreeSitterExtractionEngine {
 
         let query = Query::new(&language, adapter.query_pack.source)
             .with_context(|| format!("failed to compile {} query pack", adapter.display_name))?;
+        validate_query_capture_names(adapter, &query)?;
         let mapper = CaptureMapper::new(adapter, &query);
 
         Ok(ParsedFile {
@@ -230,7 +276,7 @@ impl<'a> CaptureMapper<'a> {
                 continue;
             }
 
-            let kind = normalize_capture_kind(capture_kind);
+            let kind = normalize_query_capture_kind(capture_kind);
             let start = name_node.start_position();
             let line = start.row + 1;
             let col = start.column + 1;
@@ -275,7 +321,7 @@ fn source_line(text: &str, line: usize) -> Option<&str> {
     text.lines().nth(line.saturating_sub(1))
 }
 
-fn normalize_capture_kind(kind: &str) -> &str {
+pub fn normalize_query_capture_kind(kind: &str) -> &str {
     match kind {
         "field" => "variable",
         "macro" => "function",
@@ -285,6 +331,80 @@ fn normalize_capture_kind(kind: &str) -> &str {
         "property" => "variable",
         other => other,
     }
+}
+
+pub fn validate_query_specs(registry: &LanguageRegistry) -> Result<()> {
+    for adapter in registry.adapters() {
+        validate_query_pack(adapter)?;
+    }
+
+    Ok(())
+}
+
+pub fn validate_query_pack(adapter: &GrammarAdapter) -> Result<()> {
+    let language = (adapter.language)();
+    let query = Query::new(&language, adapter.query_pack.source)
+        .with_context(|| format!("failed to compile {} query pack", adapter.display_name))?;
+
+    validate_query_capture_names(adapter, &query)
+}
+
+fn validate_query_capture_names(adapter: &GrammarAdapter, query: &Query) -> Result<()> {
+    let mut has_name_capture = false;
+    let mut has_definition_capture = false;
+
+    for capture_name in query.capture_names().iter().copied() {
+        if capture_name == QUERY_NAME_CAPTURE {
+            has_name_capture = true;
+            continue;
+        }
+
+        if let Some(kind) = capture_name.strip_prefix(QUERY_DEFINITION_CAPTURE_PREFIX) {
+            has_definition_capture = true;
+
+            if !ALLOWED_DEFINITION_CAPTURE_KINDS.contains(&kind) {
+                bail!(
+                    "{} query uses unsupported definition capture `@{capture_name}`",
+                    adapter.display_name
+                );
+            }
+
+            let normalized = normalize_query_capture_kind(kind);
+            if !ALLOWED_NORMALIZED_CAPTURE_KINDS.contains(&normalized) {
+                bail!(
+                    "{} query capture `@{capture_name}` normalizes to unsupported record kind `{normalized}`",
+                    adapter.display_name
+                );
+            }
+
+            continue;
+        }
+
+        if capture_name.starts_with(QUERY_INTERNAL_CAPTURE_PREFIX) {
+            continue;
+        }
+
+        bail!(
+            "{} query uses unsupported capture `@{capture_name}`; use `@name`, `@definition.<kind>`, or `@internal.<purpose>`",
+            adapter.display_name
+        );
+    }
+
+    if !has_name_capture {
+        bail!(
+            "{} query must capture symbol names with `@name`",
+            adapter.display_name
+        );
+    }
+
+    if !has_definition_capture {
+        bail!(
+            "{} query must include at least one `@definition.<kind>` capture",
+            adapter.display_name
+        );
+    }
+
+    Ok(())
 }
 
 fn rust_adapter() -> GrammarAdapter {
@@ -828,8 +948,8 @@ const NIX_QUERY: &str = r#"
 (binding
   attrpath: (attrpath attr: (identifier) @name)
   expression: (apply_expression
-    function: (variable_expression name: (identifier) @import_function))) @definition.import
-  (#eq? @import_function "import")
+    function: (variable_expression name: (identifier) @internal.import_function))) @definition.import
+  (#eq? @internal.import_function "import")
 "#;
 
 #[cfg(test)]
@@ -960,6 +1080,82 @@ mod tests {
                     .iter()
                     .all(|record| record.source == TREE_SITTER_SOURCE),
                 "expected Tree-sitter source in {path}, got {records:#?}",
+            );
+        }
+    }
+
+    #[test]
+    fn default_query_specs_use_allowed_capture_names() {
+        validate_query_specs(&LanguageRegistry::default())
+            .expect("default query specs should pass");
+    }
+
+    #[test]
+    fn unsupported_definition_captures_fail_validation() {
+        let adapter = GrammarAdapter {
+            id: "bad",
+            display_name: "Bad",
+            extensions: &["bad"],
+            language: || tree_sitter_rust::LANGUAGE.into(),
+            query_pack: QueryPack {
+                source: "(function_item name: (identifier) @name) @definition.widget",
+            },
+            license: LicenseEntry {
+                package: "tree-sitter-rust",
+                upstream: "https://github.com/tree-sitter/tree-sitter-rust",
+                license: "MIT",
+                accepted_reason: "test fixture",
+            },
+        };
+
+        let error = validate_query_pack(&adapter).expect_err("invalid capture should fail");
+        assert!(
+            error
+                .to_string()
+                .contains("unsupported definition capture `@definition.widget`"),
+            "unexpected error: {error:#}"
+        );
+    }
+
+    #[test]
+    fn unsupported_auxiliary_captures_fail_validation() {
+        let adapter = GrammarAdapter {
+            id: "bad",
+            display_name: "Bad",
+            extensions: &["bad"],
+            language: || tree_sitter_rust::LANGUAGE.into(),
+            query_pack: QueryPack {
+                source: "(function_item name: (identifier) @symbol) @definition.function",
+            },
+            license: LicenseEntry {
+                package: "tree-sitter-rust",
+                upstream: "https://github.com/tree-sitter/tree-sitter-rust",
+                license: "MIT",
+                accepted_reason: "test fixture",
+            },
+        };
+
+        let error = validate_query_pack(&adapter).expect_err("invalid capture should fail");
+        assert!(
+            error.to_string().contains("unsupported capture `@symbol`"),
+            "unexpected error: {error:#}"
+        );
+    }
+
+    #[test]
+    fn normalized_capture_kind_aliases_are_explicit() {
+        assert_eq!(normalize_query_capture_kind("field"), "variable");
+        assert_eq!(normalize_query_capture_kind("macro"), "function");
+        assert_eq!(normalize_query_capture_kind("namespace"), "module");
+        assert_eq!(normalize_query_capture_kind("constructor"), "method");
+        assert_eq!(normalize_query_capture_kind("object"), "module");
+        assert_eq!(normalize_query_capture_kind("property"), "variable");
+
+        for kind in ALLOWED_DEFINITION_CAPTURE_KINDS {
+            let normalized = normalize_query_capture_kind(kind);
+            assert!(
+                ALLOWED_NORMALIZED_CAPTURE_KINDS.contains(&normalized),
+                "{kind} should normalize to an allowed record kind, got {normalized}"
             );
         }
     }

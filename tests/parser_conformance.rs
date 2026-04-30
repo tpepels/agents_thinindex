@@ -6,7 +6,15 @@ use common::{
     fixture_repo, load_index_snapshot_from_sqlite, run_build, run_named_index_integrity_checks,
     run_wi,
 };
-use thinindex::{model::IndexRecord, tree_sitter_extraction::TREE_SITTER_SOURCE};
+use thinindex::{
+    model::IndexRecord,
+    support::{SupportBackend, support_matrix},
+    tree_sitter_extraction::{
+        ALLOWED_DEFINITION_CAPTURE_KINDS, ALLOWED_NORMALIZED_CAPTURE_KINDS, LanguageRegistry,
+        QUERY_DEFINITION_CAPTURE_PREFIX, QUERY_INTERNAL_CAPTURE_PREFIX, QUERY_NAME_CAPTURE,
+        TREE_SITTER_SOURCE, validate_query_specs,
+    },
+};
 
 #[derive(Debug, Clone)]
 struct ExpectedSymbol {
@@ -609,6 +617,135 @@ fn parser_support_matrix_and_notices_cover_supported_languages() {
             && readme.contains("Languages and formats not listed are unsupported")
             && readme.contains("They are not silently parsed through line scanning"),
         "README must document parser limits honestly",
+    );
+}
+
+#[test]
+fn query_backed_registry_adapters_have_support_fixture_and_license_metadata() {
+    let registry = LanguageRegistry::default();
+    validate_query_specs(&registry).expect("registered query packs should validate");
+
+    for adapter in registry.adapters() {
+        assert!(
+            !adapter.license.package.is_empty()
+                && !adapter.license.upstream.is_empty()
+                && !adapter.license.license.is_empty()
+                && !adapter.license.accepted_reason.is_empty(),
+            "{} should have complete grammar license metadata",
+            adapter.display_name,
+        );
+
+        let entry = support_matrix()
+            .iter()
+            .find(|entry| {
+                entry.backend == SupportBackend::TreeSitter && entry.language_id == Some(adapter.id)
+            })
+            .unwrap_or_else(|| {
+                panic!(
+                    "{} adapter `{}` should have a Tree-sitter support matrix entry",
+                    adapter.display_name, adapter.id,
+                )
+            });
+
+        assert_eq!(
+            entry.grammar_package,
+            Some(adapter.license.package),
+            "{} support matrix grammar package should match adapter license metadata",
+            adapter.display_name,
+        );
+        assert!(
+            entry.conformance_fixture_repo.is_some() && entry.conformance_fixture_path.is_some(),
+            "{} should declare a conformance fixture",
+            adapter.display_name,
+        );
+
+        let support_extensions: BTreeSet<String> = entry
+            .extensions
+            .iter()
+            .map(|extension| extension.trim_start_matches('.').to_string())
+            .collect();
+        for extension in adapter.extensions {
+            assert!(
+                support_extensions.contains(*extension),
+                "{} adapter extension `{extension}` should be in support matrix {:?}",
+                adapter.display_name,
+                entry.extensions,
+            );
+        }
+    }
+
+    for entry in support_matrix()
+        .iter()
+        .filter(|entry| entry.backend == SupportBackend::TreeSitter)
+    {
+        let language_id = entry.language_id.expect("Tree-sitter language id");
+        assert!(
+            registry
+                .adapters()
+                .iter()
+                .any(|adapter| adapter.id == language_id),
+            "{} support entry should have a registered adapter",
+            entry.name,
+        );
+    }
+}
+
+#[test]
+fn parser_maintenance_guide_documents_query_guardrails() {
+    let guide = repo_file("docs/PARSER_MAINTENANCE.md");
+
+    for section in [
+        "## Parser Architecture Overview",
+        "## How LanguageRegistry Works",
+        "## How Query Specs Work",
+        "## Normalized Capture Names",
+        "## Capture-To-Record Mapping Rules",
+        "## How To Add A Language",
+        "## How To Update A Language Query",
+        "## How To Add Conformance Fixtures",
+        "## How To Add Real-Repo Expected Symbols",
+        "## How To Run Quality Gates",
+        "## How To Handle Unsupported Syntax",
+        "## How To Audit Grammar Licenses",
+        "## What Not To Do",
+    ] {
+        assert!(guide.contains(section), "missing guide section {section}");
+    }
+
+    assert!(guide.contains(&format!("`@{QUERY_NAME_CAPTURE}`")));
+    assert!(guide.contains(&format!("`@{QUERY_INTERNAL_CAPTURE_PREFIX}<purpose>`")));
+
+    for kind in ALLOWED_DEFINITION_CAPTURE_KINDS {
+        assert!(
+            guide.contains(&format!("`@{QUERY_DEFINITION_CAPTURE_PREFIX}{kind}`")),
+            "guide should document allowed definition capture {kind}",
+        );
+    }
+
+    for kind in ALLOWED_NORMALIZED_CAPTURE_KINDS {
+        assert!(
+            guide.contains(&format!("`{kind}`")),
+            "guide should document normalized kind {kind}",
+        );
+    }
+
+    for forbidden in [
+        "no line scanners for code symbols",
+        "no hand parsers",
+        "no broad regex parser",
+        "no unsupported language support claims",
+        "no grammar dependency without license entry",
+    ] {
+        assert!(
+            guide.contains(forbidden),
+            "guide should document forbidden pattern `{forbidden}`",
+        );
+    }
+
+    let external_tagger_rule = format!("no {} parser fallback", ["c", "tags"].concat());
+    assert!(
+        guide.contains(&external_tagger_rule),
+        "guide should document forbidden parser fallback"
     );
 }
 
