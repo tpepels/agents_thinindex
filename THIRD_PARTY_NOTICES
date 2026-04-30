@@ -85,6 +85,8 @@ libsqlite3-sys
 
 ## Parser and Grammar Dependencies
 
+Parser dependency notices describe bundled dependency and license facts. They do not by themselves promote an experimental or blocked language to supported status. Support levels are tracked in `src/support.rs`, `README.md`, and `docs/PARSER_SUPPORT.md`.
+
 Tree-sitter Rust grammar
 - Package: tree-sitter-rust
 - Upstream: https://github.com/tree-sitter/tree-sitter-rust

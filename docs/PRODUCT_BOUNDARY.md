@@ -68,11 +68,13 @@ Tree-sitter parser dependencies and grammar dependencies must be permissively li
 
 The repeatable dependency audit command is `cargo deny check licenses`. Only explicitly allowed permissive licenses are accepted. GPL, AGPL, LGPL-only, MPL-only, EPL, CDDL, unknown, no-license, custom, and non-commercial dependency terms block proprietary packaging unless a future plan adds a documented review exception.
 
-The current Tree-sitter-backed language pack covers Rust, Python, JavaScript, JSX, TypeScript, TSX, Java, C#, Scala, Kotlin, Swift, Dart, Nix, Go, C, C++, Shell, Ruby, and PHP. Additional language support must be added through the same registry, grammar, query, fixture, and notice path rather than a second parser architecture.
+Parser claims use explicit support levels: `supported`, `experimental`, `blocked`, and `extras-backed`. The source of truth is `src/support.rs`, mirrored in `README.md` and `docs/PARSER_SUPPORT.md`.
 
-CSS, HTML, Markdown, JSON, TOML, and YAML are supported by project-owned extras. Config extraction records useful keys, tables, and sections without treating every scalar value as a symbol.
+Current supported Tree-sitter code-symbol extraction covers Rust, Python, JavaScript, JSX, TypeScript, TSX, Java, Go, C, C#, C++, Shell, Ruby, and PHP. Scala, Kotlin, Swift, Dart, and Nix are experimental until real-repo coverage and documented gaps are stronger. Additional language support must be added through the same registry, grammar, query, fixture, and notice path rather than a second parser architecture.
 
-Formats and languages not listed in the README support matrix are unsupported. They must not be claimed through line scanning, ctags fallback, or undocumented parser dependencies.
+CSS, HTML, Markdown, JSON, TOML, and YAML are extras-backed by project-owned extractors, not Tree-sitter-backed code-symbol parsers. Config extraction records useful keys, tables, and sections without treating every scalar value as a symbol.
+
+Blocked entries include Vue/Svelte single-file components, Objective-C/Objective-C++, SQL, XML, Lua, Haskell, and Elixir. Formats and languages not listed in the README support matrix are unsupported. They must not be claimed through line scanning, ctags fallback, or undocumented parser dependencies.
 
 Real-repo parser coverage is checked with shared integrity rules and optional manifest expected-symbol entries. These targeted checks are preferred over exact total record counts because generated code, comments, and unsupported syntax can change totals without changing navigation quality.
 

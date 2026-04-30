@@ -208,18 +208,29 @@ fn docs_state_tree_sitter_is_bundled_and_ctags_removed() {
         "THIRD_PARTY_NOTICES should list Tree-sitter parser dependencies"
     );
     assert!(
-        readme.contains("| Java | `.java` | `tree-sitter-java` |")
-            && readme.contains("| C# | `.cs` | `tree-sitter-c-sharp` |")
-            && readme.contains("| Scala | `.scala` | `tree-sitter-scala` |")
-            && readme.contains("| Kotlin | `.kt`, `.kts` | `tree-sitter-kotlin-ng` |")
-            && readme.contains("| Swift | `.swift` | `tree-sitter-swift` |")
-            && readme.contains("| Dart | `.dart` | `tree-sitter-dart` |")
-            && readme.contains("| Nix | `.nix` | `tree-sitter-nix` |")
-            && readme.contains("| Go | `.go` | `tree-sitter-go` |")
-            && readme.contains("| PHP | `.php` | `tree-sitter-php` |")
-            && readme.contains("| JSON | `.json` | project-owned extras |")
-            && readme.contains("| TOML | `.toml` | project-owned extras |")
-            && readme.contains("| YAML | `.yaml`, `.yml` | project-owned extras |")
+        readme.contains("| Java | `.java` | supported | tree_sitter | `tree-sitter-java` |")
+            && readme.contains("| C# | `.cs` | supported | tree_sitter | `tree-sitter-c-sharp` |")
+            && readme.contains(
+                "| Scala | `.scala` | experimental | tree_sitter | `tree-sitter-scala` |"
+            )
+            && readme.contains(
+                "| Kotlin | `.kt`, `.kts` | experimental | tree_sitter | `tree-sitter-kotlin-ng` |"
+            )
+            && readme.contains(
+                "| Swift | `.swift` | experimental | tree_sitter | `tree-sitter-swift` |"
+            )
+            && readme
+                .contains("| Dart | `.dart` | experimental | tree_sitter | `tree-sitter-dart` |")
+            && readme.contains("| Nix | `.nix` | experimental | tree_sitter | `tree-sitter-nix` |")
+            && readme.contains("| Go | `.go` | supported | tree_sitter | `tree-sitter-go` |")
+            && readme.contains("| PHP | `.php` | supported | tree_sitter | `tree-sitter-php` |")
+            && readme
+                .contains("| JSON | `.json` | extras-backed | extras | project-owned extras |")
+            && readme
+                .contains("| TOML | `.toml` | extras-backed | extras | project-owned extras |")
+            && readme.contains(
+                "| YAML | `.yaml`, `.yml` | extras-backed | extras | project-owned extras |"
+            )
             && readme.contains("Languages and formats not listed are unsupported")
             && readme.contains("They are not silently parsed through line scanning"),
         "README should document the representative parser support matrix"

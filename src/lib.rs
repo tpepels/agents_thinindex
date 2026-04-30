@@ -8,5 +8,6 @@ pub mod refs;
 pub mod search;
 pub mod stats;
 pub mod store;
+pub mod support;
 pub mod tree_sitter_extraction;
 pub mod wi_cli;

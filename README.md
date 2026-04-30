@@ -177,44 +177,51 @@ thinindex is intentionally conservative:
 
 ## Parser Support
 
-Tree-sitter-backed code-symbol extraction is currently enabled for this representative language pack:
+Parser and format support claims use explicit levels from the source-controlled support matrix:
 
-| Language | Extensions | Backing grammar | Expected record kinds |
-| --- | --- | --- | --- |
-| Rust | `.rs` | `tree-sitter-rust` | function, struct, enum, trait, type, module, constant, variable |
-| Python | `.py` | `tree-sitter-python` | function, method, class, variable, import |
-| JavaScript | `.js` | `tree-sitter-javascript` | function, method, class, variable, import, export |
-| JSX | `.jsx` | `tree-sitter-javascript` | function, method, class, variable, import, export |
-| TypeScript | `.ts` | `tree-sitter-typescript` | function, method, class, interface, type, variable, import, export |
-| TSX | `.tsx` | `tree-sitter-typescript` | function, method, class, interface, type, variable, import, export |
-| Java | `.java` | `tree-sitter-java` | method, class, enum, interface, type, variable, import |
-| C# | `.cs` | `tree-sitter-c-sharp` | method, class, struct, enum, interface, type, module, variable, import |
-| Scala | `.scala` | `tree-sitter-scala` | function, class, enum, trait, type, module, variable, constant, import |
-| Kotlin | `.kt`, `.kts` | `tree-sitter-kotlin-ng` | function, class, enum, type, module, variable, import |
-| Swift | `.swift` | `tree-sitter-swift` | function, method, class, struct, enum, interface, type, variable, import |
-| Dart | `.dart` | `tree-sitter-dart` | function, method, class, enum, type, variable, constant, import, export |
-| Nix | `.nix` | `tree-sitter-nix` | function, module, import |
-| Go | `.go` | `tree-sitter-go` | function, method, struct, interface, type, module, variable, constant, import |
-| C | `.c`, `.h` | `tree-sitter-c` | function, struct, enum, type, variable, import |
-| C++ | `.cc`, `.cpp`, `.cxx`, `.hh`, `.hpp`, `.hxx` | `tree-sitter-cpp` | function, method, class, struct, enum, type, module, variable, import |
-| Shell | `.sh`, `.bash` | `tree-sitter-bash` | function, variable |
-| Ruby | `.rb` | `tree-sitter-ruby` | method, class, module, constant |
-| PHP | `.php` | `tree-sitter-php` | function, method, class, interface, trait, enum, module, variable, constant, import |
+- `supported`: grammar/query/fixture/license/docs exist; conformance passes; real-repo checks pass where configured.
+- `experimental`: grammar/query exists, but conformance or real-repo coverage is incomplete.
+- `blocked`: missing permissive grammar, broken integration, unclear license, or unacceptable parser quality.
+- `extras-backed`: project-owned extras intentionally handle deterministic format landmarks instead of Tree-sitter.
 
-The following web, document, and config formats are extras-backed deterministic extraction, not Tree-sitter code-symbol parsing:
+Detailed gaps and blocked reasons are maintained in [docs/PARSER_SUPPORT.md](docs/PARSER_SUPPORT.md).
 
-| Format | Extensions | Backing | Expected record kinds |
-| --- | --- | --- | --- |
-| CSS | `.css` | project-owned extras | css_class, css_id, css_variable, keyframes |
-| HTML | `.html` | project-owned extras | html_tag, html_id, html_class, data_attribute |
-| Markdown | `.md`, `.markdown` | project-owned extras | section, checklist, link, todo, fixme |
-| JSON | `.json` | project-owned extras | key |
-| TOML | `.toml` | project-owned extras | key, table |
-| YAML | `.yaml`, `.yml` | project-owned extras | key, section |
+| Language/format | Extensions | Level | Backend | Grammar/package | Expected record kinds |
+| --- | --- | --- | --- | --- | --- |
+| Rust | `.rs` | supported | tree_sitter | `tree-sitter-rust` | function, struct, enum, trait, type, module, constant, variable |
+| Python | `.py` | supported | tree_sitter | `tree-sitter-python` | function, method, class, variable, import |
+| JavaScript | `.js` | supported | tree_sitter | `tree-sitter-javascript` | function, method, class, variable, import, export |
+| JSX | `.jsx` | supported | tree_sitter | `tree-sitter-javascript` | function, method, class, variable, import, export |
+| TypeScript | `.ts` | supported | tree_sitter | `tree-sitter-typescript` | function, method, class, interface, type, variable, import, export |
+| TSX | `.tsx` | supported | tree_sitter | `tree-sitter-typescript` | function, method, class, interface, type, variable, import, export |
+| Java | `.java` | supported | tree_sitter | `tree-sitter-java` | method, class, enum, interface, type, variable, import |
+| Go | `.go` | supported | tree_sitter | `tree-sitter-go` | function, method, struct, interface, type, module, variable, constant, import |
+| C | `.c`, `.h` | supported | tree_sitter | `tree-sitter-c` | function, struct, enum, type, variable, import |
+| C# | `.cs` | supported | tree_sitter | `tree-sitter-c-sharp` | method, class, struct, enum, interface, type, module, variable, import |
+| C++ | `.cc`, `.cpp`, `.cxx`, `.hh`, `.hpp`, `.hxx` | supported | tree_sitter | `tree-sitter-cpp` | function, method, class, struct, enum, type, module, variable, import |
+| Shell | `.sh`, `.bash` | supported | tree_sitter | `tree-sitter-bash` | function, variable |
+| Ruby | `.rb` | supported | tree_sitter | `tree-sitter-ruby` | method, class, module, constant |
+| PHP | `.php` | supported | tree_sitter | `tree-sitter-php` | function, method, class, interface, trait, enum, module, variable, constant, import |
+| Scala | `.scala` | experimental | tree_sitter | `tree-sitter-scala` | function, class, enum, trait, type, module, variable, constant, import |
+| Kotlin | `.kt`, `.kts` | experimental | tree_sitter | `tree-sitter-kotlin-ng` | function, class, enum, type, module, variable, import |
+| Swift | `.swift` | experimental | tree_sitter | `tree-sitter-swift` | function, method, class, struct, enum, interface, type, variable, import |
+| Dart | `.dart` | experimental | tree_sitter | `tree-sitter-dart` | function, method, class, enum, type, variable, constant, import, export |
+| Nix | `.nix` | experimental | tree_sitter | `tree-sitter-nix` | function, module, import |
+| CSS | `.css` | extras-backed | extras | project-owned extras | css_class, css_id, css_variable, keyframes |
+| HTML | `.html` | extras-backed | extras | project-owned extras | html_tag, html_id, html_class, data_attribute |
+| Markdown | `.md`, `.markdown` | extras-backed | extras | project-owned extras | section, checklist, link, todo, fixme |
+| JSON | `.json` | extras-backed | extras | project-owned extras | key |
+| TOML | `.toml` | extras-backed | extras | project-owned extras | key, table |
+| YAML | `.yaml`, `.yml` | extras-backed | extras | project-owned extras | key, section |
+| Vue/Svelte single-file components | `.vue`, `.svelte` | blocked | none | none | none |
+| Objective-C/Objective-C++ | `.m`, `.mm` | blocked | none | none | none |
+| SQL | `.sql` | blocked | none | none | none |
+| XML | `.xml` | blocked | none | none | none |
+| Lua | `.lua` | blocked | none | none | none |
+| Haskell | `.hs` | blocked | none | none | none |
+| Elixir | `.ex`, `.exs` | blocked | none | none | none |
 
 Languages and formats not listed are unsupported. They are not silently parsed through line scanning. New code-language support needs a permissively licensed Tree-sitter grammar, an extension mapping, a query spec, a conformance fixture, a notice entry, and support-matrix documentation before it is claimed as supported. New extras-backed format support needs explicit non-noisy record policy, fixture coverage, and support-matrix documentation.
-
-Deferred examples include Vue/Svelte single-file components, Objective-C/Objective-C++, SQL, XML, Lua, Haskell, and Elixir. The current blockers are no selected permissive grammar/query/fixture/notice path, or no product-approved extras policy for the format.
 
 Known extraction gaps: Rust `use` records, Ruby `require` targets, Shell sourced files, dynamic PHP includes, macro-expanded C/C++, template instantiation, C# partial-type and assembly resolution, Scala givens/implicits/extension resolution, Kotlin interface/enum-class distinctions, Swift extensions/overloads/module resolution, Dart package and extension resolution, exhaustive Nix attribute/scalar extraction, exhaustive JSON/TOML/YAML scalar extraction, inherited members, and LSP-level type resolution are not claimed as parser-backed symbol extraction.
 

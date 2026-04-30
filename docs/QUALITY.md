@@ -118,3 +118,7 @@ If `test_repos/` is missing or empty, the ignored gate prints a clear skip messa
 ## Continuous Improvement Loop
 
 The Check -> Plan -> Act quality loop is documented in `docs/QUALITY_LOOP.md`. It turns gate and comparator evidence into local `.dev_index/quality/QUALITY_GAPS.md` and `.dev_index/quality/QUALITY_CYCLE_01_PLAN.md` files for one bounded fix cycle.
+
+## Support Levels
+
+Quality gates and reports should interpret parser findings through the support levels in `src/support.rs` and `docs/PARSER_SUPPORT.md`: `supported`, `experimental`, `blocked`, and `extras-backed`. Supported languages should have passing conformance, license metadata, and real-repo checks where configured. Experimental and blocked entries must not be reported as fully supported, and extras-backed formats must stay distinct from Tree-sitter-backed code-symbol extraction.
