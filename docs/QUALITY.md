@@ -146,7 +146,9 @@ If `test_repos/` is missing or empty, the ignored gate prints a clear skip messa
 
 ## Continuous Improvement Loop
 
-The Check -> Plan -> Act quality loop is documented in `docs/QUALITY_LOOP.md`. It turns gate and comparator evidence into local `.dev_index/quality/QUALITY_GAPS.md`, `.dev_index/quality/COMPARATOR_TRIAGE.md`, and `.dev_index/quality/QUALITY_CYCLE_01_PLAN.md` files for one bounded fix cycle.
+The Check -> Plan -> Act quality loop is documented in `docs/QUALITY_LOOP.md`. It turns gate and comparator evidence into local `.dev_index/quality/QUALITY_GAPS.md`, `.dev_index/quality/COMPARATOR_TRIAGE.md`, `.dev_index/quality/QUALITY_CYCLE_01_PLAN.md`, and `.dev_index/quality/QUALITY_CYCLE_01_REPORT.md` files for one bounded fix cycle.
+
+A quality cycle is single-use by design: one execution selects at most 10 gaps, records `automatic_next_cycle_allowed = false`, writes a final report, and stops. Start another cycle only from a later explicit human request.
 
 ## Support Levels
 

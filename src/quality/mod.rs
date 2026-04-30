@@ -15,10 +15,14 @@ pub use ctags_gate::{
     check_ctags_allowlist, check_package_artifacts, scan_repo_for_ctags_allowlist,
 };
 pub use cycle::{
-    CyclePlanOptions, DEFAULT_MAX_GAPS_PER_CYCLE, GapSeverity, GapStatus, QualityCyclePlan,
-    QualityGap, QualityGapGroup, QualityGapReport, SuggestedFixType, gaps_from_gate_report,
-    generate_cycle_plan, group_gaps, render_quality_cycle_plan, render_quality_gap_report,
-    write_quality_cycle_plan, write_quality_gap_report,
+    CyclePlanOptions, DEFAULT_MAX_GAPS_PER_CYCLE, GapSeverity, GapStatus, QUALITY_CYCLE_ID,
+    QualityCycleFinalReport, QualityCyclePlan, QualityCycleRun, QualityCycleRunPaths,
+    QualityCycleStopCondition, QualityCycleVerification, QualityCycleVerificationStatus,
+    QualityGap, QualityGapGroup, QualityGapReport, SuggestedFixType, finalize_quality_cycle,
+    gaps_from_gate_report, generate_cycle_plan, group_gaps, render_quality_cycle_final_report,
+    render_quality_cycle_plan, render_quality_gap_report, run_single_quality_cycle,
+    write_quality_cycle_final_report, write_quality_cycle_plan, write_quality_cycle_run,
+    write_quality_gap_report,
 };
 pub use gate::{
     QualityGateOptions, QualityGateReport, ThresholdFailure, assert_quality_gate_passes,

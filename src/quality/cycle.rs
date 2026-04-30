@@ -12,6 +12,7 @@ use crate::quality::{
     report::{ComparatorOnlySymbol, ThinindexOnlySymbol},
 };
 
+pub const QUALITY_CYCLE_ID: &str = "QUALITY_CYCLE_01";
 pub const DEFAULT_MAX_GAPS_PER_CYCLE: usize = 10;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -57,6 +58,83 @@ impl GapStatus {
             Self::Fixed => "fixed",
             Self::Unsupported => "unsupported",
             Self::FalsePositive => "false-positive",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum QualityCycleStopCondition {
+    NoSelectedGaps,
+    SelectedGapsFixed,
+    RemainingGapsUnsupported,
+    RemainingGapsComparatorFalsePositive,
+    RemainingGapsRequireArchitectureOrLanguageExpansion,
+    VerificationFailedNeedsHumanReview,
+}
+
+impl QualityCycleStopCondition {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::NoSelectedGaps => "no_selected_gaps",
+            Self::SelectedGapsFixed => "selected_gaps_fixed",
+            Self::RemainingGapsUnsupported => "remaining_gaps_unsupported",
+            Self::RemainingGapsComparatorFalsePositive => {
+                "remaining_gaps_comparator_false_positive"
+            }
+            Self::RemainingGapsRequireArchitectureOrLanguageExpansion => {
+                "remaining_gaps_require_architecture_or_language_expansion"
+            }
+            Self::VerificationFailedNeedsHumanReview => "verification_failed_needs_human_review",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum QualityCycleVerificationStatus {
+    Passed,
+    Failed,
+    Skipped,
+}
+
+impl QualityCycleVerificationStatus {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Passed => "passed",
+            Self::Failed => "failed",
+            Self::Skipped => "skipped",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QualityCycleVerification {
+    pub command: String,
+    pub status: QualityCycleVerificationStatus,
+    pub detail: String,
+}
+
+impl QualityCycleVerification {
+    pub fn passed(command: impl Into<String>) -> Self {
+        Self {
+            command: command.into(),
+            status: QualityCycleVerificationStatus::Passed,
+            detail: String::new(),
+        }
+    }
+
+    pub fn failed(command: impl Into<String>, detail: impl Into<String>) -> Self {
+        Self {
+            command: command.into(),
+            status: QualityCycleVerificationStatus::Failed,
+            detail: detail.into(),
+        }
+    }
+
+    pub fn skipped(command: impl Into<String>, detail: impl Into<String>) -> Self {
+        Self {
+            command: command.into(),
+            status: QualityCycleVerificationStatus::Skipped,
+            detail: detail.into(),
         }
     }
 }
@@ -158,7 +236,7 @@ pub struct CyclePlanOptions {
 impl Default for CyclePlanOptions {
     fn default() -> Self {
         Self {
-            cycle_id: "QUALITY_CYCLE_01".to_string(),
+            cycle_id: QUALITY_CYCLE_ID.to_string(),
             max_gaps: DEFAULT_MAX_GAPS_PER_CYCLE,
         }
     }
@@ -170,6 +248,31 @@ pub struct QualityCyclePlan {
     pub max_gaps: usize,
     pub selected_gaps: Vec<QualityGap>,
     pub deferred_gap_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QualityCycleRun {
+    pub gap_report: QualityGapReport,
+    pub plan: QualityCyclePlan,
+    pub cycles_executed: usize,
+    pub automatic_next_cycle_allowed: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QualityCycleRunPaths {
+    pub gap_report_path: PathBuf,
+    pub cycle_plan_path: PathBuf,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QualityCycleFinalReport {
+    pub cycle_id: String,
+    pub selected_gap_ids: Vec<String>,
+    pub fixed_gap_ids: Vec<String>,
+    pub remaining_gap_ids: Vec<String>,
+    pub stop_conditions: Vec<QualityCycleStopCondition>,
+    pub verification: Vec<QualityCycleVerification>,
+    pub automatic_next_cycle_allowed: bool,
 }
 
 pub fn gaps_from_gate_report(report: &QualityGateReport) -> QualityGapReport {
@@ -315,6 +418,21 @@ pub fn gaps_from_gate_report(report: &QualityGateReport) -> QualityGapReport {
     }
 }
 
+pub fn run_single_quality_cycle(
+    report: &QualityGateReport,
+    options: CyclePlanOptions,
+) -> QualityCycleRun {
+    let gap_report = gaps_from_gate_report(report);
+    let plan = generate_cycle_plan(&gap_report, options);
+
+    QualityCycleRun {
+        gap_report,
+        plan,
+        cycles_executed: 1,
+        automatic_next_cycle_allowed: false,
+    }
+}
+
 pub fn group_gaps(gaps: &[QualityGap]) -> Vec<QualityGapGroup> {
     let mut grouped: BTreeMap<(String, String, GapSeverity, String), Vec<String>> = BTreeMap::new();
 
@@ -382,6 +500,92 @@ pub fn generate_cycle_plan(
         max_gaps,
         selected_gaps,
         deferred_gap_ids,
+    }
+}
+
+pub fn finalize_quality_cycle(
+    plan: &QualityCyclePlan,
+    current_gaps: &[QualityGap],
+    verification: Vec<QualityCycleVerification>,
+) -> QualityCycleFinalReport {
+    let selected_ids = plan
+        .selected_gaps
+        .iter()
+        .map(|gap| gap.id.clone())
+        .collect::<BTreeSet<_>>();
+    let current_by_id = current_gaps
+        .iter()
+        .map(|gap| (gap.id.clone(), gap))
+        .collect::<BTreeMap<_, _>>();
+
+    let mut fixed_gap_ids = Vec::new();
+    let mut remaining_gap_ids = Vec::new();
+    let mut remaining_gaps = Vec::new();
+
+    for gap in current_gaps {
+        if gap.status == GapStatus::Fixed {
+            fixed_gap_ids.push(gap.id.clone());
+        } else {
+            remaining_gap_ids.push(gap.id.clone());
+            if !selected_ids.contains(&gap.id) {
+                remaining_gaps.push(gap.clone());
+            }
+        }
+    }
+
+    fixed_gap_ids.sort();
+    remaining_gap_ids.sort();
+    remaining_gaps.sort_by_key(gap_sort_key);
+
+    let mut stop_conditions = BTreeSet::new();
+    if plan.selected_gaps.is_empty() {
+        stop_conditions.insert(QualityCycleStopCondition::NoSelectedGaps);
+    } else if selected_ids.iter().all(|id| {
+        current_by_id
+            .get(id)
+            .is_some_and(|gap| gap.status == GapStatus::Fixed)
+    }) {
+        stop_conditions.insert(QualityCycleStopCondition::SelectedGapsFixed);
+    } else {
+        stop_conditions.insert(QualityCycleStopCondition::VerificationFailedNeedsHumanReview);
+    }
+
+    if !remaining_gaps.is_empty()
+        && remaining_gaps
+            .iter()
+            .all(|gap| gap.status == GapStatus::Unsupported)
+    {
+        stop_conditions.insert(QualityCycleStopCondition::RemainingGapsUnsupported);
+    }
+
+    if !remaining_gaps.is_empty()
+        && remaining_gaps
+            .iter()
+            .all(|gap| gap.status == GapStatus::FalsePositive)
+    {
+        stop_conditions.insert(QualityCycleStopCondition::RemainingGapsComparatorFalsePositive);
+    }
+
+    if !remaining_gaps.is_empty() && remaining_gaps.iter().all(gap_requires_later_plan) {
+        stop_conditions
+            .insert(QualityCycleStopCondition::RemainingGapsRequireArchitectureOrLanguageExpansion);
+    }
+
+    if verification
+        .iter()
+        .any(|item| item.status == QualityCycleVerificationStatus::Failed)
+    {
+        stop_conditions.insert(QualityCycleStopCondition::VerificationFailedNeedsHumanReview);
+    }
+
+    QualityCycleFinalReport {
+        cycle_id: plan.cycle_id.clone(),
+        selected_gap_ids: selected_ids.into_iter().collect(),
+        fixed_gap_ids,
+        remaining_gap_ids,
+        stop_conditions: stop_conditions.into_iter().collect(),
+        verification,
+        automatic_next_cycle_allowed: false,
     }
 }
 
@@ -454,6 +658,17 @@ pub fn render_quality_cycle_plan(plan: &QualityCyclePlan) -> String {
     );
     out.push_str("- [ ] Stop after this cycle and commit the bounded fix batch.\n\n");
 
+    out.push_str("## Expected Change Set\n\n");
+    let targets = suggested_change_targets(&plan.selected_gaps);
+    if targets.is_empty() {
+        out.push_str("- none\n\n");
+    } else {
+        for target in targets {
+            out.push_str(&format!("- {target}\n"));
+        }
+        out.push('\n');
+    }
+
     out.push_str("## Deferred Gap IDs\n\n");
     if plan.deferred_gap_ids.is_empty() {
         out.push_str("- none\n");
@@ -462,6 +677,64 @@ pub fn render_quality_cycle_plan(plan: &QualityCyclePlan) -> String {
             out.push_str(&format!("- {gap_id}\n"));
         }
     }
+
+    out
+}
+
+pub fn render_quality_cycle_final_report(report: &QualityCycleFinalReport) -> String {
+    let mut out = String::new();
+    out.push_str(&format!("# {} Final Report\n\n", report.cycle_id));
+    out.push_str("- model: check -> plan -> act -> stop\n");
+    out.push_str("- one-cycle limit: true\n");
+    out.push_str(&format!(
+        "- automatic next cycle allowed: {}\n",
+        yes_no(report.automatic_next_cycle_allowed)
+    ));
+    out.push_str(&format!(
+        "- selected gaps: {}\n",
+        render_values(&report.selected_gap_ids)
+    ));
+    out.push_str(&format!(
+        "- fixed gaps: {}\n",
+        render_values(&report.fixed_gap_ids)
+    ));
+    out.push_str(&format!(
+        "- remaining gaps: {}\n",
+        render_values(&report.remaining_gap_ids)
+    ));
+    out.push_str(&format!(
+        "- stop conditions: {}\n\n",
+        render_stop_conditions(&report.stop_conditions)
+    ));
+
+    out.push_str("## Verification\n\n");
+    if report.verification.is_empty() {
+        out.push_str("- none recorded\n\n");
+    } else {
+        let mut verification = report.verification.clone();
+        verification.sort_by(|left, right| left.command.cmp(&right.command));
+        for item in verification {
+            if item.detail.is_empty() {
+                out.push_str(&format!(
+                    "- command: `{}` status: {}\n",
+                    item.command,
+                    item.status.as_str()
+                ));
+            } else {
+                out.push_str(&format!(
+                    "- command: `{}` status: {} detail: {}\n",
+                    item.command,
+                    item.status.as_str(),
+                    item.detail
+                ));
+            }
+        }
+        out.push('\n');
+    }
+
+    out.push_str("## Agent Boundary\n\n");
+    out.push_str("- Stop after this report.\n");
+    out.push_str("- Do not automatically start another quality cycle in this execution.\n");
 
     out
 }
@@ -480,6 +753,19 @@ pub fn write_quality_gap_report(repo_root: &Path, report: &QualityGapReport) -> 
     Ok(path)
 }
 
+pub fn write_quality_cycle_run(
+    repo_root: &Path,
+    run: &QualityCycleRun,
+) -> Result<QualityCycleRunPaths> {
+    let gap_report_path = write_quality_gap_report(repo_root, &run.gap_report)?;
+    let cycle_plan_path = write_quality_cycle_plan(repo_root, &run.plan)?;
+
+    Ok(QualityCycleRunPaths {
+        gap_report_path,
+        cycle_plan_path,
+    })
+}
+
 pub fn write_quality_cycle_plan(repo_root: &Path, plan: &QualityCyclePlan) -> Result<PathBuf> {
     let report_dir = quality_report_dir(repo_root);
     fs::create_dir_all(&report_dir).with_context(|| {
@@ -490,6 +776,26 @@ pub fn write_quality_cycle_plan(repo_root: &Path, plan: &QualityCyclePlan) -> Re
     })?;
     let path = report_dir.join(format!("{}_PLAN.md", sanitize_file_stem(&plan.cycle_id)));
     fs::write(&path, render_quality_cycle_plan(plan))
+        .with_context(|| format!("failed to write {}", path.display()))?;
+    Ok(path)
+}
+
+pub fn write_quality_cycle_final_report(
+    repo_root: &Path,
+    report: &QualityCycleFinalReport,
+) -> Result<PathBuf> {
+    let report_dir = quality_report_dir(repo_root);
+    fs::create_dir_all(&report_dir).with_context(|| {
+        format!(
+            "failed to create quality report dir {}",
+            report_dir.display()
+        )
+    })?;
+    let path = report_dir.join(format!(
+        "{}_REPORT.md",
+        sanitize_file_stem(&report.cycle_id)
+    ));
+    fs::write(&path, render_quality_cycle_final_report(report))
         .with_context(|| format!("failed to write {}", path.display()))?;
     Ok(path)
 }
@@ -672,6 +978,15 @@ fn evidence_rank(source: &str) -> u8 {
     }
 }
 
+fn gap_requires_later_plan(gap: &QualityGap) -> bool {
+    gap.status == GapStatus::Open
+        && (gap.evidence_source == "unsupported-extension"
+            || gap.suggested_fix == SuggestedFixType::Documentation
+            || gap.detail.contains("architecture")
+            || gap.detail.contains("language expansion")
+            || gap.detail.contains("unsupported syntax"))
+}
+
 fn language_from_detail(detail: &str) -> String {
     extract_debug_field(detail, "language")
         .or_else(|| extract_plain_field(detail, "language"))
@@ -738,6 +1053,65 @@ fn normalize_language(language: &str) -> String {
     } else {
         language.to_ascii_lowercase()
     }
+}
+
+fn render_values(values: &[String]) -> String {
+    if values.is_empty() {
+        "none".to_string()
+    } else {
+        values.join(", ")
+    }
+}
+
+fn render_stop_conditions(conditions: &[QualityCycleStopCondition]) -> String {
+    if conditions.is_empty() {
+        "none".to_string()
+    } else {
+        conditions
+            .iter()
+            .map(|condition| condition.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+}
+
+fn suggested_change_targets(gaps: &[QualityGap]) -> Vec<String> {
+    let mut targets = BTreeSet::new();
+
+    for gap in gaps {
+        if let Some(path) = &gap.path {
+            targets.insert(format!("source: {path}"));
+        }
+
+        match gap.suggested_fix {
+            SuggestedFixType::ParserQuery => {
+                targets
+                    .insert("parser: Tree-sitter query spec for the affected language".to_string());
+                targets
+                    .insert("tests: parser conformance fixture for the missed syntax".to_string());
+            }
+            SuggestedFixType::Fixture => {
+                targets.insert("tests: parser or quality conformance fixture".to_string());
+            }
+            SuggestedFixType::ManifestExpectedSymbol => {
+                targets.insert("manifest: test_repos/MANIFEST.toml expected symbol".to_string());
+            }
+            SuggestedFixType::ComparatorTriage => {
+                targets.insert("quality: .dev_index/quality/COMPARATOR_TRIAGE.md".to_string());
+            }
+            SuggestedFixType::IntegrityFix => {
+                targets.insert("tests: index integrity regression coverage".to_string());
+            }
+            SuggestedFixType::PerformanceTriage => {
+                targets.insert("tests: benchmark or performance regression gate".to_string());
+            }
+            SuggestedFixType::Documentation => {
+                targets.insert("docs: parser support or quality-loop documentation".to_string());
+            }
+        }
+    }
+
+    targets.into_iter().collect()
 }
 
 fn yes_no(value: bool) -> &'static str {

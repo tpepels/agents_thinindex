@@ -4,6 +4,8 @@ The quality loop is a bounded Check -> Plan -> Act workflow for improving parser
 
 It is not a production indexing path. It does not write comparator output to production SQLite `records` or `refs`, and it does not add install, release, network, telemetry, payment, or license-enforcement behavior.
 
+One execution is exactly one quality cycle. A cycle run may check, write one plan, help drive one bounded fix batch, write one final report, and then stop. Agents must not start a second cycle automatically from the same execution.
+
 ## Check
 
 Run the normal deterministic checks:
@@ -38,6 +40,7 @@ The loop writes:
 - `.dev_index/quality/QUALITY_GAPS.md`
 - `.dev_index/quality/COMPARATOR_TRIAGE.md`
 - `.dev_index/quality/QUALITY_CYCLE_01_PLAN.md`
+- `.dev_index/quality/QUALITY_CYCLE_01_REPORT.md`
 
 Gaps are grouped by language, syntax construct, severity, and evidence source. Every gap includes:
 
@@ -56,6 +59,8 @@ Comparator triage groups comparator-only and thinindex-only symbols by language,
 
 Cycle plans are bounded to one pass and at most 10 gaps by default. Prefer supported-language missing symbols and failing expected patterns over comparator-only noise.
 
+The cycle runner records `cycles_executed = 1` and `automatic_next_cycle_allowed = false`. Raising the requested gap limit above 10 is capped back to 10.
+
 ## Act
 
 For the selected batch:
@@ -66,7 +71,8 @@ For the selected batch:
 4. Add a manifest expected symbol for important real-repo misses where practical.
 5. Rerun normal and applicable ignored quality gates.
 6. Mark remaining comparator-only findings with one of the explicit triage states.
-7. Stop after this cycle and commit the bounded fix batch.
+7. Write `.dev_index/quality/QUALITY_CYCLE_01_REPORT.md`.
+8. Stop after this cycle and commit the bounded fix batch.
 
 Do not automatically start a second cycle in the same execution.
 
@@ -86,6 +92,17 @@ Do not add a parser rule solely because an optional comparator produced a symbol
 
 Stop the cycle when the selected batch is fixed and verified, or when the remaining gaps are documented unsupported cases, accepted comparator false positives, or low-value noise.
 
+The final report uses these stop conditions:
+
+- `no_selected_gaps`
+- `selected_gaps_fixed`
+- `remaining_gaps_unsupported`
+- `remaining_gaps_comparator_false_positive`
+- `remaining_gaps_require_architecture_or_language_expansion`
+- `verification_failed_needs_human_review`
+
+`verification_failed_needs_human_review` is terminal for the current execution. Fix the underlying failure before any future manually started cycle.
+
 Measurable closure criteria:
 
 - no missing manifest expected symbols
@@ -98,3 +115,13 @@ Measurable closure criteria:
 - comparator-only symbols are triaged
 - every parser fix has a regression fixture where practical
 - quality report improves or remains stable between runs
+
+## One-Cycle Test Workflow
+
+The ignored quality-loop test is the documented runner workflow for local real repos:
+
+```sh
+cargo test --test quality_loop -- --ignored
+```
+
+It rebuilds each configured repo under `test_repos/`, runs the normal gate plus optional comparator data, writes the gap report, writes one bounded plan, writes comparator triage when available, writes the final report, and stops. If `test_repos/` is missing or empty, the workflow prints a skip message.

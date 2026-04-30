@@ -9,12 +9,13 @@ use thinindex::{
     model::IndexRecord,
     quality::{
         ComparatorRecord, ComparatorRun, CyclePlanOptions, GapSeverity, GapStatus,
-        QualityComparator, QualityGap, QualityGapReport, QualityGateOptions, SuggestedFixType,
-        UniversalCtagsComparator, assert_quality_gate_passes, evaluate_quality_gate,
+        QualityComparator, QualityCycleStopCondition, QualityCycleVerification, QualityGap,
+        QualityGapReport, QualityGateOptions, SuggestedFixType, UniversalCtagsComparator,
+        assert_quality_gate_passes, evaluate_quality_gate, finalize_quality_cycle,
         gaps_from_gate_report, generate_cycle_plan, group_gaps, load_quality_repo_set,
-        render_quality_cycle_plan, render_quality_gap_report, render_triage_report,
-        triage_report_from_quality_report, write_quality_cycle_plan, write_quality_gap_report,
-        write_triage_report,
+        render_quality_cycle_final_report, render_quality_cycle_plan, render_quality_gap_report,
+        render_triage_report, run_single_quality_cycle, triage_report_from_quality_report,
+        write_quality_cycle_final_report, write_quality_cycle_run, write_triage_report,
     },
     store::load_records,
 };
@@ -163,10 +164,71 @@ fn cycle_plan_is_bounded_and_prioritizes_expected_symbols_over_comparator_noise(
             .take(2)
             .all(|gap| gap.evidence_source == "expected-symbol")
     );
+    let rendered = render_quality_cycle_plan(&plan);
     assert!(
-        render_quality_cycle_plan(&plan).contains("- one-cycle limit: true"),
+        rendered.contains("- one-cycle limit: true"),
         "plan must document bounded cycle behavior"
     );
+    assert!(rendered.contains("## Expected Change Set"));
+    assert!(rendered.contains("parser: Tree-sitter query spec for the affected language"));
+}
+
+#[test]
+fn cycle_plan_caps_requested_gap_limit_at_default_max() {
+    let report = QualityGapReport {
+        repo_name: "fixture".to_string(),
+        repo_path: "/tmp/fixture".to_string(),
+        gaps: (0..12)
+            .map(|index| {
+                gap(
+                    &format!("GAP-{index:04}"),
+                    "rs",
+                    "function",
+                    "expected-symbol",
+                    GapSeverity::High,
+                )
+            })
+            .collect(),
+    };
+
+    let plan = generate_cycle_plan(
+        &report,
+        CyclePlanOptions {
+            cycle_id: "QUALITY_CYCLE_01".to_string(),
+            max_gaps: 50,
+        },
+    );
+
+    assert_eq!(
+        plan.max_gaps,
+        thinindex::quality::DEFAULT_MAX_GAPS_PER_CYCLE
+    );
+    assert_eq!(plan.selected_gaps.len(), 10);
+    assert_eq!(plan.deferred_gap_ids.len(), 2);
+}
+
+#[test]
+fn single_cycle_runner_executes_exactly_one_bounded_plan() {
+    let gate = evaluate_quality_gate(
+        &[record("src/lib.rs", 1, 1, "rs", "function", "present")],
+        &[],
+        QualityGateOptions::new("fixture", "/tmp/fixture").with_expected_symbols(vec![
+            ExpectedSymbol {
+                language: Some("rs".to_string()),
+                path: Some("src/lib.rs".to_string()),
+                kind: Some("function".to_string()),
+                name: "missing_symbol".to_string(),
+            },
+        ]),
+    )
+    .expect("evaluate gate");
+
+    let run = run_single_quality_cycle(&gate, CyclePlanOptions::default());
+
+    assert_eq!(run.cycles_executed, 1);
+    assert!(!run.automatic_next_cycle_allowed);
+    assert_eq!(run.plan.selected_gaps.len(), 1);
+    assert!(render_quality_cycle_plan(&run.plan).contains("- one-cycle limit: true"));
 }
 
 #[test]
@@ -217,6 +279,152 @@ fn triage_status_handling_excludes_non_open_gaps_from_plan() {
     assert!(rendered.contains("status: false-positive"));
     assert!(rendered.contains("fixture_added: yes"));
     assert!(rendered.contains("manifest_added: yes"));
+}
+
+#[test]
+fn final_cycle_report_enforces_stop_conditions_and_no_next_cycle() {
+    let report = QualityGapReport {
+        repo_name: "fixture".to_string(),
+        repo_path: "/tmp/fixture".to_string(),
+        gaps: vec![
+            gap(
+                "GAP-0001",
+                "rs",
+                "function",
+                "expected-symbol",
+                GapSeverity::High,
+            ),
+            gap(
+                "GAP-0002",
+                "rs",
+                "macro",
+                "comparator-only",
+                GapSeverity::Medium,
+            )
+            .with_status(GapStatus::FalsePositive),
+        ],
+    };
+    let plan = generate_cycle_plan(&report, CyclePlanOptions::default());
+    let mut current_gaps = report.gaps.clone();
+    current_gaps[0] = current_gaps[0].clone().with_status(GapStatus::Fixed);
+    let final_report = finalize_quality_cycle(
+        &plan,
+        &current_gaps,
+        vec![
+            QualityCycleVerification::passed("cargo test"),
+            QualityCycleVerification::skipped(
+                "cargo test --test real_repos -- --ignored",
+                "test_repos/ missing",
+            ),
+        ],
+    );
+    let rendered = render_quality_cycle_final_report(&final_report);
+
+    assert!(!final_report.automatic_next_cycle_allowed);
+    assert_eq!(
+        final_report.stop_conditions,
+        vec![
+            QualityCycleStopCondition::SelectedGapsFixed,
+            QualityCycleStopCondition::RemainingGapsComparatorFalsePositive,
+        ]
+    );
+    assert!(rendered.contains("- automatic next cycle allowed: no"));
+    assert!(rendered.contains("remaining_gaps_comparator_false_positive"));
+    assert!(rendered.contains("- Stop after this report."));
+}
+
+#[test]
+fn final_cycle_report_marks_verification_failure_for_human_review() {
+    let report = QualityGapReport {
+        repo_name: "fixture".to_string(),
+        repo_path: "/tmp/fixture".to_string(),
+        gaps: vec![gap(
+            "GAP-0001",
+            "rs",
+            "function",
+            "expected-symbol",
+            GapSeverity::High,
+        )],
+    };
+    let plan = generate_cycle_plan(&report, CyclePlanOptions::default());
+    let final_report = finalize_quality_cycle(
+        &plan,
+        &report.gaps,
+        vec![QualityCycleVerification::failed(
+            "cargo clippy --all-targets --all-features -- -D warnings",
+            "needs human review",
+        )],
+    );
+
+    assert!(
+        final_report
+            .stop_conditions
+            .contains(&QualityCycleStopCondition::VerificationFailedNeedsHumanReview)
+    );
+    assert!(
+        render_quality_cycle_final_report(&final_report)
+            .contains("verification_failed_needs_human_review")
+    );
+}
+
+#[test]
+fn final_cycle_report_is_deterministic() {
+    let report = QualityGapReport {
+        repo_name: "fixture".to_string(),
+        repo_path: "/tmp/fixture".to_string(),
+        gaps: vec![
+            gap(
+                "GAP-0001",
+                "rs",
+                "function",
+                "expected-symbol",
+                GapSeverity::High,
+            )
+            .with_status(GapStatus::Fixed),
+            gap(
+                "GAP-0002",
+                "rs",
+                "function",
+                "unsupported-extension",
+                GapSeverity::Low,
+            ),
+        ],
+    };
+    let mut planning_report = report.clone();
+    planning_report.gaps[0] = planning_report.gaps[0].clone().with_status(GapStatus::Open);
+    let plan = generate_cycle_plan(
+        &planning_report,
+        CyclePlanOptions {
+            cycle_id: "QUALITY_CYCLE_01".to_string(),
+            max_gaps: 1,
+        },
+    );
+    let first = finalize_quality_cycle(
+        &plan,
+        &report.gaps,
+        vec![
+            QualityCycleVerification::skipped("cargo test --test real_repos -- --ignored", "none"),
+            QualityCycleVerification::passed("cargo test"),
+        ],
+    );
+    let second = finalize_quality_cycle(
+        &plan,
+        &report.gaps,
+        vec![
+            QualityCycleVerification::skipped("cargo test --test real_repos -- --ignored", "none"),
+            QualityCycleVerification::passed("cargo test"),
+        ],
+    );
+
+    assert_eq!(
+        render_quality_cycle_final_report(&first),
+        render_quality_cycle_final_report(&second)
+    );
+    assert!(
+        first.stop_conditions.contains(
+            &QualityCycleStopCondition::RemainingGapsRequireArchitectureOrLanguageExpansion
+        )
+    );
 }
 
 #[test]
@@ -420,16 +628,30 @@ fn quality_loop_reports_do_not_pollute_production_database() {
         QualityGateOptions::new("fixture", temp.path().display().to_string()),
     )
     .expect("evaluate gate");
-    let gaps = gaps_from_gate_report(&gate);
-    let plan = generate_cycle_plan(&gaps, CyclePlanOptions::default());
+    let run = run_single_quality_cycle(&gate, CyclePlanOptions::default());
+    let paths = write_quality_cycle_run(temp.path(), &run).expect("write cycle reports");
+    let final_report = finalize_quality_cycle(
+        &run.plan,
+        &run.gap_report.gaps,
+        vec![QualityCycleVerification::passed("cargo test")],
+    );
+    let final_path =
+        write_quality_cycle_final_report(temp.path(), &final_report).expect("write final report");
 
-    let gaps_path = write_quality_gap_report(temp.path(), &gaps).expect("write gap report");
-    let plan_path = write_quality_cycle_plan(temp.path(), &plan).expect("write cycle plan");
-
-    assert!(gaps_path.ends_with(".dev_index/quality/QUALITY_GAPS.md"));
-    assert!(plan_path.ends_with(".dev_index/quality/QUALITY_CYCLE_01_PLAN.md"));
-    assert!(gaps_path.exists());
-    assert!(plan_path.exists());
+    assert!(
+        paths
+            .gap_report_path
+            .ends_with(".dev_index/quality/QUALITY_GAPS.md")
+    );
+    assert!(
+        paths
+            .cycle_plan_path
+            .ends_with(".dev_index/quality/QUALITY_CYCLE_01_PLAN.md")
+    );
+    assert!(final_path.ends_with(".dev_index/quality/QUALITY_CYCLE_01_REPORT.md"));
+    assert!(paths.gap_report_path.exists());
+    assert!(paths.cycle_plan_path.exists());
+    assert!(final_path.exists());
     assert_eq!(
         before,
         load_records(temp.path()).expect("load records after reports")
@@ -502,10 +724,16 @@ fn full_quality_loop_writes_gap_report_and_bounded_plan_for_test_repos() -> Resu
         )?;
         assert_quality_gate_passes(&gate)?;
 
-        let gaps = gaps_from_gate_report(&gate);
-        let plan = generate_cycle_plan(&gaps, CyclePlanOptions::default());
-        let gaps_path = write_quality_gap_report(&repo.path, &gaps)?;
-        let plan_path = write_quality_cycle_plan(&repo.path, &plan)?;
+        let run = run_single_quality_cycle(&gate, CyclePlanOptions::default());
+        let paths = write_quality_cycle_run(&repo.path, &run)?;
+        let final_report = finalize_quality_cycle(
+            &run.plan,
+            &run.gap_report.gaps,
+            vec![QualityCycleVerification::passed(
+                "cargo test --test quality_loop -- --ignored",
+            )],
+        );
+        let final_path = write_quality_cycle_final_report(&repo.path, &final_report)?;
         let triage_path = if let Some(comparator_report) = &gate.comparator_report {
             Some(write_triage_report(
                 &repo.path,
@@ -514,13 +742,17 @@ fn full_quality_loop_writes_gap_report_and_bounded_plan_for_test_repos() -> Resu
         } else {
             None
         };
-        println!("{}", render_quality_gap_report(&gaps));
-        println!("{}", render_quality_cycle_plan(&plan));
+        println!("{}", render_quality_gap_report(&run.gap_report));
+        println!("{}", render_quality_cycle_plan(&run.plan));
+        println!("{}", render_quality_cycle_final_report(&final_report));
 
-        assert!(gaps_path.exists());
-        assert!(plan_path.exists());
+        assert!(paths.gap_report_path.exists());
+        assert!(paths.cycle_plan_path.exists());
+        assert!(final_path.exists());
         assert!(triage_path.is_none_or(|path| path.exists()));
-        assert!(plan.selected_gaps.len() <= thinindex::quality::DEFAULT_MAX_GAPS_PER_CYCLE);
+        assert!(run.plan.selected_gaps.len() <= thinindex::quality::DEFAULT_MAX_GAPS_PER_CYCLE);
+        assert_eq!(run.cycles_executed, 1);
+        assert!(!run.automatic_next_cycle_allowed);
     }
 
     Ok(())
