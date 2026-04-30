@@ -1,6 +1,6 @@
 # Releasing
 
-This document covers release archives only. Native installers, signing, notarization, CI publishing, payments, license enforcement, telemetry, and cloud behavior are later work.
+This document covers release archives and archive install helpers. Native package formats, signing, notarization, CI publishing, payments, license enforcement, telemetry, and cloud behavior are later work.
 
 ## Build A Release Archive
 
@@ -58,7 +58,12 @@ Each archive contains:
 - `README.md`
 - `INSTALL.md`
 - `docs/RELEASING.md`
+- `docs/INSTALLERS.md`
 - `THIRD_PARTY_NOTICES`
+- `scripts/install-archive-unix`
+- `scripts/uninstall-archive-unix`
+- `scripts/windows/install.ps1`
+- `scripts/windows/uninstall.ps1`
 - `LICENSE` when a repository `LICENSE` file exists
 
 The archive is assembled from explicit files only. It does not include:
@@ -74,6 +79,8 @@ The archive is assembled from explicit files only. It does not include:
 
 Universal Ctags is not bundled and not required after the Tree-sitter parser work. `THIRD_PARTY_NOTICES` ships with release artifacts and records the current dependency/license facts.
 
+Native installer and signing status is documented in [INSTALLERS.md](INSTALLERS.md). The current helper scripts are archive install helpers, not signed native installers.
+
 ## Manual Install From Archive
 
 Extract the archive, then copy the binaries to a directory on `PATH`.
@@ -83,11 +90,16 @@ On Unix-like systems:
 ```bash
 tar -xzf thinindex-<version>-<target>.tar.gz
 cd thinindex-<version>-<target>
-chmod +x wi build_index wi-init wi-stats
-cp wi build_index wi-init wi-stats ~/.local/bin/
+scripts/install-archive-unix
 ```
 
-On Windows, extract the `.zip` archive and copy the `.exe` files to a directory on `PATH`.
+On Windows, extract the `.zip` archive and run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\windows\install.ps1
+```
+
+Add the printed install directory to `PATH` if needed.
 
 After copying:
 

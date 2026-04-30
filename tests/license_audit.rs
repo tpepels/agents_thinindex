@@ -174,6 +174,7 @@ fn docs_only_mention_ctags_as_removed_or_not_used() {
     for path in [
         "README.md",
         "docs/LICENSE_AUDIT.md",
+        "docs/INSTALLERS.md",
         "docs/PRODUCT_BOUNDARY.md",
         "docs/RELEASING.md",
         "docs/ROADMAP.md",

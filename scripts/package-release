@@ -125,10 +125,21 @@ done
 require_file "README.md"
 require_file "THIRD_PARTY_NOTICES"
 require_file "docs/RELEASING.md"
+require_file "docs/INSTALLERS.md"
+require_file "scripts/install-archive-unix"
+require_file "scripts/uninstall-archive-unix"
+require_file "scripts/windows/install.ps1"
+require_file "scripts/windows/uninstall.ps1"
 cp "README.md" "$PACKAGE_DIR/README.md"
 cp "THIRD_PARTY_NOTICES" "$PACKAGE_DIR/THIRD_PARTY_NOTICES"
 mkdir -p "$PACKAGE_DIR/docs"
 cp "docs/RELEASING.md" "$PACKAGE_DIR/docs/RELEASING.md"
+cp "docs/INSTALLERS.md" "$PACKAGE_DIR/docs/INSTALLERS.md"
+mkdir -p "$PACKAGE_DIR/scripts/windows"
+install -m 0755 "scripts/install-archive-unix" "$PACKAGE_DIR/scripts/install-archive-unix"
+install -m 0755 "scripts/uninstall-archive-unix" "$PACKAGE_DIR/scripts/uninstall-archive-unix"
+cp "scripts/windows/install.ps1" "$PACKAGE_DIR/scripts/windows/install.ps1"
+cp "scripts/windows/uninstall.ps1" "$PACKAGE_DIR/scripts/windows/uninstall.ps1"
 
 if [ -f "LICENSE" ]; then
     cp "LICENSE" "$PACKAGE_DIR/LICENSE"
@@ -157,7 +168,8 @@ The repo-local index is generated as `.dev_index/index.sqlite` in each repositor
 where `build_index` runs. It is not included in this release archive.
 
 `THIRD_PARTY_NOTICES` is included with this archive. Native installers, signing,
-and notarization are not part of this archive format.
+and notarization are not part of this archive format. See docs/INSTALLERS.md for
+the current installer and signing status.
 INSTALL
 
 rm -f "$ARCHIVE_PATH" "$CHECKSUM_PATH"

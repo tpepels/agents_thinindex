@@ -1,4 +1,4 @@
-# PLAN_14_INSTALLERS_AND_SIGNING.md
+# PLAN_15_INSTALLERS_AND_SIGNING.md
 
 Use superpowers:subagent-driven-development.
 
@@ -194,3 +194,15 @@ Report:
 - whether ignored real-repo test ran, skipped, or failed
 - remaining packaging caveats
 - commit hash
+
+## Implementation tracking
+
+- [x] Confirm PLAN_00 through PLAN_14 are complete and green.
+- [x] Add Unix-like archive install/uninstall helper scripts for all thinindex binaries.
+- [x] Add Windows PowerShell archive install/uninstall helper scripts for all thinindex binaries.
+- [x] Include installer docs and helper scripts in release archives.
+- [x] Document Windows, macOS, and Linux installer/signing status honestly.
+- [x] Document checksum verification and `THIRD_PARTY_NOTICES` release requirement.
+- [x] Add installer/signing tests/checks.
+- [x] Run required verification and install/uninstall smoke.
+- [x] Commit with `Add installer and signing scaffolding`.

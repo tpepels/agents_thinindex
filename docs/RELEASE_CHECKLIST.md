@@ -17,6 +17,8 @@ Run before cutting a thinindex release:
 - confirm the documented parser support matrix matches the bundled Tree-sitter grammar dependencies
 - `scripts/package-release`
 - inspect/list the generated archive contents
+- archive install smoke with `scripts/install-archive-unix` from the extracted archive on Unix-like platforms
+- archive uninstall smoke with `scripts/uninstall-archive-unix` from the extracted archive on Unix-like platforms
 - install smoke with a temp `BIN_DIR`
 - uninstall smoke with the same temp `BIN_DIR`
 
@@ -36,7 +38,8 @@ Packaging note:
 - Tree-sitter parser and grammar dependencies are bundled and must remain permissively licensed.
 - Cross-platform release archives and installers require a passing `cargo deny check licenses` run.
 - Proprietary packaging remains blocked by GPL, AGPL, LGPL-only, MPL-only, EPL, CDDL, unknown, custom, or non-commercial dependency terms unless a future plan records an explicit review exception.
-- Release archives must include all thinindex binaries, `README.md`, `INSTALL.md`, `docs/RELEASING.md`, and `THIRD_PARTY_NOTICES`.
+- Release archives must include all thinindex binaries, `README.md`, `INSTALL.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, helper install/uninstall scripts, and `THIRD_PARTY_NOTICES`.
 - Release archives must not include `.dev_index/`, `test_repos/`, `target/`, `dist/`, source checkout contents, or generated local benchmark outputs.
-- Native installers, signing, and notarization are later work.
+- Native package formats, signing, and notarization are later work.
+- Windows Authenticode signing, macOS Developer ID signing/notarization, and Linux package signing are not implemented.
 - Smoke-test generated artifacts on each target platform before publishing.

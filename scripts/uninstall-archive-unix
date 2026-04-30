@@ -1,0 +1,34 @@
+#!/usr/bin/env sh
+set -eu
+
+BINARIES="wi build_index wi-init wi-stats"
+PREFIX="${PREFIX:-$HOME/.local}"
+BIN_DIR="${BIN_DIR:-$PREFIX/bin}"
+
+echo "Uninstalling thinindex commands from: $BIN_DIR"
+
+for binary in $BINARIES; do
+    target="$BIN_DIR/$binary"
+    if [ -f "$target" ]; then
+        rm -f "$target"
+        echo "removed: $target"
+    else
+        echo "not found: $target"
+    fi
+done
+
+cat <<'NOTE'
+
+Note:
+  This removed installed thinindex commands only.
+  It does not remove repo-local files such as:
+    .dev_index/
+    .thinindexignore
+    AGENTS.md
+    CLAUDE.md
+
+  To remove a repo-local index, run inside that repo before uninstalling:
+    wi-init --remove
+NOTE
+
+echo "done."

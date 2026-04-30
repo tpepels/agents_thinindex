@@ -1,0 +1,52 @@
+#!/usr/bin/env sh
+set -eu
+
+BINARIES="wi build_index wi-init wi-stats"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+ARCHIVE_ROOT="${ARCHIVE_ROOT:-$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)}"
+PREFIX="${PREFIX:-$HOME/.local}"
+BIN_DIR="${BIN_DIR:-$PREFIX/bin}"
+
+mkdir -p "$BIN_DIR"
+
+for binary in $BINARIES; do
+    source_path="$ARCHIVE_ROOT/$binary"
+    if [ ! -f "$source_path" ]; then
+        echo "error: missing archive binary: $source_path" >&2
+        exit 1
+    fi
+    install -m 0755 "$source_path" "$BIN_DIR/$binary"
+done
+
+for binary in $BINARIES; do
+    if [ ! -x "$BIN_DIR/$binary" ]; then
+        echo "error: install failed: $BIN_DIR/$binary is not executable" >&2
+        exit 1
+    fi
+done
+
+for binary in $BINARIES; do
+    "$BIN_DIR/$binary" --version
+done
+
+case ":$PATH:" in
+    *":$BIN_DIR:"*) ;;
+    *)
+        echo "warning: $BIN_DIR is not on PATH"
+        echo "add this to your shell config:"
+        echo "  export PATH=\"$BIN_DIR:\$PATH\""
+        ;;
+esac
+
+echo "installed:"
+for binary in $BINARIES; do
+    echo "  $BIN_DIR/$binary"
+done
+
+cat <<'NOTE'
+
+Note:
+  This installer copies thinindex commands only.
+  It does not run wi-init, create .dev_index, or mutate user repositories.
+  Keep THIRD_PARTY_NOTICES with distributed release artifacts.
+NOTE

@@ -1,7 +1,7 @@
 use std::{
     collections::BTreeSet,
     fs,
-    io::Read,
+    io::{ErrorKind, Read},
     path::{Path, PathBuf},
     time::UNIX_EPOCH,
 };
@@ -95,8 +95,10 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
         let parser = TreeSitterExtractionEngine::default();
 
         for (path, rel, meta) in changed_files {
-            let text = fs::read_to_string(&path)
-                .with_context(|| format!("failed to read source file: {}", path.display()))?;
+            let Some(text) = read_utf8_source_file(&path, "failed to read source file")? else {
+                manifest.files.insert(rel, meta);
+                continue;
+            };
 
             let mut file_records = parser
                 .parse_file(&rel, &text)
@@ -255,8 +257,9 @@ fn extract_all_refs(
 
     for path in files {
         let rel = relpath(root, path)?;
-        let text = fs::read_to_string(path)
-            .with_context(|| format!("failed to read source file for refs: {}", path.display()))?;
+        let Some(text) = read_utf8_source_file(path, "failed to read source file for refs")? else {
+            continue;
+        };
 
         let mut file_refs = extract_refs(&rel, &text, records);
         refs.append(&mut file_refs);
@@ -353,6 +356,14 @@ fn should_always_ignore_path(rel: &Path) -> bool {
         let value = component.as_os_str().to_string_lossy();
         IGNORE_DIRS.contains(&value.as_ref())
     })
+}
+
+fn read_utf8_source_file(path: &Path, context: &str) -> Result<Option<String>> {
+    match fs::read_to_string(path) {
+        Ok(text) => Ok(Some(text)),
+        Err(error) if error.kind() == ErrorKind::InvalidData => Ok(None),
+        Err(error) => Err(error).with_context(|| format!("{context}: {}", path.display())),
+    }
 }
 
 fn relpath(root: &Path, path: &Path) -> Result<String> {

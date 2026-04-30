@@ -60,6 +60,46 @@ def top_level_function():
 }
 
 #[test]
+fn non_utf8_files_do_not_abort_index_build() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "src/service.py",
+        r#"
+class PromptService:
+    pass
+"#,
+    );
+
+    let asset_dir = root.join("assets");
+    fs::create_dir_all(&asset_dir).expect("create assets dir");
+    fs::write(asset_dir.join("repository_cover.ai"), [0xff, 0xfe, 0xfd])
+        .expect("write non-utf8 asset");
+
+    run_build(root);
+
+    let records = thinindex::store::load_records(root).expect("load records");
+    assert!(
+        records.iter().any(|record| record.name == "PromptService"),
+        "valid UTF-8 source should still be indexed"
+    );
+    assert!(
+        records
+            .iter()
+            .all(|record| record.path != "assets/repository_cover.ai"),
+        "non-UTF-8 asset should not emit index records"
+    );
+
+    let second = run_build(root);
+    assert!(
+        second.contains("changed files: 0"),
+        "skipped non-UTF-8 files should still be tracked by metadata, got:\n{second}"
+    );
+}
+
+#[test]
 fn unchanged_files_are_skipped_on_second_build() {
     let repo = temp_repo();
     let root = repo.path();

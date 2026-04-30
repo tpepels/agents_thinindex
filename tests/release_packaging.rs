@@ -32,7 +32,12 @@ fn release_package_script_stages_expected_payload() {
         "README.md",
         "INSTALL.md",
         "docs/RELEASING.md",
+        "docs/INSTALLERS.md",
         "THIRD_PARTY_NOTICES",
+        "scripts/install-archive-unix",
+        "scripts/uninstall-archive-unix",
+        "scripts/windows/install.ps1",
+        "scripts/windows/uninstall.ps1",
     ] {
         assert!(
             script.contains(required),
@@ -137,6 +142,12 @@ fn release_docs_describe_archive_install_and_boundaries() {
             && releasing.contains("wi-init` or `wi-init.exe")
             && releasing.contains("wi-stats` or `wi-stats.exe"),
         "release docs should list every archive binary"
+    );
+    assert!(
+        releasing.contains("scripts/install-archive-unix")
+            && releasing.contains("scripts/windows/install.ps1")
+            && releasing.contains("docs/INSTALLERS.md"),
+        "release docs should mention archive install helpers and installer docs"
     );
     assert!(
         releasing.contains("Universal Ctags is not bundled and not required"),
