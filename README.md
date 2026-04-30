@@ -72,7 +72,7 @@ Installed commands:
 - `build_index`: builds or updates `.dev_index/index.sqlite`.
 - `wi <term>`: searches named landmarks and returns compact file:line results.
 - `wi refs <term>`: shows deterministic references for matching landmarks.
-- `wi pack <term>`: returns a compact, deduplicated read set for implementation work.
+- `wi pack <term>`: returns a dependency-aware, deduplicated read set for implementation work.
 - `wi impact <term>`: returns dependency-aware related files with concrete reasons and confidence labels.
 - `wi bench`: measures build, search, context-command, size, count, latency, and integrity behavior.
 - `wi-stats`: shows local usage stats and hit/miss graphs.
@@ -99,7 +99,7 @@ Pre-alpha JSONL `.dev_index` caches are also disposable. `build_index` detects t
 
 Usage stats are stored in the same SQLite database. `make uninstall` removes installed binaries only; it does not remove repo-local caches.
 
-The SQLite index also stores internal local dependency and reference graphs for resolved/unresolved imports, syntax references, structured docs/style references, and capped text fallback. The graphs are best-effort foundation data for dependency-aware context and impact. See [docs/DEPENDENCY_GRAPH.md](docs/DEPENDENCY_GRAPH.md), [docs/REFERENCE_GRAPH.md](docs/REFERENCE_GRAPH.md), and [docs/IMPACT_ANALYSIS.md](docs/IMPACT_ANALYSIS.md).
+The SQLite index also stores internal local dependency and reference graphs for resolved/unresolved imports, syntax references, structured docs/style references, and capped text fallback. The graphs are best-effort foundation data for dependency-aware context and impact. See [docs/DEPENDENCY_GRAPH.md](docs/DEPENDENCY_GRAPH.md), [docs/REFERENCE_GRAPH.md](docs/REFERENCE_GRAPH.md), [docs/CONTEXT_PACKS.md](docs/CONTEXT_PACKS.md), and [docs/IMPACT_ANALYSIS.md](docs/IMPACT_ANALYSIS.md).
 
 ## Real-repo hardening
 

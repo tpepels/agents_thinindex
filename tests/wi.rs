@@ -8,9 +8,16 @@ fn write_context_fixture(root: &std::path::Path) {
         root,
         "src/prompt_service.py",
         r#"
+from helpers import format_prompt
+
 class PromptService:
     pass
 "#,
+    );
+    write_file(
+        root,
+        "src/helpers.py",
+        "def format_prompt():\n    return 'ok'\n",
     );
     write_file(
         root,
@@ -399,11 +406,14 @@ fn wi_pack_prompt_service_groups_compact_read_set() {
     let output = run_wi(root, &["pack", "PromptService"]);
 
     for heading in [
-        "Primary:",
+        "Primary definitions:",
+        "Direct references:",
+        "Dependencies:",
+        "Dependents:",
         "Tests:",
-        "Callers/importers:",
-        "Docs:",
-        "Related UI/style/config:",
+        "Configs/build files:",
+        "Docs/examples:",
+        "Unresolved hints:",
     ] {
         assert!(output.contains(heading), "missing {heading}\n{output}");
     }
@@ -414,7 +424,20 @@ fn wi_pack_prompt_service_groups_compact_read_set() {
             && output.contains("docs/guide.md"),
         "missing expected read-plan files:\n{output}"
     );
-    assert!(output.contains("reason:"), "missing reasons:\n{output}");
+    assert!(
+        output.contains("src/helpers.py")
+            && output.contains("src/module_consumer.py")
+            && output.contains("config/impact.json"),
+        "missing dependency/dependent/config read-plan files:\n{output}"
+    );
+    assert_impact_rows_have_reasons_and_confidence(&output);
+    assert!(
+        output.contains("confidence: direct")
+            && output.contains("confidence: dependency")
+            && output.contains("confidence: test-related")
+            && output.contains("confidence: heuristic"),
+        "missing expected pack confidence labels:\n{output}"
+    );
     assert!(
         !output.contains("class PromptService:") && !output.contains("def consume():"),
         "pack must not dump source contents:\n{output}"
@@ -469,6 +492,57 @@ fn wi_pack_dedupes_files_and_respects_limit() {
             "duplicate path in:\n{output}"
         );
     }
+}
+
+#[test]
+fn wi_pack_order_is_deterministic_and_ranked() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_context_fixture(root);
+    write_file(
+        root,
+        "fixtures/example_prompt.py",
+        "from prompt_service import PromptService\nPromptService()\n",
+    );
+    run_build(root);
+
+    let first = run_wi(root, &["pack", "PromptService"]);
+    let second = run_wi(root, &["pack", "PromptService"]);
+
+    assert_eq!(first, second);
+    let primary_pos = first
+        .find("Primary definitions:")
+        .expect("primary heading present");
+    let refs_pos = first
+        .find("Direct references:")
+        .expect("direct references heading present");
+    let dependencies_pos = first
+        .find("Dependencies:")
+        .expect("dependencies heading present");
+    let dependents_pos = first
+        .find("Dependents:")
+        .expect("dependents heading present");
+    let tests_pos = first.find("Tests:").expect("tests heading present");
+    let configs_pos = first
+        .find("Configs/build files:")
+        .expect("configs heading present");
+    let docs_pos = first
+        .find("Docs/examples:")
+        .expect("docs/examples heading present");
+    let unresolved_pos = first
+        .find("Unresolved hints:")
+        .expect("unresolved heading present");
+
+    assert!(
+        primary_pos < refs_pos
+            && refs_pos < dependencies_pos
+            && dependencies_pos < dependents_pos
+            && dependents_pos < tests_pos
+            && tests_pos < configs_pos
+            && configs_pos < docs_pos
+            && docs_pos < unresolved_pos,
+        "expected deterministic pack group order:\n{first}"
+    );
 }
 
 #[test]

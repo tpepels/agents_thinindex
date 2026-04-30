@@ -2,7 +2,7 @@
 
 thinindex builds a local, best-effort module/dependency graph alongside `records` and `refs` in `.dev_index/index.sqlite`.
 
-The graph is internal foundation data for future refs, pack, and impact improvements. It is not a semantic compiler graph and does not change current `wi refs`, `wi pack`, or `wi impact` output by itself.
+The graph is internal foundation data for refs, pack, and impact improvements. It is not a semantic compiler graph and does not make `wi refs`, `wi pack`, or `wi impact` exhaustive semantic output by itself.
 
 ## Data Model
 

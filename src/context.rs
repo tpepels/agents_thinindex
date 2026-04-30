@@ -15,9 +15,13 @@ const DEFAULT_PRIMARY_LIMIT: usize = 3;
 const DEFAULT_REFS_LIMIT: usize = 20;
 const DEFAULT_PACK_LIMIT: usize = 10;
 const DEFAULT_IMPACT_LIMIT: usize = 15;
+const PACK_DIRECT_REF_LIMIT: usize = 3;
+const PACK_DEPENDENCY_LIMIT: usize = 3;
+const PACK_DEPENDENT_LIMIT: usize = 3;
 const PACK_TEST_LIMIT: usize = 3;
-const PACK_CALLER_LIMIT: usize = 3;
 const PACK_DOC_LIMIT: usize = 2;
+const PACK_CONFIG_LIMIT: usize = 2;
+const PACK_UNKNOWN_LIMIT: usize = 2;
 const IMPACT_TEST_LIMIT: usize = 5;
 const IMPACT_CALLER_LIMIT: usize = 5;
 const IMPACT_DEPENDENT_LIMIT: usize = 5;
@@ -47,14 +51,6 @@ enum RefRank {
     Fixture,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum PackGroup {
-    Tests,
-    Callers,
-    Docs,
-    Related,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum ImpactGroup {
     References,
@@ -75,6 +71,19 @@ struct ImpactRow {
     confidence: &'static str,
     reason: String,
     priority: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct PackRow {
+    path: String,
+    line: usize,
+    col: usize,
+    kind: String,
+    target: String,
+    confidence: &'static str,
+    reason: String,
+    priority: usize,
+    ref_count: usize,
 }
 
 pub fn render_refs_command(
@@ -121,7 +130,7 @@ pub fn render_pack_command(
     query: &str,
     options: &SearchOptions,
 ) -> Result<ContextOutput> {
-    let primary = primary_matches(root, query, options)?;
+    let primary = direct_primary_matches(primary_matches(root, query, options)?);
     if primary.is_empty() {
         return Ok(ContextOutput {
             text: String::new(),
@@ -130,61 +139,125 @@ pub fn render_pack_command(
     }
 
     let total_limit = command_limit(options, DEFAULT_PACK_LIMIT);
-    let refs = matching_refs(root, query, &primary, DEFAULT_REFS_LIMIT)?;
+    let refs = matching_refs(root, query, &primary, usize::MAX)?;
+    let records = load_records(root)?;
+    let dependencies = load_dependencies(root)?;
+    let primary_paths = primary_paths(&primary);
+    let primary_names = primary_names(query, &primary);
+    let ref_counts = reference_counts(&refs);
+    let mut impact_groups = build_impact_groups(
+        &refs,
+        &dependencies,
+        &records,
+        &primary_paths,
+        &primary_names,
+    );
     let mut out = String::new();
     let mut count = primary.len();
+    let mut used_paths = primary_paths.clone();
 
-    out.push_str("Primary:\n");
+    out.push_str("Primary definitions:\n");
     for result in &primary {
         out.push_str(&format!("- {}\n", primary_line(result)));
         out.push_str("  reason: exact symbol match\n");
+        out.push_str("  confidence: direct\n");
     }
 
     let remaining = total_limit.saturating_sub(primary.len());
-    let mut used = BTreeSet::new();
-    for result in &primary {
-        used.insert(result.record.path.clone());
-    }
+    let direct_refs = take_pack_rows(
+        pack_rows_from_impact(
+            impact_groups
+                .remove(&ImpactGroup::References)
+                .unwrap_or_default(),
+            &ref_counts,
+        ),
+        PACK_DIRECT_REF_LIMIT,
+        remaining,
+        &mut used_paths,
+    );
+    count += direct_refs.len();
+    append_pack_rows(&mut out, "Direct references", &direct_refs);
 
-    let tests = pack_group_rows(
-        &refs,
-        PackGroup::Tests,
+    let remaining = total_limit.saturating_sub(count);
+    let primary_dependencies = take_pack_rows(
+        pack_dependency_rows(&dependencies, &records, &primary_paths),
+        PACK_DEPENDENCY_LIMIT,
+        remaining,
+        &mut used_paths,
+    );
+    count += primary_dependencies.len();
+    append_pack_rows(&mut out, "Dependencies", &primary_dependencies);
+
+    let remaining = total_limit.saturating_sub(count);
+    let dependents = take_pack_rows(
+        pack_rows_from_impact(
+            impact_groups
+                .remove(&ImpactGroup::Dependents)
+                .unwrap_or_default(),
+            &ref_counts,
+        ),
+        PACK_DEPENDENT_LIMIT,
+        remaining,
+        &mut used_paths,
+    );
+    count += dependents.len();
+    append_pack_rows(&mut out, "Dependents", &dependents);
+
+    let remaining = total_limit.saturating_sub(count);
+    let tests = take_pack_rows(
+        pack_rows_from_impact(
+            impact_groups
+                .remove(&ImpactGroup::Tests)
+                .unwrap_or_default(),
+            &ref_counts,
+        ),
         PACK_TEST_LIMIT,
         remaining,
-        &mut used,
+        &mut used_paths,
     );
     count += tests.len();
-    append_pack_group(&mut out, "Tests", &tests, "test_reference");
+    append_pack_rows(&mut out, "Tests", &tests);
 
     let remaining = total_limit.saturating_sub(count);
-    let callers = pack_group_rows(
-        &refs,
-        PackGroup::Callers,
-        PACK_CALLER_LIMIT,
+    let configs = take_pack_rows(
+        pack_rows_from_impact(
+            impact_groups
+                .remove(&ImpactGroup::Config)
+                .unwrap_or_default(),
+            &ref_counts,
+        ),
+        PACK_CONFIG_LIMIT,
         remaining,
-        &mut used,
+        &mut used_paths,
     );
-    count += callers.len();
-    append_pack_group(&mut out, "Callers/importers", &callers, "import reference");
+    count += configs.len();
+    append_pack_rows(&mut out, "Configs/build files", &configs);
 
     let remaining = total_limit.saturating_sub(count);
-    let docs = pack_group_rows(&refs, PackGroup::Docs, PACK_DOC_LIMIT, remaining, &mut used);
-    count += docs.len();
-    append_pack_group(&mut out, "Docs", &docs, "markdown link/reference");
+    let (docs_examples, unresolved_hints) = split_pack_unknown_rows(
+        impact_groups.remove(&ImpactGroup::Docs).unwrap_or_default(),
+        impact_groups
+            .remove(&ImpactGroup::Unknown)
+            .unwrap_or_default(),
+        &ref_counts,
+    );
+    let docs_examples = take_pack_rows(docs_examples, PACK_DOC_LIMIT, remaining, &mut used_paths);
+    count += docs_examples.len();
+    append_pack_rows(&mut out, "Docs/examples", &docs_examples);
 
     let remaining = total_limit.saturating_sub(count);
-    let related = pack_group_rows(&refs, PackGroup::Related, remaining, remaining, &mut used);
-    count += related.len();
-    append_pack_group(
-        &mut out,
-        "Related UI/style/config",
-        &related,
-        "css/html usage",
+    let unresolved_hints = take_pack_rows(
+        unresolved_hints,
+        PACK_UNKNOWN_LIMIT,
+        remaining,
+        &mut used_paths,
     );
+    count += unresolved_hints.len();
+    append_pack_rows(&mut out, "Unresolved hints", &unresolved_hints);
 
-    if refs.is_empty() {
+    if count == primary.len() {
         out.push('\n');
-        out.push_str(&format!("no references found for {query}\n"));
+        out.push_str(&format!("no pack evidence found for {query}\n"));
     }
 
     Ok(ContextOutput {
@@ -446,76 +519,198 @@ fn ref_rank(reference: &ReferenceRecord) -> RefRank {
     }
 }
 
-fn pack_group_rows(
-    refs: &[RefRow],
-    group: PackGroup,
+fn reference_counts(refs: &[RefRow]) -> BTreeMap<String, usize> {
+    let mut counts = BTreeMap::new();
+
+    for row in refs {
+        *counts
+            .entry(row.reference.from_path.clone())
+            .or_insert(0usize) += 1;
+    }
+
+    counts
+}
+
+fn pack_dependency_rows(
+    dependencies: &[DependencyEdge],
+    records: &[IndexRecord],
+    primary_paths: &BTreeSet<String>,
+) -> Vec<PackRow> {
+    let mut rows = Vec::new();
+
+    for dependency in dependencies {
+        if !primary_paths.contains(&dependency.from_path) {
+            continue;
+        }
+
+        let Some(target_path) = dependency.target_path.as_deref() else {
+            continue;
+        };
+
+        if primary_paths.contains(target_path) {
+            continue;
+        }
+
+        let (line, col, target) = first_record_location(records, target_path)
+            .map(|record| (record.line, record.col, record.name.clone()))
+            .unwrap_or((1, 1, dependency.import_path.clone()));
+
+        rows.push(PackRow {
+            path: target_path.to_string(),
+            line,
+            col,
+            kind: dependency.dependency_kind.clone(),
+            target,
+            confidence: "dependency",
+            reason: format!(
+                "primary dependency imported at {}:{}",
+                dependency.from_path, dependency.from_line
+            ),
+            priority: 0,
+            ref_count: 0,
+        });
+    }
+
+    rows.sort_by_key(pack_row_key);
+    rows
+}
+
+fn first_record_location<'a>(records: &'a [IndexRecord], path: &str) -> Option<&'a IndexRecord> {
+    records
+        .iter()
+        .filter(|record| record.path == path)
+        .min_by_key(|record| {
+            (
+                record.line,
+                record.col,
+                record.kind.clone(),
+                record.name.clone(),
+            )
+        })
+}
+
+fn pack_rows_from_impact(
+    rows: Vec<ImpactRow>,
+    ref_counts: &BTreeMap<String, usize>,
+) -> Vec<PackRow> {
+    let mut rows: Vec<PackRow> = rows
+        .into_iter()
+        .map(|row| PackRow {
+            ref_count: *ref_counts.get(&row.path).unwrap_or(&0),
+            path: row.path,
+            line: row.line,
+            col: row.col,
+            kind: row.kind,
+            target: row.target,
+            confidence: row.confidence,
+            reason: row.reason,
+            priority: row.priority,
+        })
+        .collect();
+
+    rows.sort_by_key(pack_row_key);
+    rows
+}
+
+fn split_pack_unknown_rows(
+    docs: Vec<ImpactRow>,
+    unknown: Vec<ImpactRow>,
+    ref_counts: &BTreeMap<String, usize>,
+) -> (Vec<PackRow>, Vec<PackRow>) {
+    let mut docs_examples = pack_rows_from_impact(docs, ref_counts);
+    let mut unresolved_hints = Vec::new();
+
+    for row in pack_rows_from_impact(unknown, ref_counts) {
+        if is_fixture_path(&row.path) || is_doc_path(&row.path) {
+            docs_examples.push(row);
+        } else {
+            unresolved_hints.push(row);
+        }
+    }
+
+    docs_examples.sort_by_key(pack_row_key);
+    unresolved_hints.sort_by_key(pack_row_key);
+    (docs_examples, unresolved_hints)
+}
+
+fn take_pack_rows(
+    mut rows: Vec<PackRow>,
     group_limit: usize,
     total_remaining: usize,
-    used: &mut BTreeSet<String>,
-) -> Vec<ReferenceRecord> {
+    used_paths: &mut BTreeSet<String>,
+) -> Vec<PackRow> {
     if total_remaining == 0 {
         return Vec::new();
     }
 
-    let mut rows = Vec::new();
+    rows.sort_by_key(pack_row_key);
     let limit = group_limit.min(total_remaining);
+    let mut selected = Vec::new();
 
-    for row in refs.iter().filter(|row| pack_group(row) == group) {
-        if rows.len() >= limit {
+    for row in rows {
+        if selected.len() >= limit {
             break;
         }
 
-        if used.insert(row.reference.from_path.clone()) {
-            rows.push(row.reference.clone());
+        if used_paths.insert(row.path.clone()) {
+            selected.push(row);
         }
     }
 
-    rows
+    selected
 }
 
-fn pack_group(row: &RefRow) -> PackGroup {
-    match row.reference.ref_kind.as_str() {
-        "test_reference" => PackGroup::Tests,
-        "markdown_link" => PackGroup::Docs,
-        "css_usage" | "html_usage" => PackGroup::Related,
-        _ if is_test_path(&row.reference.from_path) => PackGroup::Tests,
-        _ if is_doc_path(&row.reference.from_path) => PackGroup::Docs,
-        _ if is_ui_style_config_path(&row.reference.from_path) => PackGroup::Related,
-        _ => PackGroup::Callers,
+fn pack_row_key(
+    row: &PackRow,
+) -> (
+    usize,
+    usize,
+    usize,
+    usize,
+    String,
+    usize,
+    usize,
+    String,
+    String,
+) {
+    (
+        row.priority,
+        confidence_rank(row.confidence),
+        path_penalty(&row.path),
+        usize::MAX - row.ref_count,
+        row.path.clone(),
+        row.line,
+        row.col,
+        row.kind.clone(),
+        row.target.clone(),
+    )
+}
+
+fn confidence_rank(confidence: &str) -> usize {
+    match confidence {
+        "direct" | "semantic" => 0,
+        "dependency" | "test-related" => 1,
+        _ => 3,
     }
 }
 
-fn append_pack_group(
-    out: &mut String,
-    heading: &str,
-    refs: &[ReferenceRecord],
-    default_reason: &str,
-) {
+fn append_pack_rows(out: &mut String, heading: &str, rows: &[PackRow]) {
     out.push('\n');
     out.push_str(heading);
     out.push_str(":\n");
 
-    if refs.is_empty() {
+    if rows.is_empty() {
         out.push_str("- none\n");
         return;
     }
 
-    for reference in refs {
-        out.push_str(&format!("- {}\n", ref_line(reference)));
-        let reason = if reference.ref_kind == "test_reference" {
-            format!("test_reference to {}", reference.to_name)
-        } else if reference.ref_kind == "import" {
-            "import reference".to_string()
-        } else if reference.ref_kind == "markdown_link" {
-            "markdown link/reference".to_string()
-        } else if matches!(reference.ref_kind.as_str(), "css_usage" | "html_usage") {
-            "css/html usage".to_string()
-        } else if reference.ref_kind == "text_reference" {
-            format!("text_reference to {}", reference.to_name)
-        } else {
-            default_reason.to_string()
-        };
-        out.push_str(&format!("  reason: {reason}\n"));
+    for row in rows {
+        out.push_str(&format!(
+            "- {}:{} {} {}\n",
+            row.path, row.line, row.kind, row.target
+        ));
+        out.push_str(&format!("  reason: {}\n", row.reason));
+        out.push_str(&format!("  confidence: {}\n", row.confidence));
     }
 }
 
@@ -891,23 +1086,6 @@ fn is_doc_path(path: &str) -> bool {
         || normalized.starts_with("docs/")
         || normalized.ends_with(".md")
         || normalized.ends_with(".mdx")
-}
-
-fn is_ui_style_config_path(path: &str) -> bool {
-    let normalized = path.replace('\\', "/").to_ascii_lowercase();
-
-    normalized.contains("/frontend/")
-        || normalized.starts_with("frontend/")
-        || normalized.contains("/styles/")
-        || normalized.starts_with("styles/")
-        || normalized.ends_with(".css")
-        || normalized.ends_with(".html")
-        || normalized.ends_with(".jsx")
-        || normalized.ends_with(".tsx")
-        || normalized.ends_with(".json")
-        || normalized.ends_with(".toml")
-        || normalized.ends_with(".yaml")
-        || normalized.ends_with(".yml")
 }
 
 fn is_config_route_schema_path(path: &str) -> bool {

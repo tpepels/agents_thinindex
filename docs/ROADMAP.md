@@ -11,7 +11,7 @@ The current toolchain provides:
 - `build_index` for explicit repo-local index builds.
 - `wi <term>` for named landmark search.
 - `wi refs <term>` for deterministic reference output.
-- `wi pack <term>` for compact implementation read sets.
+- `wi pack <term>` for dependency-aware compact implementation read sets.
 - `wi impact <term>` for dependency-aware, evidence-backed related files.
 - `wi bench` for local benchmark and integrity measurements.
 - `wi-stats` for local usage stats.

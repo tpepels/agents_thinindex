@@ -4,6 +4,14 @@ Use superpowers:subagent-driven-development.
 
 Do not implement this until PLAN_34_IMPACT_V2_DEPENDENCY_AWARE.md is complete and green.
 
+Progress:
+- [x] Phase 1: inspect Plan 34 impact evidence and existing pack behavior
+- [x] Phase 2: implement dependency-aware pack groups, confidence labels, and deterministic caps
+- [x] Phase 3: add dependency/dependent/test/config/docs/unresolved evidence selection and deduplication
+- [x] Phase 4: update pack tests for grouping, confidence, limits, determinism, duplicates, compactness, and ctags independence
+- [x] Phase 5: document context pack model and run required verification
+- [x] Phase 6: commit completed Plan 35 work
+
 Goal:
 Upgrade `wi pack` to produce better bounded read sets using dependency graph and impact evidence.
 
