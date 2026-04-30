@@ -70,4 +70,4 @@ Ambiguous imports are also preserved. They mean thinindex found multiple plausib
 - It does not invoke compilers, LSP servers, or package managers.
 - It does not claim semantic type resolution.
 - It is separate from parser records and from deterministic references.
-- Current CLI output remains stable until a later plan explicitly uses dependency edges in user-facing commands.
+- `wi pack` and `wi impact` use dependency edges as evidence, but they still show concrete reasons and do not claim exhaustive semantic reachability.

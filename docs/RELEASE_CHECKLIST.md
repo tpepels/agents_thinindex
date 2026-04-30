@@ -18,6 +18,7 @@ Run before cutting a thinindex release:
 - confirm `THIRD_PARTY_NOTICES` matches the audited dependency set and is included with release artifacts
 - confirm the documented parser support matrix matches the bundled Tree-sitter grammar dependencies
 - confirm `docs/QUALITY_SYSTEM_AUDIT.md` still matches parser, support, quality, ctags, license, and release behavior
+- confirm `docs/TECHNICAL_FINAL_AUDIT.md` still matches dependency, refs, pack, impact, performance, semantic adapter, and agent integration behavior
 - `scripts/package-release`
 - `scripts/check-package-contents <archive>`
 - inspect/list the generated archive contents

@@ -101,7 +101,7 @@ Pre-alpha JSONL `.dev_index` caches are also disposable. `build_index` detects t
 
 Usage stats are stored in the same SQLite database. `make uninstall` removes installed binaries only; it does not remove repo-local caches.
 
-The SQLite index also stores internal local dependency and reference graphs for resolved/unresolved imports, syntax references, structured docs/style references, capped text fallback, file-role mapping, and an optional semantic-facts table. The graphs are best-effort foundation data for dependency-aware context and impact. Semantic adapters are disabled by default and are not required for normal indexing. See [docs/DEPENDENCY_GRAPH.md](docs/DEPENDENCY_GRAPH.md), [docs/REFERENCE_GRAPH.md](docs/REFERENCE_GRAPH.md), [docs/FILE_ROLES.md](docs/FILE_ROLES.md), [docs/CONTEXT_PACKS.md](docs/CONTEXT_PACKS.md), [docs/IMPACT_ANALYSIS.md](docs/IMPACT_ANALYSIS.md), and [docs/SEMANTIC_ADAPTERS.md](docs/SEMANTIC_ADAPTERS.md).
+The SQLite index also stores internal local dependency and reference graphs for resolved/unresolved imports, syntax references, structured docs/style references, capped text fallback, file-role mapping, and an optional semantic-facts table. The graphs are best-effort foundation data for dependency-aware context and impact. Semantic adapters are disabled by default and are not required for normal indexing. See [docs/DEPENDENCY_GRAPH.md](docs/DEPENDENCY_GRAPH.md), [docs/REFERENCE_GRAPH.md](docs/REFERENCE_GRAPH.md), [docs/FILE_ROLES.md](docs/FILE_ROLES.md), [docs/CONTEXT_PACKS.md](docs/CONTEXT_PACKS.md), [docs/IMPACT_ANALYSIS.md](docs/IMPACT_ANALYSIS.md), [docs/SEMANTIC_ADAPTERS.md](docs/SEMANTIC_ADAPTERS.md), and [docs/TECHNICAL_FINAL_AUDIT.md](docs/TECHNICAL_FINAL_AUDIT.md).
 
 ## Real-repo hardening
 
@@ -349,7 +349,7 @@ scripts/check-ci
 
 Normal CI uses checked-in parser and quality fixtures only. It does not require local real repositories, ignored tests, network-fetched side repos, or optional external comparator commands. Manual quality checks that use `test_repos/` stay ignored and local.
 
-Parser-quality audit status is summarized in [docs/QUALITY_SYSTEM_AUDIT.md](docs/QUALITY_SYSTEM_AUDIT.md).
+Parser-quality audit status is summarized in [docs/QUALITY_SYSTEM_AUDIT.md](docs/QUALITY_SYSTEM_AUDIT.md). Relationship/navigation audit status is summarized in [docs/TECHNICAL_FINAL_AUDIT.md](docs/TECHNICAL_FINAL_AUDIT.md).
 
 Manual smoke:
 

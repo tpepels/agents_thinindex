@@ -1,6 +1,6 @@
 # Parser Quality System Audit
 
-This document records the final parser-quality audit state for the current thinindex quality track. It connects the parser framework, support claims, quality plugin, real-repo workflow, ctags boundary, license audit, and release checks so future changes have one coherence checklist.
+This document records the parser-quality audit state for the current thinindex quality track. The broader relationship/navigation audit is documented in `docs/TECHNICAL_FINAL_AUDIT.md`. Together they connect the parser framework, support claims, quality plugin, dependency graph, references, context commands, semantic adapter boundary, agent workflow, ctags boundary, license audit, and release checks so future changes have one coherence checklist.
 
 Universal Ctags is optional, external, not bundled, not required, and not used by production indexing.
 
@@ -11,6 +11,9 @@ Current status: coherent with no major known drift.
 - Code-symbol extraction is Tree-sitter-backed through the registry/query/capture framework.
 - CSS, HTML, Markdown, JSON, TOML, and YAML are extras-backed deterministic landmarks, not Tree-sitter code-symbol support.
 - The local dependency graph is stored separately from parser records and keeps unresolved imports explicit.
+- References, `wi pack`, and `wi impact` use SQLite `records`, `refs`, and `dependencies` with explicit confidence and reason strings.
+- Semantic adapter facts stay isolated in `semantic_facts`; adapters are optional and disabled by default.
+- Agent workflow audit counts are local usage summaries in `.dev_index/index.sqlite`; they are advisory and cannot observe external grep/find/ls/read activity.
 - Support claims come from `src/support.rs` and are mirrored by `README.md`, `docs/PARSER_SUPPORT.md`, and generated `docs/LANGUAGE_SUPPORT.md`.
 - Quality reports and comparator output stay under `.dev_index/quality/` and do not write production SQLite `records` or `refs`.
 - Real-repo checks remain ignored/manual and local to `test_repos/`.
@@ -117,6 +120,7 @@ Docs must agree on these shipped facts:
 - `AGENTS.md` is the generated instruction surface, with existing `CLAUDE.md` normalized when present
 - `WI.md` is not generated
 - `wi --help` is the source of truth for CLI syntax, filters, examples, and subcommands
+- `docs/TECHNICAL_FINAL_AUDIT.md` is the current relationship/navigation coherence audit
 - ctags is optional quality-comparator tooling only
 - support levels are explicit and evidence-backed
 

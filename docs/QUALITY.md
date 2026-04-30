@@ -2,7 +2,7 @@
 
 thinindex quality plugins are isolated evaluation tools. They do not participate in production indexing, search, packaging, install, or release artifact creation.
 
-The full parser-quality coherence checkpoint is documented in `docs/QUALITY_SYSTEM_AUDIT.md`.
+The full parser-quality coherence checkpoint is documented in `docs/QUALITY_SYSTEM_AUDIT.md`. The broader relationship/navigation coherence checkpoint is documented in `docs/TECHNICAL_FINAL_AUDIT.md`.
 
 ## Boundary
 
