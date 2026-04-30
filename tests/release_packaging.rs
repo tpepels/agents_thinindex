@@ -68,6 +68,10 @@ fn release_package_script_stages_expected_payload() {
         makefile.contains("package-release:") && makefile.contains("scripts/package-release"),
         "Makefile should expose the release package script"
     );
+    assert!(
+        makefile.contains("release-check:") && makefile.contains("scripts/check-release"),
+        "Makefile should expose the local release-check script"
+    );
 }
 
 #[test]
@@ -99,6 +103,10 @@ fn release_package_script_has_archive_and_checksum_logic() {
         script.contains("cargo metadata --format-version 1 --no-deps")
             && script.contains("rustc -vV"),
         "release package script should derive version and default target locally"
+    );
+    assert!(
+        repo_file("scripts/check-release").contains("scripts/check-package-contents"),
+        "local release-check should validate archive contents"
     );
 }
 

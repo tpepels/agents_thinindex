@@ -1,4 +1,4 @@
-.PHONY: build test install uninstall fmt clippy license-audit package-release
+.PHONY: build test install uninstall fmt clippy license-audit package-release release-check
 
 build:
 	cargo build --release
@@ -17,6 +17,9 @@ license-audit:
 
 package-release:
 	scripts/package-release
+
+release-check:
+	scripts/check-release
 
 install:
 	./install.sh

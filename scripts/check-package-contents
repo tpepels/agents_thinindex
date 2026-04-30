@@ -1,0 +1,78 @@
+#!/usr/bin/env sh
+set -eu
+
+ARCHIVE="${1:-}"
+
+if [ -z "$ARCHIVE" ]; then
+    echo "usage: scripts/check-package-contents <archive>" >&2
+    exit 2
+fi
+
+if [ ! -f "$ARCHIVE" ]; then
+    echo "error: archive not found: $ARCHIVE" >&2
+    exit 1
+fi
+
+case "$ARCHIVE" in
+    thinindex-*|*/thinindex-*) ;;
+    *)
+        echo "error: archive name must start with thinindex- and include version/target: $ARCHIVE" >&2
+        exit 1
+        ;;
+esac
+
+case "$ARCHIVE" in
+    *.tar.gz)
+        CONTENTS="$(tar -tzf "$ARCHIVE")"
+        ;;
+    *.zip)
+        if command -v zipinfo >/dev/null 2>&1; then
+            CONTENTS="$(zipinfo -1 "$ARCHIVE")"
+        elif command -v unzip >/dev/null 2>&1; then
+            CONTENTS="$(unzip -Z1 "$ARCHIVE")"
+        else
+            echo "error: zipinfo or unzip is required to inspect zip archives" >&2
+            exit 1
+        fi
+        ;;
+    *)
+        echo "error: unsupported archive extension: $ARCHIVE" >&2
+        exit 1
+        ;;
+esac
+
+require_entry() {
+    pattern="$1"
+    label="$2"
+    if ! printf '%s\n' "$CONTENTS" | grep -Eq "$pattern"; then
+        echo "error: archive missing $label" >&2
+        exit 1
+    fi
+}
+
+reject_entry() {
+    pattern="$1"
+    label="$2"
+    if printf '%s\n' "$CONTENTS" | grep -Eiq "$pattern"; then
+        echo "error: archive contains forbidden $label" >&2
+        exit 1
+    fi
+}
+
+require_entry '/wi(\.exe)?$' "wi binary"
+require_entry '/build_index(\.exe)?$' "build_index binary"
+require_entry '/wi-init(\.exe)?$' "wi-init binary"
+require_entry '/wi-stats(\.exe)?$' "wi-stats binary"
+require_entry '/THIRD_PARTY_NOTICES$' "THIRD_PARTY_NOTICES"
+require_entry '/README\.md$' "README.md"
+require_entry '/INSTALL\.md$' "INSTALL.md"
+require_entry '/docs/RELEASING\.md$' "docs/RELEASING.md"
+require_entry '/docs/INSTALLERS\.md$' "docs/INSTALLERS.md"
+
+reject_entry '(^|/)\.dev_index(/|$)' ".dev_index"
+reject_entry '(^|/)test_repos(/|$)' "test_repos"
+reject_entry '(^|/)target(/|$)' "target build directory"
+reject_entry '(^|/)dist(/|$)' "dist build directory"
+reject_entry '(^|/)ctags([^/]*)(\.exe)?$' "ctags artifact"
+
+echo "package content ok: $ARCHIVE"

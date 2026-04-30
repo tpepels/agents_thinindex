@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+set -eu
+
+OUT_DIR="${OUT_DIR:-dist}"
+
+cargo fmt --check
+cargo test
+cargo clippy --all-targets --all-features -- -D warnings
+cargo deny check licenses
+
+cargo run --bin wi -- --help
+cargo run --bin wi -- --version
+cargo run --bin build_index -- --version
+cargo run --bin wi-init -- --version
+cargo run --bin wi-stats -- --version
+
+OUTPUT="$(scripts/package-release --out-dir "$OUT_DIR")"
+printf '%s\n' "$OUTPUT"
+
+ARCHIVE="$(printf '%s\n' "$OUTPUT" | sed -n 's/^artifact: //p' | tail -n 1)"
+if [ -z "$ARCHIVE" ]; then
+    echo "error: package-release did not print an artifact path" >&2
+    exit 1
+fi
+
+scripts/check-package-contents "$ARCHIVE"
+
+echo "release check ok"

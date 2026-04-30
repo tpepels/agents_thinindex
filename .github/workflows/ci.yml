@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  format:
+    name: cargo fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --check
+
+  test:
+    name: cargo test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test
+
+  clippy:
+    name: cargo clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+
+  license-audit:
+    name: cargo deny licenses
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install cargo-deny --locked
+      - run: cargo deny check licenses
+
+  smoke:
+    name: command smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo run --bin wi -- --help
+      - run: cargo run --bin wi -- --version
+      - run: cargo run --bin build_index -- --version
+      - run: cargo run --bin wi-init -- --version
+      - run: cargo run --bin wi-stats -- --version
+
+  package-smoke:
+    name: package smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: test -f THIRD_PARTY_NOTICES
+      - run: scripts/package-release
+      - run: |
+          archive="$(ls dist/thinindex-*.tar.gz)"
+          tar -tzf "$archive"
+          scripts/check-package-contents "$archive"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thinindex-linux-package-smoke
+          path: |
+            dist/thinindex-*.tar.gz
+            dist/thinindex-*.tar.gz.sha256
+          if-no-files-found: error

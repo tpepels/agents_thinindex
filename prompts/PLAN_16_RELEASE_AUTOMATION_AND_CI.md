@@ -1,4 +1,4 @@
-# PLAN_15_RELEASE_AUTOMATION_AND_CI.md
+# PLAN_16_RELEASE_AUTOMATION_AND_CI.md
 
 Use superpowers:subagent-driven-development.
 
@@ -214,3 +214,15 @@ Report:
 - whether ignored real-repo test ran, skipped, or failed
 - remaining CI/release caveats
 - commit hash
+
+## Implementation tracking
+
+- [x] Confirm PLAN_00 through PLAN_15 are complete and green.
+- [x] Add archive content check script.
+- [x] Add local release-check command.
+- [x] Add CI workflow for core gates and package smoke.
+- [x] Add release workflow for manual/tag artifact builds.
+- [x] Update release docs for CI/local release automation.
+- [x] Add focused tests/checks for workflows and package content gates.
+- [x] Run required verification.
+- [x] Commit with `Add release automation and CI gates`.

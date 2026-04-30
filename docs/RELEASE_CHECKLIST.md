@@ -8,6 +8,7 @@ Run before cutting a thinindex release:
 - `cargo deny check licenses`
 - `cargo test --test local_index -- --ignored`
 - `cargo test --test real_repos -- --ignored` when `test_repos/` exists
+- `scripts/check-release`
 - `cargo run --bin wi -- --help`
 - `cargo run --bin wi -- --version`
 - `cargo run --bin build_index -- --version`
@@ -16,6 +17,7 @@ Run before cutting a thinindex release:
 - confirm `THIRD_PARTY_NOTICES` matches the audited dependency set and is included with release artifacts
 - confirm the documented parser support matrix matches the bundled Tree-sitter grammar dependencies
 - `scripts/package-release`
+- `scripts/check-package-contents <archive>`
 - inspect/list the generated archive contents
 - archive install smoke with `scripts/install-archive-unix` from the extracted archive on Unix-like platforms
 - archive uninstall smoke with `scripts/uninstall-archive-unix` from the extracted archive on Unix-like platforms
@@ -42,4 +44,6 @@ Packaging note:
 - Release archives must not include `.dev_index/`, `test_repos/`, `target/`, `dist/`, source checkout contents, or generated local benchmark outputs.
 - Native package formats, signing, and notarization are later work.
 - Windows Authenticode signing, macOS Developer ID signing/notarization, and Linux package signing are not implemented.
+- GitHub Actions CI runs format, test, clippy, license audit, command smoke, package smoke, and archive content checks.
+- The release workflow uploads workflow artifacts only; it does not publish GitHub Releases.
 - Smoke-test generated artifacts on each target platform before publishing.

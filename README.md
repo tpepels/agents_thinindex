@@ -312,6 +312,12 @@ scripts/package-release
 
 Archives include all four binaries, `README.md`, `INSTALL.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, helper install/uninstall scripts, and `THIRD_PARTY_NOTICES`. They do not include `.dev_index/index.sqlite`, `test_repos/`, build output junk, or source checkout contents. Native installers/package formats, signing, and notarization are later release-hardening work. See [docs/RELEASING.md](docs/RELEASING.md) and [docs/INSTALLERS.md](docs/INSTALLERS.md).
 
+Local release gates can be run with:
+
+```bash
+scripts/check-release
+```
+
 ## Development
 
 Build and test:

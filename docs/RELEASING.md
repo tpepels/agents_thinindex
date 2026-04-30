@@ -2,16 +2,39 @@
 
 This document covers release archives and archive install helpers. Native package formats, signing, notarization, CI publishing, payments, license enforcement, telemetry, and cloud behavior are later work.
 
-## Build A Release Archive
+## Local Release Gates
 
-Run the standard verification first:
+Run the standard local release check with:
+
+```bash
+scripts/check-release
+```
+
+or:
+
+```bash
+make release-check
+```
+
+This runs:
 
 ```bash
 cargo fmt --check
 cargo test
 cargo clippy --all-targets --all-features -- -D warnings
 cargo deny check licenses
+cargo run --bin wi -- --help
+cargo run --bin wi -- --version
+cargo run --bin build_index -- --version
+cargo run --bin wi-init -- --version
+cargo run --bin wi-stats -- --version
+scripts/package-release
+scripts/check-package-contents <archive>
 ```
+
+The local release check intentionally does not require `test_repos/` and does not run ignored real-repo tests.
+
+## Build A Release Archive
 
 Then build the current-platform archive:
 
@@ -110,3 +133,50 @@ wi <term>
 ```
 
 Keep `THIRD_PARTY_NOTICES` with distributed release artifacts.
+
+## Archive Content Checks
+
+Validate any generated archive with:
+
+```bash
+scripts/check-package-contents dist/thinindex-<version>-<target>.tar.gz
+```
+
+The check verifies that the archive:
+
+- includes `wi`, `build_index`, `wi-init`, and `wi-stats`
+- includes `THIRD_PARTY_NOTICES`
+- includes `README.md`, `INSTALL.md`, `docs/RELEASING.md`, and `docs/INSTALLERS.md`
+- excludes `.dev_index/`
+- excludes `test_repos/`
+- excludes `target/` and `dist/`
+- excludes Universal Ctags artifacts because ctags is not bundled
+- uses an archive name beginning with `thinindex-`
+
+## CI Workflows
+
+GitHub Actions workflows are configured under `.github/workflows/`.
+
+`ci.yml` runs on push and pull request:
+
+- `cargo fmt --check`
+- `cargo test`
+- `cargo clippy --all-targets --all-features -- -D warnings`
+- `cargo deny check licenses`
+- command smoke tests for all binaries
+- current-platform package smoke and archive content checks
+
+`release.yml` runs on `workflow_dispatch` and tags matching `v*`. It runs the same core gates, builds a current-platform Linux release archive, checks archive contents, and uploads the archive plus `.sha256` checksum as workflow artifacts.
+
+The release workflow does not publish GitHub Releases, sign binaries, notarize macOS artifacts, or build package-manager installers.
+
+## Expected CI Artifacts
+
+Current CI/release automation produces Linux artifacts on `ubuntu-latest`:
+
+```text
+thinindex-<version>-x86_64-unknown-linux-gnu.tar.gz
+thinindex-<version>-x86_64-unknown-linux-gnu.tar.gz.sha256
+```
+
+Windows and macOS archive scripts exist, but CI packaging for those platforms is not enabled yet. Cross-platform packaging should be added only when the target toolchains and artifact checks are verified.
