@@ -106,7 +106,7 @@ Current parser support is limited to the documented support matrix and its suppo
 
 ## Product boundary
 
-The current tool is local/free. No payment, account, license enforcement, telemetry, cloud sync, remote indexing, feature lockout, or release installer behavior is implemented.
+The current tool is local/free. No payment, account, license enforcement, telemetry, cloud sync, remote indexing, feature lockout, or release installer behavior is implemented. An inert local license status model exists only as a foundation for future explicit plans; it does not gate current commands.
 
 The free/local core must continue to include local indexing, `build_index`, `wi <term>`, basic filters, `wi --help`, `wi-init`, repository instruction setup, local cache rebuilds, `.dev_index/index.sqlite`, `wi-stats`, and no-network local operation.
 

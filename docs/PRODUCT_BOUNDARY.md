@@ -28,6 +28,20 @@ The current free/local core includes:
 
 No account, license key, payment, cloud service, telemetry, or remote indexing is required for this local workflow.
 
+## Licensing foundation
+
+An inert local license state model exists for future product work. It supports
+`free`, `pro`, and `unknown/unlicensed` status values, a local license file path
+design, and a fixture-only validation stub. It does not add payment calls,
+network activation, telemetry, account behavior, or feature lockouts.
+
+There are no paid gates active. Missing, invalid, unreadable, unsupported, or
+non-fixture license data must not block the current workflow. The free local core remains available without a license file.
+
+The current local path design is documented in [LICENSING.md](LICENSING.md):
+`THININDEX_LICENSE_FILE`, then the platform user config directory. The only
+accepted Pro status today is an explicit `local-test-fixture` fixture for tests.
+
 ## Candidate Pro features
 
 Possible future Pro value should be treated as candidates, not implemented gates:

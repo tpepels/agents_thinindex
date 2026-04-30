@@ -141,6 +141,7 @@ fn make_archive(options: &[&str]) -> PathBuf {
     fs::write(package.join("SBOM.md"), "sbom").expect("write sbom");
     fs::write(package.join("docs/RELEASING.md"), "releasing").expect("write releasing");
     fs::write(package.join("docs/INSTALLERS.md"), "installers").expect("write installers");
+    fs::write(package.join("docs/LICENSING.md"), "licensing").expect("write licensing");
     fs::write(package.join("docs/SECURITY_PRIVACY.md"), "privacy").expect("write privacy");
 
     if !options.contains(&"missing-notices") {

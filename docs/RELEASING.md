@@ -102,6 +102,7 @@ Each archive contains:
 - `SBOM.md`
 - `docs/RELEASING.md`
 - `docs/INSTALLERS.md`
+- `docs/LICENSING.md`
 - `docs/SECURITY_PRIVACY.md`
 - `THIRD_PARTY_NOTICES`
 - `scripts/install-archive-unix`
@@ -195,7 +196,7 @@ The check verifies that the archive:
 
 - includes `wi`, `build_index`, `wi-init`, and `wi-stats`
 - includes `THIRD_PARTY_NOTICES`
-- includes `README.md`, `INSTALL.md`, `SBOM.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, and `docs/SECURITY_PRIVACY.md`
+- includes `README.md`, `INSTALL.md`, `SBOM.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, `docs/LICENSING.md`, and `docs/SECURITY_PRIVACY.md`
 - excludes `.dev_index/`
 - excludes `test_repos/`
 - excludes `target/` and `dist/`

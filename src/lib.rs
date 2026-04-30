@@ -4,6 +4,7 @@ pub mod deps;
 pub mod extras;
 pub mod file_roles;
 pub mod indexer;
+pub mod licensing;
 pub mod model;
 pub mod privacy;
 pub mod quality;

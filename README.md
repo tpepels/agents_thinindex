@@ -235,7 +235,7 @@ Known extraction gaps: Rust `use` records, Ruby `require` targets, Shell sourced
 
 ## Free/local and future Pro
 
-thinindex is currently a local/free tool. There is no license enforcement, payment flow, account login, cloud sync, telemetry, remote indexing, or feature lockout.
+thinindex is currently a local/free tool. There is no license enforcement, payment flow, account login, cloud sync, telemetry, remote indexing, or feature lockout. The inert local license status model is documented in [docs/LICENSING.md](docs/LICENSING.md). No current command is blocked by license status.
 
 The free/local core includes local indexing, `build_index`, `wi <term>`, basic filters, `wi --help`, `wi-init`, repo-local SQLite storage, `wi-stats`, AGENTS.md setup, existing CLAUDE.md normalization, local cache rebuilds, and no-network operation.
 
@@ -325,7 +325,7 @@ Release archives are built with:
 scripts/package-release
 ```
 
-Archives include all four binaries, `README.md`, `INSTALL.md`, `SBOM.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, helper install/uninstall scripts, and `THIRD_PARTY_NOTICES`. They do not include `.dev_index/index.sqlite`, `.dev_index/quality/`, `test_repos/`, build output junk, local reports, signing secret material, or source checkout contents. Native installers/package formats, completed signing, and notarization remain scaffolded release-hardening work through `scripts/sign-release-artifact`. See [docs/RELEASING.md](docs/RELEASING.md), [docs/INSTALLERS.md](docs/INSTALLERS.md), and [docs/SECURITY_PRIVACY.md](docs/SECURITY_PRIVACY.md).
+Archives include all four binaries, `README.md`, `INSTALL.md`, `SBOM.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, `docs/LICENSING.md`, helper install/uninstall scripts, and `THIRD_PARTY_NOTICES`. They do not include `.dev_index/index.sqlite`, `.dev_index/quality/`, `test_repos/`, build output junk, local reports, signing secret material, or source checkout contents. Native installers/package formats, completed signing, and notarization remain scaffolded release-hardening work through `scripts/sign-release-artifact`. See [docs/RELEASING.md](docs/RELEASING.md), [docs/INSTALLERS.md](docs/INSTALLERS.md), [docs/SECURITY_PRIVACY.md](docs/SECURITY_PRIVACY.md), and [docs/LICENSING.md](docs/LICENSING.md).
 
 Local release gates can be run with:
 

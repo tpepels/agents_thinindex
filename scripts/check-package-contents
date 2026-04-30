@@ -74,6 +74,7 @@ require_entry '/INSTALL\.md$' "INSTALL.md"
 require_entry '/SBOM\.md$' "SBOM.md"
 require_entry '/docs/RELEASING\.md$' "docs/RELEASING.md"
 require_entry '/docs/INSTALLERS\.md$' "docs/INSTALLERS.md"
+require_entry '/docs/LICENSING\.md$' "docs/LICENSING.md"
 require_entry '/docs/SECURITY_PRIVACY\.md$' "docs/SECURITY_PRIVACY.md"
 
 FORBIDDEN_EXTERNAL_TOOL="c""tags"
