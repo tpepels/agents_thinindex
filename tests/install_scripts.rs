@@ -220,7 +220,8 @@ fn docs_state_tree_sitter_is_bundled_and_ctags_removed() {
             && readme.contains("| JSON | `.json` | project-owned extras |")
             && readme.contains("| TOML | `.toml` | project-owned extras |")
             && readme.contains("| YAML | `.yaml`, `.yml` | project-owned extras |")
-            && readme.contains("Unsupported or deferred languages are not silently parsed"),
+            && readme.contains("Languages and formats not listed are unsupported")
+            && readme.contains("They are not silently parsed through line scanning"),
         "README should document the representative parser support matrix"
     );
 }

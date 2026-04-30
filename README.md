@@ -181,7 +181,9 @@ The following web, document, and config formats are extras-backed deterministic 
 | TOML | `.toml` | project-owned extras | key, table |
 | YAML | `.yaml`, `.yml` | project-owned extras | key, section |
 
-Unsupported or deferred languages are not silently parsed through line scanning. They need a permissively licensed Tree-sitter grammar, an extension mapping, a query spec, a conformance fixture, a notice entry, and support-matrix documentation before they are claimed as supported.
+Languages and formats not listed are unsupported. They are not silently parsed through line scanning. New code-language support needs a permissively licensed Tree-sitter grammar, an extension mapping, a query spec, a conformance fixture, a notice entry, and support-matrix documentation before it is claimed as supported. New extras-backed format support needs explicit non-noisy record policy, fixture coverage, and support-matrix documentation.
+
+Deferred examples include Vue/Svelte single-file components, Objective-C/Objective-C++, SQL, XML, Lua, Haskell, and Elixir. The current blockers are no selected permissive grammar/query/fixture/notice path, or no product-approved extras policy for the format.
 
 Known extraction gaps: Rust `use` records, Ruby `require` targets, Shell sourced files, dynamic PHP includes, macro-expanded C/C++, template instantiation, C# partial-type and assembly resolution, Scala givens/implicits/extension resolution, Kotlin interface/enum-class distinctions, Swift extensions/overloads/module resolution, Dart package and extension resolution, exhaustive Nix attribute/scalar extraction, exhaustive JSON/TOML/YAML scalar extraction, inherited members, and LSP-level type resolution are not claimed as parser-backed symbol extraction.
 

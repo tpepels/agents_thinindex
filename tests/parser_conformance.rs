@@ -606,7 +606,8 @@ fn parser_support_matrix_and_notices_cover_supported_languages() {
 
     assert!(
         readme.contains("not semantic or LSP-level analysis")
-            && readme.contains("Unsupported or deferred languages are not silently parsed"),
+            && readme.contains("Languages and formats not listed are unsupported")
+            && readme.contains("They are not silently parsed through line scanning"),
         "README must document parser limits honestly",
     );
 }

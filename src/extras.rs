@@ -277,10 +277,11 @@ fn index_markdown_line(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {
                 let name = after_marker.trim();
 
                 if !name.is_empty() {
+                    let title_offset = after_marker.len() - after_marker.trim_start().len();
                     push_record(
                         records,
                         ctx,
-                        leading_spaces + marker_len + 1,
+                        leading_spaces + marker_len + title_offset + 1,
                         "section",
                         name,
                     );

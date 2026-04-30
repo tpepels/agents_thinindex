@@ -70,6 +70,8 @@ The current Tree-sitter-backed language pack covers Rust, Python, JavaScript, JS
 
 CSS, HTML, Markdown, JSON, TOML, and YAML are supported by project-owned extras. Config extraction records useful keys, tables, and sections without treating every scalar value as a symbol.
 
+Formats and languages not listed in the README support matrix are unsupported. They must not be claimed through line scanning, ctags fallback, or undocumented parser dependencies.
+
 Before packaging work proceeds, thinindex also needs:
 
 - `THIRD_PARTY_NOTICES`

@@ -121,3 +121,12 @@ Report:
 - verification commands and results
 - ignored local/real repo test status
 - commit hash
+
+## Phase tracking
+
+- [x] Add shared extras-backed format conformance for CSS, HTML, Markdown, JSON, TOML, and YAML.
+- [x] Verify extended language and format support matrix/docs/notices are explicit and honest.
+- [x] Document unlisted/deferred language and format blockers.
+- [x] Keep real-repo parser coverage reporting on the ignored real-repo path.
+- [x] Run required 12D verification.
+- [x] Commit with `Finalize extended language pack conformance`.

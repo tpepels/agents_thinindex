@@ -24,6 +24,8 @@ Current instruction surfaces are `AGENTS.md` and, when already present, `CLAUDE.
 
 Indexing uses the Tree-sitter extraction framework and project-owned extras. No external parser command is required for the shipped local workflow. Current Tree-sitter-backed code-symbol support covers Rust, Python, JavaScript, JSX, TypeScript, TSX, Java, C#, Scala, Kotlin, Swift, Dart, Nix, Go, C, C++, Shell, Ruby, and PHP through the shared registry/query/conformance path. CSS, HTML, Markdown, JSON, TOML, and YAML are extras-backed deterministic format extraction.
 
+Formats and languages not listed in the support matrix are unsupported until they have the required grammar or extras policy, extension mapping, fixtures, docs, and notice coverage.
+
 ## Product direction
 
 Thinindex should remain:
