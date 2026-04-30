@@ -99,6 +99,9 @@ impl Default for LanguageRegistry {
             php_adapter(),
             scala_adapter(),
             kotlin_adapter(),
+            swift_adapter(),
+            dart_adapter(),
+            nix_adapter(),
         ])
     }
 }
@@ -553,6 +556,56 @@ fn kotlin_adapter() -> GrammarAdapter {
     }
 }
 
+fn swift_adapter() -> GrammarAdapter {
+    GrammarAdapter {
+        id: "swift",
+        display_name: "Swift",
+        extensions: &["swift"],
+        language: || tree_sitter_swift::LANGUAGE.into(),
+        query_pack: QueryPack {
+            source: SWIFT_QUERY,
+        },
+        license: LicenseEntry {
+            package: "tree-sitter-swift",
+            upstream: "https://github.com/alex-pinkus/tree-sitter-swift",
+            license: "MIT",
+            accepted_reason: "Swift grammar for bundled Tree-sitter extraction",
+        },
+    }
+}
+
+fn dart_adapter() -> GrammarAdapter {
+    GrammarAdapter {
+        id: "dart",
+        display_name: "Dart",
+        extensions: &["dart"],
+        language: || tree_sitter_dart::LANGUAGE.into(),
+        query_pack: QueryPack { source: DART_QUERY },
+        license: LicenseEntry {
+            package: "tree-sitter-dart",
+            upstream: "https://github.com/nielsenko/tree-sitter-dart",
+            license: "MIT",
+            accepted_reason: "Dart grammar for bundled Tree-sitter extraction",
+        },
+    }
+}
+
+fn nix_adapter() -> GrammarAdapter {
+    GrammarAdapter {
+        id: "nix",
+        display_name: "Nix",
+        extensions: &["nix"],
+        language: || tree_sitter_nix::LANGUAGE.into(),
+        query_pack: QueryPack { source: NIX_QUERY },
+        license: LicenseEntry {
+            package: "tree-sitter-nix",
+            upstream: "https://github.com/nix-community/tree-sitter-nix",
+            license: "MIT",
+            accepted_reason: "Nix grammar for bundled Tree-sitter extraction",
+        },
+    }
+}
+
 const RUST_QUERY: &str = r#"
 (function_item name: (identifier) @name) @definition.function
 (struct_item name: (type_identifier) @name) @definition.struct
@@ -723,6 +776,57 @@ const KOTLIN_QUERY: &str = r#"
 (enum_entry (identifier) @name) @definition.enum
 "#;
 
+const SWIFT_QUERY: &str = r#"
+(import_declaration (identifier) @name) @definition.import
+(class_declaration declaration_kind: "class" name: (type_identifier) @name) @definition.class
+(class_declaration declaration_kind: "struct" name: (type_identifier) @name) @definition.struct
+(class_declaration declaration_kind: "enum" name: (type_identifier) @name) @definition.enum
+(protocol_declaration name: (type_identifier) @name) @definition.interface
+(typealias_declaration name: (type_identifier) @name) @definition.type
+(source_file (function_declaration name: (simple_identifier) @name) @definition.function)
+(class_declaration body: (class_body (function_declaration name: (simple_identifier) @name) @definition.method))
+(class_declaration body: (class_body (property_declaration (pattern (simple_identifier) @name)) @definition.property))
+(source_file (property_declaration (pattern (simple_identifier) @name) @definition.variable)
+)
+"#;
+
+const DART_QUERY: &str = r#"
+(import_specification uri: (_) @name) @definition.import
+(library_export uri: (_) @name) @definition.export
+(class_declaration name: (identifier) @name) @definition.class
+(mixin_declaration (identifier) @name) @definition.class
+(extension_declaration name: (identifier) @name) @definition.type
+(enum_declaration name: (identifier) @name) @definition.enum
+(function_declaration signature: (function_signature name: (identifier) @name)) @definition.function
+(getter_declaration signature: (getter_signature name: (identifier) @name)) @definition.function
+(setter_declaration signature: (setter_signature name: (identifier) @name)) @definition.function
+(external_function_declaration signature: (function_signature name: (identifier) @name)) @definition.function
+(method_signature (function_signature name: (identifier) @name)) @definition.method
+(method_signature (getter_signature name: (identifier) @name)) @definition.method
+(method_signature (setter_signature name: (identifier) @name)) @definition.method
+(constructor_signature name: (identifier) @name) @definition.constructor
+(constant_constructor_signature (identifier) @name) @definition.constructor
+(factory_constructor_signature (identifier) @name) @definition.constructor
+(type_alias (type_identifier) @name) @definition.type
+(enum_constant name: (identifier) @name) @definition.constant
+(top_level_variable_declaration (static_final_declaration_list (static_final_declaration name: (identifier) @name))) @definition.constant
+(top_level_variable_declaration (initialized_identifier_list (initialized_identifier name: (identifier) @name))) @definition.variable
+"#;
+
+const NIX_QUERY: &str = r#"
+(binding
+  attrpath: (attrpath attr: (identifier) @name)
+  expression: (function_expression)) @definition.function
+(binding
+  attrpath: (attrpath attr: (identifier) @name)
+  expression: [(attrset_expression) (rec_attrset_expression) (let_attrset_expression)]) @definition.module
+(binding
+  attrpath: (attrpath attr: (identifier) @name)
+  expression: (apply_expression
+    function: (variable_expression name: (identifier) @import_function))) @definition.import
+  (#eq? @import_function "import")
+"#;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -830,6 +934,13 @@ mod tests {
                 "src/sample.kt",
                 "package sample\nclass KotlinSample\n",
                 "KotlinSample",
+            ),
+            ("src/sample.swift", "class SwiftSample {}\n", "SwiftSample"),
+            ("src/sample.dart", "class DartSample {}\n", "DartSample"),
+            (
+                "default.nix",
+                "{ }:\nlet\n  mkNixSample = name: { inherit name; };\nin mkNixSample\n",
+                "mkNixSample",
             ),
         ];
 

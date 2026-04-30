@@ -130,3 +130,12 @@ Report:
 - verification commands and results
 - ignored local/real repo test status
 - commit hash
+
+## Phase tracking
+
+- [x] Add permissively licensed Tree-sitter dependencies for Swift, Dart, and Nix.
+- [x] Register Swift, Dart, and Nix through existing adapters, extension mapping, and query specs.
+- [x] Add conformance fixtures and shared conformance cases for Swift, Dart, and Nix.
+- [x] Update support matrix, known gaps, and third-party notices.
+- [x] Run required 12B verification.
+- [x] Commit with `Add extended app and system parser pack`.

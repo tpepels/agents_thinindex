@@ -64,6 +64,24 @@ Tree-sitter Kotlin grammar
 - License: MIT
 - Accepted reason: Kotlin grammar for registry-backed extraction.
 
+Tree-sitter Swift grammar
+- Package: tree-sitter-swift
+- Upstream: https://github.com/alex-pinkus/tree-sitter-swift
+- License: MIT
+- Accepted reason: Swift grammar for registry-backed extraction.
+
+Tree-sitter Dart grammar
+- Package: tree-sitter-dart
+- Upstream: https://github.com/nielsenko/tree-sitter-dart
+- License: MIT
+- Accepted reason: Dart grammar for registry-backed extraction.
+
+Tree-sitter Nix grammar
+- Package: tree-sitter-nix
+- Upstream: https://github.com/nix-community/tree-sitter-nix
+- License: MIT
+- Accepted reason: Nix grammar for registry-backed extraction.
+
 Tree-sitter Go grammar
 - Package: tree-sitter-go
 - Upstream: https://github.com/tree-sitter/tree-sitter-go

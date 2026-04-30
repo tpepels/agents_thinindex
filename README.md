@@ -160,6 +160,9 @@ Tree-sitter-backed code-symbol extraction is currently enabled for this represen
 | C# | `.cs` | `tree-sitter-c-sharp` | method, class, struct, enum, interface, type, module, variable, import |
 | Scala | `.scala` | `tree-sitter-scala` | function, class, enum, trait, type, module, variable, constant, import |
 | Kotlin | `.kt`, `.kts` | `tree-sitter-kotlin-ng` | function, class, enum, type, module, variable, import |
+| Swift | `.swift` | `tree-sitter-swift` | function, method, class, struct, enum, interface, type, variable, import |
+| Dart | `.dart` | `tree-sitter-dart` | function, method, class, enum, type, variable, constant, import, export |
+| Nix | `.nix` | `tree-sitter-nix` | function, module, import |
 | Go | `.go` | `tree-sitter-go` | function, method, struct, interface, type, module, variable, constant, import |
 | C | `.c`, `.h` | `tree-sitter-c` | function, struct, enum, type, variable, import |
 | C++ | `.cc`, `.cpp`, `.cxx`, `.hh`, `.hpp`, `.hxx` | `tree-sitter-cpp` | function, method, class, struct, enum, type, module, variable, import |
@@ -171,7 +174,7 @@ HTML, CSS, Markdown headings, and TODO/FIXME landmarks are extras-backed determi
 
 Unsupported or deferred languages are not silently parsed through line scanning. They need a permissively licensed Tree-sitter grammar, an extension mapping, a query spec, a conformance fixture, a notice entry, and support-matrix documentation before they are claimed as supported.
 
-Known extraction gaps: Rust `use` records, Ruby `require` targets, Shell sourced files, dynamic PHP includes, macro-expanded C/C++, template instantiation, C# partial-type and assembly resolution, Scala givens/implicits/extension resolution, Kotlin interface/enum-class distinctions, inherited members, and LSP-level type resolution are not claimed as parser-backed symbol extraction.
+Known extraction gaps: Rust `use` records, Ruby `require` targets, Shell sourced files, dynamic PHP includes, macro-expanded C/C++, template instantiation, C# partial-type and assembly resolution, Scala givens/implicits/extension resolution, Kotlin interface/enum-class distinctions, Swift extensions/overloads/module resolution, Dart package and extension resolution, exhaustive Nix attribute/scalar extraction, inherited members, and LSP-level type resolution are not claimed as parser-backed symbol extraction.
 
 ## Free/local and future Pro
 
