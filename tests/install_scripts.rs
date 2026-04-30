@@ -192,6 +192,9 @@ fn docs_state_tree_sitter_is_bundled_and_ctags_removed() {
             && third_party.contains("tree-sitter-javascript")
             && third_party.contains("tree-sitter-typescript")
             && third_party.contains("tree-sitter-java")
+            && third_party.contains("tree-sitter-c-sharp")
+            && third_party.contains("tree-sitter-scala")
+            && third_party.contains("tree-sitter-kotlin-ng")
             && third_party.contains("tree-sitter-go")
             && third_party.contains("tree-sitter-c")
             && third_party.contains("tree-sitter-cpp")
@@ -203,6 +206,9 @@ fn docs_state_tree_sitter_is_bundled_and_ctags_removed() {
     );
     assert!(
         readme.contains("| Java | `.java` | `tree-sitter-java` |")
+            && readme.contains("| C# | `.cs` | `tree-sitter-c-sharp` |")
+            && readme.contains("| Scala | `.scala` | `tree-sitter-scala` |")
+            && readme.contains("| Kotlin | `.kt`, `.kts` | `tree-sitter-kotlin-ng` |")
             && readme.contains("| Go | `.go` | `tree-sitter-go` |")
             && readme.contains("| PHP | `.php` | `tree-sitter-php` |")
             && readme.contains("Unsupported or deferred languages are not silently parsed"),

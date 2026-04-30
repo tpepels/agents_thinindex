@@ -124,3 +124,12 @@ Report:
 - verification commands and results
 - ignored local/real repo test status
 - commit hash
+
+## Phase tracking
+
+- [x] Add permissively licensed Tree-sitter dependencies for C#, Scala, and Kotlin.
+- [x] Register C#, Scala, and Kotlin through existing adapters, extension mapping, and query specs.
+- [x] Add conformance fixtures and shared conformance cases for C#, Scala, and Kotlin.
+- [x] Update support matrix, known gaps, and third-party notices.
+- [x] Run required 12A verification.
+- [x] Commit with `Add extended JVM and .NET parser pack`.

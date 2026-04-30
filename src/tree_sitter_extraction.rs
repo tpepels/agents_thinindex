@@ -92,10 +92,13 @@ impl Default for LanguageRegistry {
             java_adapter(),
             go_adapter(),
             c_adapter(),
+            c_sharp_adapter(),
             cpp_adapter(),
             shell_adapter(),
             ruby_adapter(),
             php_adapter(),
+            scala_adapter(),
+            kotlin_adapter(),
         ])
     }
 }
@@ -270,6 +273,8 @@ fn normalize_capture_kind(kind: &str) -> &str {
         "macro" => "function",
         "namespace" => "module",
         "constructor" => "method",
+        "object" => "module",
+        "property" => "variable",
         other => other,
     }
 }
@@ -428,6 +433,24 @@ fn c_adapter() -> GrammarAdapter {
     }
 }
 
+fn c_sharp_adapter() -> GrammarAdapter {
+    GrammarAdapter {
+        id: "cs",
+        display_name: "C#",
+        extensions: &["cs"],
+        language: || tree_sitter_c_sharp::LANGUAGE.into(),
+        query_pack: QueryPack {
+            source: C_SHARP_QUERY,
+        },
+        license: LicenseEntry {
+            package: "tree-sitter-c-sharp",
+            upstream: "https://github.com/tree-sitter/tree-sitter-c-sharp",
+            license: "MIT",
+            accepted_reason: "C# grammar for bundled Tree-sitter extraction",
+        },
+    }
+}
+
 fn cpp_adapter() -> GrammarAdapter {
     GrammarAdapter {
         id: "cpp",
@@ -490,6 +513,42 @@ fn php_adapter() -> GrammarAdapter {
             upstream: "https://github.com/tree-sitter/tree-sitter-php",
             license: "MIT",
             accepted_reason: "PHP grammar for bundled Tree-sitter extraction",
+        },
+    }
+}
+
+fn scala_adapter() -> GrammarAdapter {
+    GrammarAdapter {
+        id: "scala",
+        display_name: "Scala",
+        extensions: &["scala"],
+        language: || tree_sitter_scala::LANGUAGE.into(),
+        query_pack: QueryPack {
+            source: SCALA_QUERY,
+        },
+        license: LicenseEntry {
+            package: "tree-sitter-scala",
+            upstream: "https://github.com/tree-sitter/tree-sitter-scala",
+            license: "MIT",
+            accepted_reason: "Scala grammar for bundled Tree-sitter extraction",
+        },
+    }
+}
+
+fn kotlin_adapter() -> GrammarAdapter {
+    GrammarAdapter {
+        id: "kt",
+        display_name: "Kotlin",
+        extensions: &["kt", "kts"],
+        language: || tree_sitter_kotlin_ng::LANGUAGE.into(),
+        query_pack: QueryPack {
+            source: KOTLIN_QUERY,
+        },
+        license: LicenseEntry {
+            package: "tree-sitter-kotlin-ng",
+            upstream: "https://github.com/tree-sitter-grammars/tree-sitter-kotlin",
+            license: "MIT",
+            accepted_reason: "Kotlin grammar for bundled Tree-sitter extraction",
         },
     }
 }
@@ -574,6 +633,21 @@ const C_QUERY: &str = r#"
 (declaration declarator: (init_declarator declarator: (identifier) @name)) @definition.variable
 "#;
 
+const C_SHARP_QUERY: &str = r#"
+(using_directive (_) @name) @definition.import
+(namespace_declaration name: (_) @name) @definition.module
+(file_scoped_namespace_declaration name: (_) @name) @definition.module
+(class_declaration name: (identifier) @name) @definition.class
+(record_declaration name: (identifier) @name) @definition.type
+(struct_declaration name: (identifier) @name) @definition.struct
+(interface_declaration name: (identifier) @name) @definition.interface
+(enum_declaration name: (identifier) @name) @definition.enum
+(method_declaration name: (identifier) @name) @definition.method
+(constructor_declaration name: (identifier) @name) @definition.constructor
+(property_declaration name: (identifier) @name) @definition.property
+(field_declaration (variable_declaration (variable_declarator name: (identifier) @name))) @definition.variable
+"#;
+
 const CPP_QUERY: &str = r#"
 (preproc_include path: (_) @name) @definition.import
 (namespace_definition name: (namespace_identifier) @name) @definition.module
@@ -619,6 +693,34 @@ const PHP_QUERY: &str = r#"
 (include_once_expression (_) @name) @definition.import
 (require_expression (_) @name) @definition.import
 (require_once_expression (_) @name) @definition.import
+"#;
+
+const SCALA_QUERY: &str = r#"
+(package_clause name: (package_identifier) @name) @definition.module
+(import_declaration path: (identifier) @name) @definition.import
+(trait_definition name: (identifier) @name) @definition.trait
+(enum_definition name: (identifier) @name) @definition.enum
+(class_definition name: (identifier) @name) @definition.class
+(object_definition name: (identifier) @name) @definition.object
+(function_definition name: (identifier) @name) @definition.function
+(function_declaration name: (identifier) @name) @definition.function
+(val_definition pattern: (identifier) @name) @definition.constant
+(var_definition pattern: (identifier) @name) @definition.variable
+(val_declaration name: (identifier) @name) @definition.constant
+(var_declaration name: (identifier) @name) @definition.variable
+(type_definition name: (type_identifier) @name) @definition.type
+"#;
+
+const KOTLIN_QUERY: &str = r#"
+(package_header (qualified_identifier) @name) @definition.module
+(import (qualified_identifier) @name) @definition.import
+(import (identifier) @name) @definition.import
+(class_declaration name: (identifier) @name) @definition.class
+(object_declaration name: (identifier) @name) @definition.object
+(function_declaration name: (identifier) @name) @definition.function
+(property_declaration (variable_declaration (identifier) @name)) @definition.variable
+(type_alias type: (identifier) @name) @definition.type
+(enum_entry (identifier) @name) @definition.enum
 "#;
 
 #[cfg(test)]
@@ -708,12 +810,27 @@ mod tests {
                 "CppSample",
             ),
             (
+                "src/sample.cs",
+                "namespace Sample { class CSharpSample { void Render() {} } }\n",
+                "CSharpSample",
+            ),
+            (
                 "src/sample.sh",
                 "shell_sample() { echo ok; }\n",
                 "shell_sample",
             ),
             ("src/sample.rb", "class RubySample\nend\n", "RubySample"),
             ("src/sample.php", "<?php\nclass PhpSample {}\n", "PhpSample"),
+            (
+                "src/sample.scala",
+                "package sample\nclass ScalaSample\n",
+                "ScalaSample",
+            ),
+            (
+                "src/sample.kt",
+                "package sample\nclass KotlinSample\n",
+                "KotlinSample",
+            ),
         ];
 
         for (path, text, expected) in cases {

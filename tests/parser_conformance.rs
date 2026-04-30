@@ -290,6 +290,41 @@ fn language_cases() -> Vec<LanguageConformanceCase> {
             unsupported_notes: "C++ extraction is syntactic and does not instantiate templates.",
         },
         LanguageConformanceCase {
+            language_name: "C#",
+            language_id: "cs",
+            fixture_path: "src/csharp/Widget.cs",
+            extensions: &["cs"],
+            grammar_package: "tree-sitter-c-sharp",
+            expected_kinds: &[
+                "class",
+                "enum",
+                "import",
+                "interface",
+                "method",
+                "module",
+                "struct",
+                "type",
+                "variable",
+            ],
+            expected_symbols: &[
+                ExpectedSymbol {
+                    kind: "class",
+                    name: "CSharpWidget",
+                    line: 22,
+                    col: 18,
+                },
+                ExpectedSymbol {
+                    kind: "method",
+                    name: "Render",
+                    line: 33,
+                    col: 21,
+                },
+            ],
+            expected_absent_symbols: &["CSharpStringFake"],
+            search_terms: &["CSharpWidget", "Render"],
+            unsupported_notes: "C# extraction is syntactic and does not resolve partial types or assemblies.",
+        },
+        LanguageConformanceCase {
             language_name: "Shell",
             language_id: "sh",
             fixture_path: "src/shell/widget.sh",
@@ -332,6 +367,34 @@ fn language_cases() -> Vec<LanguageConformanceCase> {
             unsupported_notes: "Ruby require/load target extraction is deferred to reference extraction.",
         },
         LanguageConformanceCase {
+            language_name: "Scala",
+            language_id: "scala",
+            fixture_path: "src/scala/Widget.scala",
+            extensions: &["scala"],
+            grammar_package: "tree-sitter-scala",
+            expected_kinds: &[
+                "class", "constant", "enum", "function", "import", "module", "trait", "type",
+                "variable",
+            ],
+            expected_symbols: &[
+                ExpectedSymbol {
+                    kind: "class",
+                    name: "ScalaWidget",
+                    line: 13,
+                    col: 7,
+                },
+                ExpectedSymbol {
+                    kind: "function",
+                    name: "buildScalaWidget",
+                    line: 28,
+                    col: 7,
+                },
+            ],
+            expected_absent_symbols: &["ScalaStringFake"],
+            search_terms: &["ScalaWidget", "buildScalaWidget"],
+            unsupported_notes: "Scala extraction is syntactic and does not model implicits, givens, or extension resolution.",
+        },
+        LanguageConformanceCase {
             language_name: "PHP",
             language_id: "php",
             fixture_path: "src/php/widget.php",
@@ -364,6 +427,33 @@ fn language_cases() -> Vec<LanguageConformanceCase> {
             expected_absent_symbols: &["PhpStringFake"],
             search_terms: &["PhpWidget", "buildPhpWidget"],
             unsupported_notes: "PHP extraction does not evaluate dynamic includes or autoloading.",
+        },
+        LanguageConformanceCase {
+            language_name: "Kotlin",
+            language_id: "kt",
+            fixture_path: "src/kotlin/Widget.kt",
+            extensions: &["kt", "kts"],
+            grammar_package: "tree-sitter-kotlin-ng",
+            expected_kinds: &[
+                "class", "enum", "function", "import", "module", "type", "variable",
+            ],
+            expected_symbols: &[
+                ExpectedSymbol {
+                    kind: "class",
+                    name: "KotlinWidget",
+                    line: 11,
+                    col: 7,
+                },
+                ExpectedSymbol {
+                    kind: "function",
+                    name: "buildKotlinWidget",
+                    line: 25,
+                    col: 9,
+                },
+            ],
+            expected_absent_symbols: &["KotlinStringFake"],
+            search_terms: &["KotlinWidget", "buildKotlinWidget"],
+            unsupported_notes: "Kotlin interface/enum-class distinctions and extension resolution are not semantic analysis.",
         },
     ]
 }

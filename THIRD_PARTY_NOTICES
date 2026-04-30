@@ -46,6 +46,24 @@ Tree-sitter Java grammar
 - License: MIT
 - Accepted reason: Java grammar for registry-backed extraction.
 
+Tree-sitter C# grammar
+- Package: tree-sitter-c-sharp
+- Upstream: https://github.com/tree-sitter/tree-sitter-c-sharp
+- License: MIT
+- Accepted reason: C# grammar for registry-backed extraction.
+
+Tree-sitter Scala grammar
+- Package: tree-sitter-scala
+- Upstream: https://github.com/tree-sitter/tree-sitter-scala
+- License: MIT
+- Accepted reason: Scala grammar for registry-backed extraction.
+
+Tree-sitter Kotlin grammar
+- Package: tree-sitter-kotlin-ng
+- Upstream: https://github.com/tree-sitter-grammars/tree-sitter-kotlin
+- License: MIT
+- Accepted reason: Kotlin grammar for registry-backed extraction.
+
 Tree-sitter Go grammar
 - Package: tree-sitter-go
 - Upstream: https://github.com/tree-sitter/tree-sitter-go
