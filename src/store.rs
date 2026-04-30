@@ -8,7 +8,9 @@ use std::{
 use anyhow::{Context, Result, anyhow, bail};
 use rusqlite::{Connection, OptionalExtension, params};
 
-use crate::model::{FileMeta, INDEX_SCHEMA_VERSION, IndexRecord, Manifest, ReferenceRecord};
+use crate::model::{
+    DependencyEdge, FileMeta, INDEX_SCHEMA_VERSION, IndexRecord, Manifest, ReferenceRecord,
+};
 
 pub const DEV_INDEX_DIR: &str = ".dev_index";
 pub const SQLITE_FILE: &str = "index.sqlite";
@@ -89,11 +91,17 @@ pub fn load_refs(root: &Path) -> Result<Vec<ReferenceRecord>> {
     load_refs_from_conn(&conn)
 }
 
+pub fn load_dependencies(root: &Path) -> Result<Vec<DependencyEdge>> {
+    let conn = open_ready_database(root)?;
+    load_dependencies_from_conn(&conn)
+}
+
 pub fn save_index_snapshot(
     root: &Path,
     manifest: &Manifest,
     records: &[IndexRecord],
     refs: &[ReferenceRecord],
+    dependencies: &[DependencyEdge],
 ) -> Result<()> {
     let mut conn = open_ready_database(root)?;
     let tx = conn.transaction().with_context(|| {
@@ -107,6 +115,8 @@ pub fn save_index_snapshot(
         .context("failed to clear records table")?;
     tx.execute("DELETE FROM refs", [])
         .context("failed to clear refs table")?;
+    tx.execute("DELETE FROM dependencies", [])
+        .context("failed to clear dependencies table")?;
     tx.execute("DELETE FROM files", [])
         .context("failed to clear files table")?;
 
@@ -181,6 +191,52 @@ pub fn save_index_snapshot(
                 format!(
                     "failed to insert reference at {}:{}:{} to {}",
                     reference.from_path, reference.from_line, reference.from_col, reference.to_name
+                )
+            })?;
+        }
+    }
+
+    {
+        let mut stmt = tx
+            .prepare(
+                "INSERT INTO dependencies(
+                    from_path,
+                    from_line,
+                    from_col,
+                    import_path,
+                    target_path,
+                    dependency_kind,
+                    lang,
+                    confidence,
+                    unresolved_reason,
+                    evidence,
+                    source
+                 )
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            )
+            .context("failed to prepare dependency insert")?;
+
+        for dependency in dependencies {
+            stmt.execute(params![
+                &dependency.from_path,
+                i64_from_usize(dependency.from_line, "from_line")?,
+                i64_from_usize(dependency.from_col, "from_col")?,
+                &dependency.import_path,
+                dependency.target_path.as_deref(),
+                &dependency.dependency_kind,
+                &dependency.lang,
+                &dependency.confidence,
+                dependency.unresolved_reason.as_deref(),
+                &dependency.evidence,
+                &dependency.source,
+            ])
+            .with_context(|| {
+                format!(
+                    "failed to insert dependency at {}:{}:{} to {}",
+                    dependency.from_path,
+                    dependency.from_line,
+                    dependency.from_col,
+                    dependency.import_path
                 )
             })?;
         }
@@ -284,6 +340,26 @@ fn initialize_schema(conn: &Connection) -> Result<()> {
         CREATE INDEX IF NOT EXISTS refs_from_path_idx ON refs(from_path);
         CREATE INDEX IF NOT EXISTS refs_ref_kind_idx ON refs(ref_kind);
         CREATE INDEX IF NOT EXISTS refs_source_idx ON refs(source);
+        CREATE TABLE IF NOT EXISTS dependencies (
+            from_path TEXT NOT NULL,
+            from_line INTEGER NOT NULL,
+            from_col INTEGER NOT NULL,
+            import_path TEXT NOT NULL,
+            target_path TEXT,
+            dependency_kind TEXT NOT NULL,
+            lang TEXT NOT NULL,
+            confidence TEXT NOT NULL,
+            unresolved_reason TEXT,
+            evidence TEXT NOT NULL,
+            source TEXT NOT NULL,
+            UNIQUE(from_path, import_path, target_path, dependency_kind)
+        );
+        CREATE INDEX IF NOT EXISTS dependencies_from_path_idx ON dependencies(from_path);
+        CREATE INDEX IF NOT EXISTS dependencies_target_path_idx ON dependencies(target_path);
+        CREATE INDEX IF NOT EXISTS dependencies_import_path_idx ON dependencies(import_path);
+        CREATE INDEX IF NOT EXISTS dependencies_kind_idx ON dependencies(dependency_kind);
+        CREATE INDEX IF NOT EXISTS dependencies_lang_idx ON dependencies(lang);
+        CREATE INDEX IF NOT EXISTS dependencies_confidence_idx ON dependencies(confidence);
         CREATE TABLE IF NOT EXISTS usage_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp INTEGER NOT NULL,
@@ -474,6 +550,81 @@ fn load_refs_from_conn(conn: &Connection) -> Result<Vec<ReferenceRecord>> {
     }
 
     Ok(refs)
+}
+
+fn load_dependencies_from_conn(conn: &Connection) -> Result<Vec<DependencyEdge>> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT
+                from_path,
+                from_line,
+                from_col,
+                import_path,
+                target_path,
+                dependency_kind,
+                lang,
+                confidence,
+                unresolved_reason,
+                evidence,
+                source
+             FROM dependencies
+             ORDER BY from_path, from_line, from_col, import_path, dependency_kind, source",
+        )
+        .context("failed to prepare dependency query")?;
+
+    let rows = stmt
+        .query_map([], |row| {
+            let from_line: i64 = row.get(1)?;
+            let from_col: i64 = row.get(2)?;
+
+            Ok((
+                row.get::<_, String>(0)?,
+                from_line,
+                from_col,
+                row.get::<_, String>(3)?,
+                row.get::<_, Option<String>>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, String>(6)?,
+                row.get::<_, String>(7)?,
+                row.get::<_, Option<String>>(8)?,
+                row.get::<_, String>(9)?,
+                row.get::<_, String>(10)?,
+            ))
+        })
+        .context("failed to query dependencies")?;
+
+    let mut dependencies = Vec::new();
+    for row in rows {
+        let (
+            from_path,
+            from_line,
+            from_col,
+            import_path,
+            target_path,
+            dependency_kind,
+            lang,
+            confidence,
+            unresolved_reason,
+            evidence,
+            source,
+        ) = row.context("failed to read dependency row")?;
+
+        dependencies.push(DependencyEdge {
+            from_path,
+            from_line: usize_from_i64(from_line, "from_line")?,
+            from_col: usize_from_i64(from_col, "from_col")?,
+            import_path,
+            target_path,
+            dependency_kind,
+            lang,
+            confidence,
+            unresolved_reason,
+            evidence,
+            source,
+        });
+    }
+
+    Ok(dependencies)
 }
 
 pub fn remove_records_for_paths(records: Vec<IndexRecord>, paths: &[String]) -> Vec<IndexRecord> {

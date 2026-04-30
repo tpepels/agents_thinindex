@@ -26,6 +26,24 @@ fn assert_ref_exists(refs: &[thinindex::model::ReferenceRecord], ref_kind: &str,
     );
 }
 
+fn assert_dependency(
+    dependencies: &[thinindex::model::DependencyEdge],
+    from_path: &str,
+    import_path: &str,
+    target_path: Option<&str>,
+    dependency_kind: &str,
+) {
+    assert!(
+        dependencies.iter().any(|dependency| {
+            dependency.from_path == from_path
+                && dependency.import_path == import_path
+                && dependency.target_path.as_deref() == target_path
+                && dependency.dependency_kind == dependency_kind
+        }),
+        "expected dependency {from_path} {dependency_kind} {import_path:?} -> {target_path:?}, got:\n{dependencies:#?}"
+    );
+}
+
 #[test]
 fn build_creates_index_files() {
     let repo = temp_repo();
@@ -253,6 +271,7 @@ def build_prompt():
     run_build(root);
 
     assert!(sqlite_table_exists(root, "refs"));
+    assert!(sqlite_table_exists(root, "dependencies"));
 
     let snapshot = load_index_snapshot_from_sqlite(root);
 
@@ -275,6 +294,299 @@ def build_prompt():
                 && reference.ref_kind == "markdown_link"),
         "expected markdown link reference to ../src/service.py, got:\n{:#?}",
         snapshot.refs
+    );
+}
+
+#[test]
+fn dependency_graph_records_representative_ecosystems() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "src/lib.rs",
+        "mod local_mod;\nuse crate::local_mod::LocalMod;\nuse crate::missing::Missing;\n",
+    );
+    write_file(root, "src/local_mod.rs", "pub struct LocalMod;\n");
+    write_file(
+        root,
+        "py/app.py",
+        "from helpers.util import build_py\nimport missing_pkg\n",
+    );
+    write_file(
+        root,
+        "py/helpers/util.py",
+        "def build_py():\n    return 1\n",
+    );
+    write_file(
+        root,
+        "web/app.ts",
+        "import { Widget } from \"./widget\";\nimport React from \"react\";\n",
+    );
+    write_file(root, "web/widget.ts", "export function Widget() {}\n");
+    write_file(
+        root,
+        "go/main.go",
+        "package main\n\nimport \"example.com/project/pkg/helper\"\nimport \"fmt\"\n",
+    );
+    write_file(
+        root,
+        "go/pkg/helper/helper.go",
+        "package helper\nfunc Help() {}\n",
+    );
+    write_file(
+        root,
+        "java/src/main/java/com/example/App.java",
+        "package com.example;\nimport com.example.lib.Helper;\nimport java.util.List;\nclass App {}\n",
+    );
+    write_file(
+        root,
+        "java/src/main/java/com/example/lib/Helper.java",
+        "package com.example.lib;\nclass Helper {}\n",
+    );
+    write_file(
+        root,
+        "c/main.c",
+        "#include \"local.h\"\n#include <stdio.h>\nint main(void) { return 0; }\n",
+    );
+    write_file(root, "c/local.h", "struct LocalHeader { int value; };\n");
+    write_file(
+        root,
+        "cpp/main.cpp",
+        "#include \"local.hpp\"\nclass CppMain {};\n",
+    );
+    write_file(root, "cpp/local.hpp", "class CppLocal {};\n");
+    write_file(
+        root,
+        "ruby/app.rb",
+        "require_relative \"lib/tool\"\nrequire \"json\"\n",
+    );
+    write_file(root, "ruby/lib/tool.rb", "class RubyTool\nend\n");
+    write_file(
+        root,
+        "php/app.php",
+        "<?php\ninclude \"lib/tool.php\";\nrequire \"missing.php\";\n",
+    );
+    write_file(root, "php/lib/tool.php", "<?php\nclass PhpTool {}\n");
+    write_file(root, "scripts/run.sh", "source ./lib.sh\n. ./missing.sh\n");
+    write_file(root, "scripts/lib.sh", "run_helper() { echo ok; }\n");
+
+    run_build(root);
+    let dependencies = thinindex::store::load_dependencies(root).expect("load dependencies");
+
+    assert_dependency(
+        &dependencies,
+        "src/lib.rs",
+        "local_mod",
+        Some("src/local_mod.rs"),
+        "rust_module",
+    );
+    assert_dependency(
+        &dependencies,
+        "src/lib.rs",
+        "crate::local_mod::LocalMod",
+        Some("src/local_mod.rs"),
+        "rust_use",
+    );
+    assert_dependency(
+        &dependencies,
+        "src/lib.rs",
+        "crate::missing::Missing",
+        None,
+        "rust_use",
+    );
+    assert_dependency(
+        &dependencies,
+        "py/app.py",
+        "helpers.util",
+        Some("py/helpers/util.py"),
+        "python_import",
+    );
+    assert_dependency(
+        &dependencies,
+        "py/app.py",
+        "missing_pkg",
+        None,
+        "python_import",
+    );
+    assert_dependency(
+        &dependencies,
+        "web/app.ts",
+        "./widget",
+        Some("web/widget.ts"),
+        "js_import",
+    );
+    assert_dependency(&dependencies, "web/app.ts", "react", None, "js_import");
+    assert_dependency(
+        &dependencies,
+        "go/main.go",
+        "example.com/project/pkg/helper",
+        Some("go/pkg/helper/helper.go"),
+        "go_import",
+    );
+    assert_dependency(&dependencies, "go/main.go", "fmt", None, "go_import");
+    assert_dependency(
+        &dependencies,
+        "java/src/main/java/com/example/App.java",
+        "com.example.lib.Helper",
+        Some("java/src/main/java/com/example/lib/Helper.java"),
+        "java_import",
+    );
+    assert_dependency(
+        &dependencies,
+        "java/src/main/java/com/example/App.java",
+        "java.util.List",
+        None,
+        "java_import",
+    );
+    assert_dependency(
+        &dependencies,
+        "c/main.c",
+        "local.h",
+        Some("c/local.h"),
+        "c_include",
+    );
+    assert_dependency(&dependencies, "c/main.c", "stdio.h", None, "c_include");
+    assert_dependency(
+        &dependencies,
+        "cpp/main.cpp",
+        "local.hpp",
+        Some("cpp/local.hpp"),
+        "cpp_include",
+    );
+    assert_dependency(
+        &dependencies,
+        "ruby/app.rb",
+        "lib/tool",
+        Some("ruby/lib/tool.rb"),
+        "ruby_require",
+    );
+    assert_dependency(&dependencies, "ruby/app.rb", "json", None, "ruby_require");
+    assert_dependency(
+        &dependencies,
+        "php/app.php",
+        "lib/tool.php",
+        Some("php/lib/tool.php"),
+        "php_include",
+    );
+    assert_dependency(
+        &dependencies,
+        "php/app.php",
+        "missing.php",
+        None,
+        "php_include",
+    );
+    assert_dependency(
+        &dependencies,
+        "scripts/run.sh",
+        "./lib.sh",
+        Some("scripts/lib.sh"),
+        "shell_source",
+    );
+    assert_dependency(
+        &dependencies,
+        "scripts/run.sh",
+        "./missing.sh",
+        None,
+        "shell_source",
+    );
+
+    assert!(
+        dependencies
+            .iter()
+            .filter(|dependency| dependency.target_path.is_none())
+            .all(|dependency| dependency.unresolved_reason.is_some()
+                && dependency.confidence == "unresolved"),
+        "unresolved dependencies should include reasons, got:\n{dependencies:#?}"
+    );
+
+    run_named_dependency_integrity_checks("dependency graph fixture", &dependencies);
+}
+
+#[test]
+fn dependency_graph_is_deterministic_and_has_no_duplicate_edges() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "src/lib.rs", "mod local_mod;\nmod local_mod;\n");
+    write_file(root, "src/local_mod.rs", "pub struct LocalMod;\n");
+
+    run_build(root);
+    let first = thinindex::store::load_dependencies(root).expect("load first dependencies");
+    let second_output = run_build(root);
+    let second = thinindex::store::load_dependencies(root).expect("load second dependencies");
+
+    assert!(
+        second_output.contains("changed files: 0"),
+        "second build should skip unchanged files, got:\n{second_output}"
+    );
+    assert_eq!(first, second);
+    assert_eq!(
+        first
+            .iter()
+            .filter(|dependency| {
+                dependency.from_path == "src/lib.rs" && dependency.import_path == "local_mod"
+            })
+            .count(),
+        1,
+        "duplicate dependency edges should be deduped, got:\n{first:#?}"
+    );
+}
+
+#[test]
+fn changed_and_deleted_files_remove_stale_dependencies() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "py/old.py", "def old():\n    return 1\n");
+    write_file(root, "py/new.py", "def new():\n    return 1\n");
+    write_file(root, "py/app.py", "import old\n");
+
+    run_build(root);
+    let before = thinindex::store::load_dependencies(root).expect("load dependencies before");
+    assert_dependency(
+        &before,
+        "py/app.py",
+        "old",
+        Some("py/old.py"),
+        "python_import",
+    );
+
+    write_file(root, "py/app.py", "import new\n");
+    let changed = run_build(root);
+    assert!(
+        changed.contains("changed files: 1"),
+        "expected one changed file, got:\n{changed}"
+    );
+    let after_change =
+        thinindex::store::load_dependencies(root).expect("load dependencies after change");
+    assert!(
+        !after_change
+            .iter()
+            .any(|dependency| dependency.import_path == "old"),
+        "stale old dependency should be removed, got:\n{after_change:#?}"
+    );
+    assert_dependency(
+        &after_change,
+        "py/app.py",
+        "new",
+        Some("py/new.py"),
+        "python_import",
+    );
+
+    fs::remove_file(root.join("py/app.py")).expect("delete dependency source");
+    let deleted = run_build(root);
+    assert!(
+        deleted.contains("deleted files: 1"),
+        "expected one deleted file, got:\n{deleted}"
+    );
+    let after_delete =
+        thinindex::store::load_dependencies(root).expect("load dependencies after delete");
+    assert!(
+        !after_delete
+            .iter()
+            .any(|dependency| dependency.from_path == "py/app.py"),
+        "deleted file dependencies should be removed, got:\n{after_delete:#?}"
     );
 }
 

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-pub const INDEX_SCHEMA_VERSION: u32 = 6;
+pub const INDEX_SCHEMA_VERSION: u32 = 7;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IndexRecord {
@@ -27,6 +27,21 @@ pub struct ReferenceRecord {
     pub source: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct DependencyEdge {
+    pub from_path: String,
+    pub from_line: usize,
+    pub from_col: usize,
+    pub import_path: String,
+    pub target_path: Option<String>,
+    pub dependency_kind: String,
+    pub lang: String,
+    pub confidence: String,
+    pub unresolved_reason: Option<String>,
+    pub evidence: String,
+    pub source: String,
+}
+
 impl ReferenceRecord {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -46,6 +61,37 @@ impl ReferenceRecord {
             to_name: to_name.into(),
             to_kind: to_kind.map(Into::into),
             ref_kind: ref_kind.into(),
+            evidence: truncate(evidence.into(), 120),
+            source: source.into(),
+        }
+    }
+}
+
+impl DependencyEdge {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        from_path: impl Into<String>,
+        from_line: usize,
+        from_col: usize,
+        import_path: impl Into<String>,
+        target_path: Option<impl Into<String>>,
+        dependency_kind: impl Into<String>,
+        lang: impl Into<String>,
+        confidence: impl Into<String>,
+        unresolved_reason: Option<impl Into<String>>,
+        evidence: impl Into<String>,
+        source: impl Into<String>,
+    ) -> Self {
+        Self {
+            from_path: from_path.into(),
+            from_line,
+            from_col,
+            import_path: import_path.into(),
+            target_path: target_path.map(Into::into),
+            dependency_kind: dependency_kind.into(),
+            lang: lang.into(),
+            confidence: confidence.into(),
+            unresolved_reason: unresolved_reason.map(Into::into),
             evidence: truncate(evidence.into(), 120),
             source: source.into(),
         }

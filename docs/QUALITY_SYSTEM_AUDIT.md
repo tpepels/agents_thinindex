@@ -10,6 +10,7 @@ Current status: coherent with no major known drift.
 
 - Code-symbol extraction is Tree-sitter-backed through the registry/query/capture framework.
 - CSS, HTML, Markdown, JSON, TOML, and YAML are extras-backed deterministic landmarks, not Tree-sitter code-symbol support.
+- The local dependency graph is stored separately from parser records and keeps unresolved imports explicit.
 - Support claims come from `src/support.rs` and are mirrored by `README.md`, `docs/PARSER_SUPPORT.md`, and generated `docs/LANGUAGE_SUPPORT.md`.
 - Quality reports and comparator output stay under `.dev_index/quality/` and do not write production SQLite `records` or `refs`.
 - Real-repo checks remain ignored/manual and local to `test_repos/`.

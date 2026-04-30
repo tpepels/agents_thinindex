@@ -20,6 +20,8 @@ The current toolchain provides:
 
 Current storage is `.dev_index/index.sqlite`. The entire `.dev_index/` directory is a disposable local cache. Old pre-alpha cache files are not current storage; `build_index` rebuilds them into SQLite.
 
+The index also stores a local best-effort dependency graph for imports, includes, requires, source statements, and unresolved dependency evidence. This graph is internal foundation data for later dependency-aware refs, pack, and impact work; it does not claim compiler, LSP, package-manager, or network-backed resolution.
+
 Current instruction surfaces are `AGENTS.md` and, when already present, `CLAUDE.md`. `wi-init` creates or normalizes the canonical `## Repository search` block and does not create a separate instruction file.
 
 Indexing uses the Tree-sitter extraction framework and project-owned extras. No external parser command is required for the shipped local workflow. Parser claims use the support levels in `src/support.rs`, `README.md`, and `docs/PARSER_SUPPORT.md`: supported, experimental, blocked, and extras-backed. CSS, HTML, Markdown, JSON, TOML, and YAML are extras-backed deterministic format extraction, not Tree-sitter-backed code-symbol parsing.

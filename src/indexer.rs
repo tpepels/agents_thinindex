@@ -10,6 +10,7 @@ use anyhow::{Context, Result};
 use ignore::WalkBuilder;
 
 use crate::{
+    deps::extract_dependencies,
     extras::index_extras,
     model::{FileMeta, IndexRecord},
     refs::{extract_refs, finalize_refs},
@@ -117,12 +118,14 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
     debug_assert_unique_record_locations(&records);
     sort_records(&mut records);
 
+    let dependencies = extract_dependencies(&root, &files, &records)?;
+
     let mut refs = extract_all_refs(&root, &files, &records)?;
     dedupe_refs_by_location(&mut refs);
     refs = finalize_refs(refs);
     sort_refs(&mut refs);
 
-    save_index_snapshot(&root, &manifest, &records, &refs)?;
+    save_index_snapshot(&root, &manifest, &records, &refs, &dependencies)?;
 
     Ok(BuildStats {
         root,

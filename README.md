@@ -99,6 +99,8 @@ Pre-alpha JSONL `.dev_index` caches are also disposable. `build_index` detects t
 
 Usage stats are stored in the same SQLite database. `make uninstall` removes installed binaries only; it does not remove repo-local caches.
 
+The SQLite index also stores an internal local dependency graph for resolved and unresolved imports/includes/requires/source statements. The graph is best-effort foundation data for future dependency-aware context; current `wi refs`, `wi pack`, and `wi impact` output remains stable. See [docs/DEPENDENCY_GRAPH.md](docs/DEPENDENCY_GRAPH.md).
+
 ## Real-repo hardening
 
 Normal tests use fixtures and do not depend on local clones. Real-repo validation is opt-in:

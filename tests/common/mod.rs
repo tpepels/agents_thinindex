@@ -4,7 +4,7 @@ use std::{collections::HashSet, fs, path::Path, process::Command};
 
 use assert_cmd::prelude::*;
 use tempfile::TempDir;
-use thinindex::model::{IndexRecord, ReferenceRecord};
+use thinindex::model::{DependencyEdge, IndexRecord, ReferenceRecord};
 
 pub fn temp_repo() -> TempDir {
     let temp = tempfile::tempdir().expect("create tempdir");
@@ -110,6 +110,7 @@ fn copy_dir_all(source: &Path, target: &Path) -> std::io::Result<()> {
 pub struct IndexSnapshot {
     pub records: Vec<IndexRecord>,
     pub refs: Vec<ReferenceRecord>,
+    pub dependencies: Vec<DependencyEdge>,
 }
 
 pub fn load_index_snapshot_from_sqlite(root: &Path) -> IndexSnapshot {
@@ -123,6 +124,12 @@ pub fn load_index_snapshot_from_sqlite(root: &Path) -> IndexSnapshot {
         refs: thinindex::store::load_refs(root).unwrap_or_else(|error| {
             panic!(
                 "failed to load SQLite refs snapshot for {}\nerror: {error:#}",
+                root.display()
+            )
+        }),
+        dependencies: thinindex::store::load_dependencies(root).unwrap_or_else(|error| {
+            panic!(
+                "failed to load SQLite dependencies snapshot for {}\nerror: {error:#}",
                 root.display()
             )
         }),
@@ -288,6 +295,108 @@ pub fn run_named_ref_integrity_checks(name: &str, refs: &[ReferenceRecord]) {
     assert_no_dev_index_ref_paths(name, refs);
 }
 
+pub fn assert_required_dependency_fields(name: &str, dependencies: &[DependencyEdge]) {
+    for dependency in dependencies {
+        assert!(
+            !dependency.from_path.is_empty(),
+            "[{name}] dependency `from_path` must not be empty for {dependency:?}"
+        );
+        assert!(
+            dependency.from_line >= 1,
+            "[{name}] dependency `from_line` must be >= 1, got {} for {dependency:?}",
+            dependency.from_line
+        );
+        assert!(
+            dependency.from_col >= 1,
+            "[{name}] dependency `from_col` must be >= 1, got {} for {dependency:?}",
+            dependency.from_col
+        );
+        assert!(
+            !dependency.import_path.is_empty(),
+            "[{name}] dependency `import_path` must not be empty for {dependency:?}"
+        );
+        assert!(
+            !dependency.dependency_kind.is_empty(),
+            "[{name}] dependency `dependency_kind` must not be empty for {dependency:?}"
+        );
+        assert!(
+            !dependency.lang.is_empty(),
+            "[{name}] dependency `lang` must not be empty for {dependency:?}"
+        );
+        assert!(
+            !dependency.confidence.is_empty(),
+            "[{name}] dependency `confidence` must not be empty for {dependency:?}"
+        );
+        assert!(
+            !dependency.evidence.is_empty(),
+            "[{name}] dependency `evidence` must not be empty for {dependency:?}"
+        );
+        assert!(
+            !dependency.source.is_empty(),
+            "[{name}] dependency `source` must not be empty for {dependency:?}"
+        );
+
+        if dependency.target_path.is_none() {
+            assert!(
+                dependency.unresolved_reason.is_some(),
+                "[{name}] unresolved dependency should include `unresolved_reason`: {dependency:?}"
+            );
+        }
+    }
+}
+
+pub fn assert_allowed_dependency_confidence(name: &str, dependencies: &[DependencyEdge]) {
+    for dependency in dependencies {
+        assert!(
+            matches!(dependency.confidence.as_str(), "resolved" | "unresolved"),
+            "[{name}] dependency confidence `{}` is not allowed: {dependency:?}",
+            dependency.confidence
+        );
+    }
+}
+
+pub fn assert_no_duplicate_dependencies(name: &str, dependencies: &[DependencyEdge]) {
+    let mut seen: HashSet<(String, String, Option<String>, String)> = HashSet::new();
+
+    for dependency in dependencies {
+        let key = (
+            dependency.from_path.clone(),
+            dependency.import_path.clone(),
+            dependency.target_path.clone(),
+            dependency.dependency_kind.clone(),
+        );
+
+        assert!(
+            seen.insert(key.clone()),
+            "[{name}] duplicate dependency: from_path={} import_path={} target_path={:?} dependency_kind={}",
+            key.0,
+            key.1,
+            key.2,
+            key.3,
+        );
+    }
+}
+
+pub fn assert_no_dev_index_dependency_paths(name: &str, dependencies: &[DependencyEdge]) {
+    for dependency in dependencies {
+        assert!(
+            !dependency.from_path.contains(".dev_index")
+                && dependency
+                    .target_path
+                    .as_ref()
+                    .is_none_or(|target| !target.contains(".dev_index")),
+            "[{name}] dependency path contains `.dev_index`: {dependency:?}",
+        );
+    }
+}
+
+pub fn run_named_dependency_integrity_checks(name: &str, dependencies: &[DependencyEdge]) {
+    assert_required_dependency_fields(name, dependencies);
+    assert_allowed_dependency_confidence(name, dependencies);
+    assert_no_duplicate_dependencies(name, dependencies);
+    assert_no_dev_index_dependency_paths(name, dependencies);
+}
+
 /// Run the full index-integrity check suite against loaded SQLite records.
 ///
 /// * `name` – a human-readable label (repo name, test name, …)
@@ -305,4 +414,5 @@ pub fn run_named_index_integrity_checks(
     thinindex::quality::assert_no_forbidden_index_sources(name, &snapshot.records, &snapshot.refs);
     assert_expected_paths_present(name, &snapshot.records, expected_paths);
     run_named_ref_integrity_checks(name, &snapshot.refs);
+    run_named_dependency_integrity_checks(name, &snapshot.dependencies);
 }
