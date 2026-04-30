@@ -1121,7 +1121,7 @@ fn count_output_files(text: &str, skip_primary: bool) -> usize {
 
     for line in text.lines() {
         if line.ends_with(':') {
-            in_primary = line == "Primary:";
+            in_primary = matches!(line, "Primary:" | "Direct definitions:");
             continue;
         }
 

@@ -22,7 +22,13 @@ def consume():
     return PromptService()
 "#,
     );
+    write_file(root, "src/module_consumer.py", "import prompt_service\n");
     write_file(root, "docs/guide.md", "[PromptService](PromptService)\n");
+    write_file(
+        root,
+        "config/impact.json",
+        r#"{ "service": "PromptService" }"#,
+    );
     write_file(
         root,
         "tests/test_prompt_service.py",
@@ -81,26 +87,32 @@ fn group_rows<'a>(output: &'a str, heading: &str) -> Vec<&'a str> {
 
 fn non_primary_impact_rows(output: &str) -> Vec<&str> {
     [
-        "Likely affected tests:",
-        "Callers/importers:",
+        "References:",
+        "Dependent files:",
+        "Likely tests:",
         "Related docs:",
-        "Related config/routes/schemas:",
-        "Other references:",
+        "Build/config files:",
+        "Unresolved/unknown areas:",
     ]
     .into_iter()
     .flat_map(|heading| group_rows(output, heading))
     .collect()
 }
 
-fn assert_rows_have_reasons(output: &str) {
+fn assert_impact_rows_have_reasons_and_confidence(output: &str) {
     let lines: Vec<_> = output.lines().collect();
 
     for (index, line) in lines.iter().enumerate() {
         if line.starts_with("- ") && !line.ends_with("none") {
             let reason = lines.get(index + 1).copied().unwrap_or_default();
+            let confidence = lines.get(index + 2).copied().unwrap_or_default();
             assert!(
                 reason.trim_start().starts_with("reason:"),
                 "row missing following reason line:\n{line}\n\nfull output:\n{output}"
+            );
+            assert!(
+                confidence.trim_start().starts_with("confidence:"),
+                "row missing following confidence line:\n{line}\n\nfull output:\n{output}"
             );
         }
     }
@@ -469,12 +481,13 @@ fn wi_impact_prompt_service_groups_affected_files() {
     let output = run_wi(root, &["impact", "PromptService"]);
 
     for heading in [
-        "Primary:",
-        "Likely affected tests:",
-        "Callers/importers:",
+        "Direct definitions:",
+        "References:",
+        "Dependent files:",
+        "Likely tests:",
         "Related docs:",
-        "Related config/routes/schemas:",
-        "Other references:",
+        "Build/config files:",
+        "Unresolved/unknown areas:",
     ] {
         assert!(output.contains(heading), "missing {heading}\n{output}");
     }
@@ -485,7 +498,18 @@ fn wi_impact_prompt_service_groups_affected_files() {
             && output.contains("docs/guide.md"),
         "missing expected impact files:\n{output}"
     );
-    assert_rows_have_reasons(&output);
+    assert!(
+        output.contains("src/module_consumer.py") && output.contains("config/impact.json"),
+        "missing dependency/config impact files:\n{output}"
+    );
+    assert_impact_rows_have_reasons_and_confidence(&output);
+    assert!(
+        output.contains("confidence: direct")
+            && output.contains("confidence: dependency")
+            && output.contains("confidence: test-related")
+            && output.contains("confidence: heuristic"),
+        "missing expected impact confidence labels:\n{output}"
+    );
 }
 
 #[test]
@@ -504,27 +528,33 @@ fn wi_impact_order_is_deterministic_and_ranked() {
     let second = run_wi(root, &["impact", "PromptService"]);
 
     assert_eq!(first, second);
-    let primary_pos = first.find("Primary:").expect("primary heading present");
-    let tests_pos = first
-        .find("Likely affected tests:")
-        .expect("tests heading present");
-    let callers_pos = first
-        .find("Callers/importers:")
-        .expect("callers heading present");
+    let primary_pos = first
+        .find("Direct definitions:")
+        .expect("primary heading present");
+    let refs_pos = first
+        .find("References:")
+        .expect("references heading present");
+    let dependents_pos = first
+        .find("Dependent files:")
+        .expect("dependents heading present");
+    let tests_pos = first.find("Likely tests:").expect("tests heading present");
     let docs_pos = first.find("Related docs:").expect("docs heading present");
-    let other_pos = first
-        .find("Other references:")
-        .expect("other heading present");
+    let unknown_pos = first
+        .find("Unresolved/unknown areas:")
+        .expect("unknown heading present");
     let fixture_pos = first
         .find("fixtures/example_prompt.py")
         .expect("fixture ref present");
 
     assert!(
-        primary_pos < tests_pos && tests_pos < callers_pos && callers_pos < docs_pos,
-        "expected primary, tests, callers, docs order:\n{first}"
+        primary_pos < refs_pos
+            && refs_pos < dependents_pos
+            && dependents_pos < tests_pos
+            && tests_pos < docs_pos,
+        "expected direct definitions, references, dependents, tests, docs order:\n{first}"
     );
     assert!(
-        other_pos < fixture_pos,
+        unknown_pos < fixture_pos,
         "fixture/example rows should be in the last group:\n{first}"
     );
 }
@@ -560,10 +590,12 @@ fn wi_impact_respects_group_limits() {
 
     let output = run_wi(root, &["impact", "PromptService"]);
 
-    assert!(group_rows(&output, "Likely affected tests:").len() <= 5);
-    assert!(group_rows(&output, "Callers/importers:").len() <= 5);
+    assert!(group_rows(&output, "References:").len() <= 5);
+    assert!(group_rows(&output, "Dependent files:").len() <= 5);
+    assert!(group_rows(&output, "Likely tests:").len() <= 5);
     assert!(group_rows(&output, "Related docs:").len() <= 3);
-    assert!(group_rows(&output, "Other references:").len() <= 5);
+    assert!(group_rows(&output, "Build/config files:").len() <= 5);
+    assert!(group_rows(&output, "Unresolved/unknown areas:").len() <= 5);
     assert!(
         non_primary_impact_rows(&output).len() <= 15,
         "expected at most 15 non-primary rows, got:\n{output}"
@@ -580,7 +612,7 @@ fn wi_impact_respects_n_as_total_non_primary_limit() {
     let output = run_wi(root, &["impact", "PromptService", "-n", "2"]);
 
     assert!(
-        output.contains("Primary:") && output.contains("src/prompt_service.py"),
+        output.contains("Direct definitions:") && output.contains("src/prompt_service.py"),
         "primary should still print:\n{output}"
     );
     assert_eq!(
@@ -600,7 +632,7 @@ fn wi_impact_missing_refs_shows_primary_non_error() {
     let output = run_wi(root, &["impact", "LonelyService"]);
 
     assert!(
-        output.contains("Primary:"),
+        output.contains("Direct definitions:"),
         "primary should print:\n{output}"
     );
     assert!(
@@ -619,7 +651,7 @@ fn wi_impact_no_primary_preserves_no_result_behavior_and_logs_miss() {
     let output = run_wi(root, &["impact", "NoSuchSymbolPleaseMissXYZ"]);
 
     assert!(
-        output.trim().is_empty() && !output.contains("Primary:"),
+        output.trim().is_empty() && !output.contains("Direct definitions:"),
         "impact miss should preserve no-result output behavior:\n{output}"
     );
 
@@ -664,7 +696,20 @@ fn wi_impact_dedupes_one_best_row_per_file_per_group() {
     run_build(root);
 
     let output = run_wi(root, &["impact", "PromptService"]);
-    let repeated_rows = group_rows(&output, "Callers/importers:")
+    let mut paths = std::collections::BTreeSet::new();
+    for row in non_primary_impact_rows(&output) {
+        let path = row
+            .trim_start_matches("- ")
+            .split(':')
+            .next()
+            .expect("path before colon");
+        assert!(
+            paths.insert(path.to_string()),
+            "duplicate impacted file in:\n{output}"
+        );
+    }
+
+    let repeated_rows = group_rows(&output, "References:")
         .into_iter()
         .filter(|row| row.contains("src/repeated_consumer.py"))
         .count();
@@ -672,6 +717,35 @@ fn wi_impact_dedupes_one_best_row_per_file_per_group() {
     assert_eq!(
         repeated_rows, 1,
         "expected one best callers/importers row per file, got:\n{output}"
+    );
+}
+
+#[test]
+fn wi_impact_stale_dependency_changes_update_output() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_file(root, "src/prompt_service.py", "class PromptService: pass\n");
+    write_file(root, "src/consumer.py", "import prompt_service\n");
+    run_build(root);
+
+    let before = run_wi(root, &["impact", "PromptService"]);
+    assert!(
+        group_rows(&before, "Dependent files:")
+            .iter()
+            .any(|row| row.contains("src/consumer.py")),
+        "expected consumer dependency before change:\n{before}"
+    );
+
+    write_file(root, "src/consumer.py", "import other_service\n");
+    write_file(root, "src/other_service.py", "class OtherService: pass\n");
+    run_build(root);
+
+    let after = run_wi(root, &["impact", "PromptService"]);
+    assert!(
+        !group_rows(&after, "Dependent files:")
+            .iter()
+            .any(|row| row.contains("src/consumer.py")),
+        "stale dependency should be removed from impact output:\n{after}"
     );
 }
 
@@ -688,7 +762,7 @@ fn wi_impact_filter_options_apply_to_primary_search() {
     run_build(root);
 
     let output = run_wi(root, &["impact", "PromptService", "-p", "src/"]);
-    let primary_rows = group_rows(&output, "Primary:");
+    let primary_rows = group_rows(&output, "Direct definitions:");
 
     assert!(
         primary_rows
@@ -737,7 +811,7 @@ fn wi_impact_without_term_remains_normal_search() {
     let output = run_wi(root, &["impact"]);
 
     assert!(
-        output.contains("src/impact_symbol.py") && !output.contains("Primary:"),
+        output.contains("src/impact_symbol.py") && !output.contains("Direct definitions:"),
         "`wi impact` without a term should remain normal search, got:\n{output}"
     );
 }

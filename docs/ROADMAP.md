@@ -12,7 +12,7 @@ The current toolchain provides:
 - `wi <term>` for named landmark search.
 - `wi refs <term>` for deterministic reference output.
 - `wi pack <term>` for compact implementation read sets.
-- `wi impact <term>` for conservative, evidence-backed related files.
+- `wi impact <term>` for dependency-aware, evidence-backed related files.
 - `wi bench` for local benchmark and integrity measurements.
 - `wi-stats` for local usage stats.
 - `wi-init` for repository setup and instruction normalization.
@@ -20,7 +20,7 @@ The current toolchain provides:
 
 Current storage is `.dev_index/index.sqlite`. The entire `.dev_index/` directory is a disposable local cache. Old pre-alpha cache files are not current storage; `build_index` rebuilds them into SQLite.
 
-The index also stores a local best-effort dependency graph for imports, includes, requires, source statements, and unresolved dependency evidence. This graph is internal foundation data for later dependency-aware refs, pack, and impact work; it does not claim compiler, LSP, package-manager, or network-backed resolution.
+The index also stores a local best-effort dependency graph for imports, includes, requires, source statements, and unresolved dependency evidence. This graph powers dependency-aware context and impact output without claiming compiler, LSP, package-manager, or network-backed resolution.
 
 Current instruction surfaces are `AGENTS.md` and, when already present, `CLAUDE.md`. `wi-init` creates or normalizes the canonical `## Repository search` block and does not create a separate instruction file.
 
