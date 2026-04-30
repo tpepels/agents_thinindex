@@ -23,7 +23,7 @@ Rows are deduplicated by file across non-primary groups. When a file has multipl
 - `direct`: exact primary definitions or local syntax/import references.
 - `dependency`: local dependency graph evidence resolved to a repository file.
 - `test-related`: test path, test reference, test dependency, or same-name test convention.
-- `semantic`: reserved for future adapter-supplied semantic facts.
+- `semantic`: reserved for adapter-supplied semantic facts when a future context command consumes them.
 - `heuristic`: capped text fallback, docs/config references, unresolved imports, fixtures, examples, or other best-effort evidence.
 
 Every output row includes a reason string. The reason explains the indexed evidence, not a guarantee that editing the primary symbol will break the impacted file.
@@ -47,4 +47,4 @@ Impact quality improves when the index has better local evidence:
 - add or improve deterministic Tree-sitter query captures for precise references;
 - add future manifest or semantic-adapter data only when it can produce concrete file:line evidence and clear confidence labels.
 
-Known limits: dynamic dispatch, generated code, inheritance, overloads, macro expansion, runtime routing, package-manager resolution, and LSP/compiler-level semantics are not claimed unless a future semantic adapter supplies explicit evidence.
+Known limits: dynamic dispatch, generated code, inheritance, overloads, macro expansion, runtime routing, package-manager resolution, and LSP/compiler-level semantics are not claimed unless a semantic adapter supplies explicit evidence. Semantic adapters are optional and disabled by default; see [SEMANTIC_ADAPTERS.md](SEMANTIC_ADAPTERS.md).

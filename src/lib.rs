@@ -8,6 +8,7 @@ pub mod model;
 pub mod quality;
 pub mod refs;
 pub mod search;
+pub mod semantic;
 pub mod stats;
 pub mod store;
 pub mod support;

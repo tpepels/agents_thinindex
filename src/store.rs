@@ -10,6 +10,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::model::{
     DependencyEdge, FileMeta, INDEX_SCHEMA_VERSION, IndexRecord, Manifest, ReferenceRecord,
+    SemanticFact, SemanticFactKind,
 };
 
 pub const DEV_INDEX_DIR: &str = ".dev_index";
@@ -96,12 +97,18 @@ pub fn load_dependencies(root: &Path) -> Result<Vec<DependencyEdge>> {
     load_dependencies_from_conn(&conn)
 }
 
+pub fn load_semantic_facts(root: &Path) -> Result<Vec<SemanticFact>> {
+    let conn = open_ready_database(root)?;
+    load_semantic_facts_from_conn(&conn)
+}
+
 pub fn save_index_snapshot(
     root: &Path,
     manifest: &Manifest,
     records: &[IndexRecord],
     refs: &[ReferenceRecord],
     dependencies: &[DependencyEdge],
+    semantic_facts: &[SemanticFact],
 ) -> Result<()> {
     let mut conn = open_ready_database(root)?;
     let tx = conn.transaction().with_context(|| {
@@ -117,6 +124,8 @@ pub fn save_index_snapshot(
         .context("failed to clear refs table")?;
     tx.execute("DELETE FROM dependencies", [])
         .context("failed to clear dependencies table")?;
+    tx.execute("DELETE FROM semantic_facts", [])
+        .context("failed to clear semantic facts table")?;
     tx.execute("DELETE FROM files", [])
         .context("failed to clear files table")?;
 
@@ -248,6 +257,49 @@ pub fn save_index_snapshot(
                     dependency.from_line,
                     dependency.from_col,
                     dependency.import_path
+                )
+            })?;
+        }
+    }
+
+    {
+        let mut stmt = tx
+            .prepare(
+                "INSERT INTO semantic_facts(
+                    source_path,
+                    source_line,
+                    source_col,
+                    kind,
+                    symbol,
+                    target_path,
+                    target_line,
+                    target_col,
+                    detail,
+                    confidence,
+                    adapter
+                 )
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            )
+            .context("failed to prepare semantic fact insert")?;
+
+        for fact in semantic_facts {
+            stmt.execute(params![
+                &fact.source_path,
+                i64_from_usize(fact.source_line, "source_line")?,
+                i64_from_usize(fact.source_col, "source_col")?,
+                fact.kind.as_str(),
+                &fact.symbol,
+                fact.target_path.as_deref(),
+                option_i64_from_usize(fact.target_line, "target_line")?,
+                option_i64_from_usize(fact.target_col, "target_col")?,
+                fact.detail.as_deref(),
+                &fact.confidence,
+                &fact.adapter,
+            ])
+            .with_context(|| {
+                format!(
+                    "failed to insert semantic fact at {}:{}:{} for {}",
+                    fact.source_path, fact.source_line, fact.source_col, fact.symbol
                 )
             })?;
         }
@@ -390,6 +442,25 @@ fn initialize_schema(conn: &Connection) -> Result<()> {
         CREATE INDEX IF NOT EXISTS dependencies_kind_idx ON dependencies(dependency_kind);
         CREATE INDEX IF NOT EXISTS dependencies_lang_idx ON dependencies(lang);
         CREATE INDEX IF NOT EXISTS dependencies_confidence_idx ON dependencies(confidence);
+        CREATE TABLE IF NOT EXISTS semantic_facts (
+            source_path TEXT NOT NULL,
+            source_line INTEGER NOT NULL,
+            source_col INTEGER NOT NULL,
+            kind TEXT NOT NULL,
+            symbol TEXT NOT NULL,
+            target_path TEXT,
+            target_line INTEGER,
+            target_col INTEGER,
+            detail TEXT,
+            confidence TEXT NOT NULL,
+            adapter TEXT NOT NULL,
+            UNIQUE(source_path, source_line, source_col, kind, symbol, target_path, adapter)
+        );
+        CREATE INDEX IF NOT EXISTS semantic_facts_source_path_idx ON semantic_facts(source_path);
+        CREATE INDEX IF NOT EXISTS semantic_facts_target_path_idx ON semantic_facts(target_path);
+        CREATE INDEX IF NOT EXISTS semantic_facts_symbol_idx ON semantic_facts(symbol);
+        CREATE INDEX IF NOT EXISTS semantic_facts_kind_idx ON semantic_facts(kind);
+        CREATE INDEX IF NOT EXISTS semantic_facts_adapter_idx ON semantic_facts(adapter);
         CREATE TABLE IF NOT EXISTS usage_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp INTEGER NOT NULL,
@@ -681,6 +752,86 @@ fn load_dependencies_from_conn(conn: &Connection) -> Result<Vec<DependencyEdge>>
     Ok(dependencies)
 }
 
+fn load_semantic_facts_from_conn(conn: &Connection) -> Result<Vec<SemanticFact>> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT
+                source_path,
+                source_line,
+                source_col,
+                kind,
+                symbol,
+                target_path,
+                target_line,
+                target_col,
+                detail,
+                confidence,
+                adapter
+             FROM semantic_facts
+             ORDER BY source_path, source_line, source_col, kind, symbol, target_path, adapter",
+        )
+        .context("failed to prepare semantic facts query")?;
+
+    let rows = stmt
+        .query_map([], |row| {
+            let source_line: i64 = row.get(1)?;
+            let source_col: i64 = row.get(2)?;
+            let target_line: Option<i64> = row.get(6)?;
+            let target_col: Option<i64> = row.get(7)?;
+
+            Ok((
+                row.get::<_, String>(0)?,
+                source_line,
+                source_col,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, Option<String>>(5)?,
+                target_line,
+                target_col,
+                row.get::<_, Option<String>>(8)?,
+                row.get::<_, String>(9)?,
+                row.get::<_, String>(10)?,
+            ))
+        })
+        .context("failed to query semantic facts")?;
+
+    let mut facts = Vec::new();
+    for row in rows {
+        let (
+            source_path,
+            source_line,
+            source_col,
+            kind,
+            symbol,
+            target_path,
+            target_line,
+            target_col,
+            detail,
+            confidence,
+            adapter,
+        ) = row.context("failed to read semantic fact row")?;
+        let kind = kind
+            .parse::<SemanticFactKind>()
+            .map_err(|error| anyhow!("{error}"))?;
+
+        facts.push(SemanticFact {
+            source_path,
+            source_line: usize_from_i64(source_line, "source_line")?,
+            source_col: usize_from_i64(source_col, "source_col")?,
+            kind,
+            symbol,
+            target_path,
+            target_line: option_usize_from_i64(target_line, "target_line")?,
+            target_col: option_usize_from_i64(target_col, "target_col")?,
+            detail,
+            confidence,
+            adapter,
+        });
+    }
+
+    Ok(facts)
+}
+
 pub fn remove_records_for_paths(records: Vec<IndexRecord>, paths: &[String]) -> Vec<IndexRecord> {
     records
         .into_iter()
@@ -737,6 +888,10 @@ fn i64_from_usize(value: usize, label: &str) -> Result<i64> {
     i64::try_from(value).map_err(|_| anyhow!("{label} is too large for SQLite INTEGER: {value}"))
 }
 
+fn option_i64_from_usize(value: Option<usize>, label: &str) -> Result<Option<i64>> {
+    value.map(|value| i64_from_usize(value, label)).transpose()
+}
+
 fn u128_from_i64(value: i64, label: &str) -> Result<u128> {
     u128::try_from(value).map_err(|_| anyhow!("{label} must be non-negative, got {value}"))
 }
@@ -747,4 +902,8 @@ fn u64_from_i64(value: i64, label: &str) -> Result<u64> {
 
 fn usize_from_i64(value: i64, label: &str) -> Result<usize> {
     usize::try_from(value).map_err(|_| anyhow!("{label} must be non-negative, got {value}"))
+}
+
+fn option_usize_from_i64(value: Option<i64>, label: &str) -> Result<Option<usize>> {
+    value.map(|value| usize_from_i64(value, label)).transpose()
 }

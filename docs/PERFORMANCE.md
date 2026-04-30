@@ -36,7 +36,7 @@ build_index --stats
 
 The report includes:
 
-- refs and dependency counts;
+- refs, dependency, and semantic fact counts;
 - unchanged file count;
 - total discovered file bytes;
 - file-size thresholds;

@@ -108,6 +108,7 @@ def top_level_function():
 
     assert!(root.join(".dev_index").exists());
     assert!(root.join(".dev_index/index.sqlite").exists());
+    assert!(sqlite_table_exists(root, "semantic_facts"));
     assert!(!root.join(".dev_index/manifest.json").exists());
     assert!(!root.join(".dev_index/index.jsonl").exists());
 

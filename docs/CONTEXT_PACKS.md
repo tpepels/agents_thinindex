@@ -2,7 +2,7 @@
 
 `wi pack <term>` returns a bounded read set for implementation work. It is designed for agents that need the smallest useful set of files before editing, not a full source dump.
 
-Pack output is built from SQLite `records`, `refs`, `dependencies`, and the same evidence model used by `wi impact`. Every row includes a reason and confidence label.
+Pack output is built from SQLite `records`, `refs`, `dependencies`, and the same evidence model used by `wi impact`. Optional semantic facts are stored separately and are not required for baseline pack output. Every row includes a reason and confidence label.
 
 File-role classification controls how test, build, package manifest, config, docs, generated, and vendor paths are grouped. See [FILE_ROLES.md](FILE_ROLES.md).
 

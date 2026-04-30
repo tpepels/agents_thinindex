@@ -87,6 +87,7 @@ fn print_large_file_warnings(warnings: &[thinindex::indexer::FileSizeWarning]) {
 fn print_stats(stats: &thinindex::indexer::BuildStats) {
     println!("refs: {}", stats.refs);
     println!("dependencies: {}", stats.dependencies);
+    println!("semantic facts: {}", stats.semantic_facts);
     println!("unchanged files: {}", stats.unchanged_files);
     println!("total file bytes: {}", stats.total_file_bytes);
     println!(
@@ -110,6 +111,7 @@ fn print_stats(stats: &thinindex::indexer::BuildStats) {
         stats.timings.dependencies.as_millis()
     );
     println!("  refs ms: {}", stats.timings.refs.as_millis());
+    println!("  semantic ms: {}", stats.timings.semantic.as_millis());
     println!("  save ms: {}", stats.timings.save.as_millis());
     println!("  total ms: {}", stats.timings.total.as_millis());
 

@@ -4,6 +4,14 @@ Use superpowers:subagent-driven-development.
 
 Do not implement this until PLAN_37_MONOREPO_SCALE_AND_INCREMENTAL_INDEXING.md is complete and green.
 
+Progress:
+- [x] Phase 1: inspect reference, impact, indexer, and SQLite storage boundaries
+- [x] Phase 2: add semantic fact model and optional adapter registry
+- [x] Phase 3: store semantic facts in isolated SQLite table with schema bump
+- [x] Phase 4: add fake adapter tests for success, missing/failing adapters, and record isolation
+- [x] Phase 5: document optional semantic adapter boundary and future adapter placeholders
+- [x] Phase 6: run required verification and commit completed Plan 38 work
+
 Goal:
 Add an optional semantic-adapter plugin boundary for future LSP/compiler integrations without making them required product dependencies.
 

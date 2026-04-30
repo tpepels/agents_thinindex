@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-pub const INDEX_SCHEMA_VERSION: u32 = 9;
+pub const INDEX_SCHEMA_VERSION: u32 = 10;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IndexRecord {
@@ -42,6 +42,60 @@ pub struct DependencyEdge {
     pub unresolved_reason: Option<String>,
     pub evidence: String,
     pub source: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SemanticFactKind {
+    ResolvedDefinition,
+    ResolvedReference,
+    TypeReference,
+    CallTarget,
+    Implementation,
+    Diagnostic,
+}
+
+impl SemanticFactKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            SemanticFactKind::ResolvedDefinition => "resolved_definition",
+            SemanticFactKind::ResolvedReference => "resolved_reference",
+            SemanticFactKind::TypeReference => "type_reference",
+            SemanticFactKind::CallTarget => "call_target",
+            SemanticFactKind::Implementation => "implementation",
+            SemanticFactKind::Diagnostic => "diagnostic",
+        }
+    }
+}
+
+impl std::str::FromStr for SemanticFactKind {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "resolved_definition" => Ok(SemanticFactKind::ResolvedDefinition),
+            "resolved_reference" => Ok(SemanticFactKind::ResolvedReference),
+            "type_reference" => Ok(SemanticFactKind::TypeReference),
+            "call_target" => Ok(SemanticFactKind::CallTarget),
+            "implementation" => Ok(SemanticFactKind::Implementation),
+            "diagnostic" => Ok(SemanticFactKind::Diagnostic),
+            _ => Err(format!("unknown semantic fact kind: {value}")),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SemanticFact {
+    pub source_path: String,
+    pub source_line: usize,
+    pub source_col: usize,
+    pub kind: SemanticFactKind,
+    pub symbol: String,
+    pub target_path: Option<String>,
+    pub target_line: Option<usize>,
+    pub target_col: Option<usize>,
+    pub detail: Option<String>,
+    pub confidence: String,
+    pub adapter: String,
 }
 
 impl ReferenceRecord {
@@ -141,6 +195,37 @@ impl DependencyEdge {
             unresolved_reason: unresolved_reason.map(Into::into),
             evidence: truncate(evidence.into(), 120),
             source: source.into(),
+        }
+    }
+}
+
+impl SemanticFact {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        source_path: impl Into<String>,
+        source_line: usize,
+        source_col: usize,
+        kind: SemanticFactKind,
+        symbol: impl Into<String>,
+        target_path: Option<impl Into<String>>,
+        target_line: Option<usize>,
+        target_col: Option<usize>,
+        detail: Option<impl Into<String>>,
+        confidence: impl Into<String>,
+        adapter: impl Into<String>,
+    ) -> Self {
+        Self {
+            source_path: source_path.into(),
+            source_line,
+            source_col,
+            kind,
+            symbol: symbol.into(),
+            target_path: target_path.map(Into::into),
+            target_line,
+            target_col,
+            detail: detail.map(|value| truncate(value.into(), 120)),
+            confidence: confidence.into(),
+            adapter: adapter.into(),
         }
     }
 }

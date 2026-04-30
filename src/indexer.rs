@@ -14,6 +14,7 @@ use crate::{
     extras::index_extras,
     model::{FileMeta, IndexRecord},
     refs::{extract_refs, finalize_refs, refs_from_dependencies},
+    semantic::SemanticAdapterRegistry,
     store::{
         load_manifest, load_records, prepare_for_build, remove_records_for_paths,
         save_index_snapshot, sort_records, sort_refs,
@@ -48,6 +49,7 @@ pub struct BuildTimings {
     pub parse: Duration,
     pub dependencies: Duration,
     pub refs: Duration,
+    pub semantic: Duration,
     pub save: Duration,
     pub total: Duration,
 }
@@ -70,6 +72,7 @@ pub struct BuildStats {
     pub records: usize,
     pub refs: usize,
     pub dependencies: usize,
+    pub semantic_facts: usize,
     pub total_file_bytes: u64,
     pub large_files: Vec<FileSizeWarning>,
     pub timings: BuildTimings,
@@ -93,6 +96,13 @@ pub fn find_repo_root(start: &Path) -> Result<PathBuf> {
 }
 
 pub fn build_index(start: &Path) -> Result<BuildStats> {
+    build_index_with_semantic_adapters(start, &SemanticAdapterRegistry::disabled())
+}
+
+pub fn build_index_with_semantic_adapters(
+    start: &Path,
+    semantic_adapters: &SemanticAdapterRegistry,
+) -> Result<BuildStats> {
     let total_start = Instant::now();
     let root = find_repo_root(start)?;
 
@@ -237,8 +247,19 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
     sort_refs(&mut refs);
     let refs_elapsed = refs_start.elapsed();
 
+    let semantic_start = Instant::now();
+    let semantic_facts = semantic_adapters.collect_facts(&root, &records, &dependencies);
+    let semantic_elapsed = semantic_start.elapsed();
+
     let save_start = Instant::now();
-    save_index_snapshot(&root, &manifest, &records, &refs, &dependencies)?;
+    save_index_snapshot(
+        &root,
+        &manifest,
+        &records,
+        &refs,
+        &dependencies,
+        &semantic_facts,
+    )?;
     let save_elapsed = save_start.elapsed();
 
     Ok(BuildStats {
@@ -250,6 +271,7 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
         records: records.len(),
         refs: refs.len(),
         dependencies: dependencies.len(),
+        semantic_facts: semantic_facts.len(),
         total_file_bytes,
         large_files,
         timings: BuildTimings {
@@ -258,6 +280,7 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
             parse: parse_elapsed,
             dependencies: dependencies_elapsed,
             refs: refs_elapsed,
+            semantic: semantic_elapsed,
             save: save_elapsed,
             total: total_start.elapsed(),
         },
