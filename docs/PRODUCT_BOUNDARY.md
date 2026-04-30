@@ -72,6 +72,8 @@ CSS, HTML, Markdown, JSON, TOML, and YAML are supported by project-owned extras.
 
 Formats and languages not listed in the README support matrix are unsupported. They must not be claimed through line scanning, ctags fallback, or undocumented parser dependencies.
 
+Real-repo parser coverage is checked with shared integrity rules and optional manifest expected-symbol entries. These targeted checks are preferred over exact total record counts because generated code, comments, and unsupported syntax can change totals without changing navigation quality.
+
 Before packaging work proceeds, thinindex also needs:
 
 - `THIRD_PARTY_NOTICES`

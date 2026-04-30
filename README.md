@@ -109,7 +109,31 @@ Normal tests use fixtures and do not depend on local clones. Real-repo validatio
 - `test_repos/MANIFEST.toml` records local benchmark and integrity targets when present.
 - Ignored tests validate indexing, references, context commands, parser coverage, and benchmark behavior against those repos.
 - Manifest entries can define `queries`, `expected_paths`, `expected_symbols`, and `expected_symbol_patterns`. Expected symbols are checked by the ignored real-repo parser hardening test; patterns are Rust regular expressions matched against indexed symbol names.
+- For more precise coverage checks, use `[[repo.expected_symbol]]` with `language`, `path`, `kind`, and `name`, or `[[repo.expected_symbol_pattern]]` with `language`, `path_glob`, `kind`, `name_regex`, and `min_count`.
 - The real-repo parser report lists supported languages with zero emitted records as weak areas. These usually mean the files contain no query-matched declarations, and they should become fixture cases if important symbols are missed.
+
+Example manifest fields:
+
+```toml
+[[repo]]
+name = "local-project"
+path = "local-project"
+queries = ["build_index"]
+expected_paths = ["src/"]
+
+[[repo.expected_symbol]]
+language = "rs"
+path = "src/indexer.rs"
+kind = "function"
+name = "build_index"
+
+[[repo.expected_symbol_pattern]]
+language = "ts"
+path_glob = "src/**/*.ts"
+kind = "function"
+name_regex = "^[A-Za-z_].*"
+min_count = 20
+```
 
 Run real-repo checks with:
 

@@ -156,6 +156,19 @@ expected_paths = ["src/"]
 expected_symbols = ["PromptService"]
 expected_symbol_patterns = ["^create_.*_service$"]
 
+[[repo.expected_symbol]]
+language = "py"
+path = "src/service.py"
+kind = "class"
+name = "PromptService"
+
+[[repo.expected_symbol_pattern]]
+language = "py"
+path_glob = "src/**/*.py"
+kind = "function"
+name_regex = "^create_.*_service$"
+min_count = 1
+
 [[repo]]
 name = "skipped"
 path = "skipped_app"
@@ -189,6 +202,13 @@ skip = true
         repos[0].expected_symbol_patterns,
         vec!["^create_.*_service$".to_string()]
     );
+    assert_eq!(repos[0].expected_symbol_specs.len(), 1);
+    assert_eq!(
+        repos[0].expected_symbol_specs[0].name,
+        "PromptService".to_string()
+    );
+    assert_eq!(repos[0].expected_symbol_pattern_specs.len(), 1);
+    assert_eq!(repos[0].expected_symbol_pattern_specs[0].min_count, 1);
     assert!(repos[0].from_manifest);
 }
 

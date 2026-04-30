@@ -59,6 +59,23 @@ pub struct BenchmarkRunOptions {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExpectedSymbol {
+    pub language: Option<String>,
+    pub path: Option<String>,
+    pub kind: Option<String>,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExpectedSymbolPattern {
+    pub language: Option<String>,
+    pub path_glob: Option<String>,
+    pub kind: Option<String>,
+    pub name_regex: String,
+    pub min_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchmarkRepo {
     pub name: String,
     pub path: PathBuf,
@@ -68,6 +85,8 @@ pub struct BenchmarkRepo {
     pub expected_paths: Vec<String>,
     pub expected_symbols: Vec<String>,
     pub expected_symbol_patterns: Vec<String>,
+    pub expected_symbol_specs: Vec<ExpectedSymbol>,
+    pub expected_symbol_pattern_specs: Vec<ExpectedSymbolPattern>,
     pub from_manifest: bool,
 }
 
@@ -287,6 +306,8 @@ pub fn load_benchmark_repo_set(test_repos_root: &Path) -> Result<BenchmarkRepoSe
             expected_paths: Vec::new(),
             expected_symbols: Vec::new(),
             expected_symbol_patterns: Vec::new(),
+            expected_symbol_specs: Vec::new(),
+            expected_symbol_pattern_specs: Vec::new(),
             from_manifest: false,
         });
     }
@@ -306,6 +327,7 @@ pub fn load_benchmark_repo_set(test_repos_root: &Path) -> Result<BenchmarkRepoSe
 pub fn parse_benchmark_manifest(text: &str, test_repos_root: &Path) -> Result<Vec<BenchmarkRepo>> {
     let mut repos = Vec::new();
     let mut current: Option<ManifestRepoBuilder> = None;
+    let mut section = ManifestSection::None;
 
     for (index, raw_line) in text.lines().enumerate() {
         let line_no = index + 1;
@@ -322,6 +344,33 @@ pub fn parse_benchmark_manifest(text: &str, test_repos_root: &Path) -> Result<Ve
                 repos.push(repo);
             }
             current = Some(ManifestRepoBuilder::default());
+            section = ManifestSection::Repo;
+            continue;
+        }
+
+        if line == "[[repo.expected_symbol]]" {
+            let Some(builder) = current.as_mut() else {
+                bail!("MANIFEST.toml line {line_no}: expected [[repo]] before expected symbols");
+            };
+            builder
+                .expected_symbol_specs
+                .push(ExpectedSymbolBuilder::default());
+            section = ManifestSection::ExpectedSymbol(builder.expected_symbol_specs.len() - 1);
+            continue;
+        }
+
+        if line == "[[repo.expected_symbol_pattern]]" {
+            let Some(builder) = current.as_mut() else {
+                bail!(
+                    "MANIFEST.toml line {line_no}: expected [[repo]] before expected symbol patterns"
+                );
+            };
+            builder
+                .expected_symbol_pattern_specs
+                .push(ExpectedSymbolPatternBuilder::default());
+            section = ManifestSection::ExpectedSymbolPattern(
+                builder.expected_symbol_pattern_specs.len() - 1,
+            );
             continue;
         }
 
@@ -334,23 +383,63 @@ pub fn parse_benchmark_manifest(text: &str, test_repos_root: &Path) -> Result<Ve
         let key = raw_key.trim();
         let value = raw_value.trim();
 
-        match key {
-            "name" => builder.name = Some(parse_toml_string(value, line_no)?),
-            "path" => builder.path = Some(parse_toml_string(value, line_no)?),
-            "kind" => builder.kind = Some(parse_toml_string(value, line_no)?),
-            "description" => builder.description = Some(parse_toml_string(value, line_no)?),
-            "queries" => builder.queries = Some(parse_toml_string_array(value, line_no)?),
-            "expected_paths" => {
-                builder.expected_paths = Some(parse_toml_string_array(value, line_no)?)
+        match section {
+            ManifestSection::Repo => match key {
+                "name" => builder.name = Some(parse_toml_string(value, line_no)?),
+                "path" => builder.path = Some(parse_toml_string(value, line_no)?),
+                "kind" => builder.kind = Some(parse_toml_string(value, line_no)?),
+                "description" => builder.description = Some(parse_toml_string(value, line_no)?),
+                "queries" => builder.queries = Some(parse_toml_string_array(value, line_no)?),
+                "expected_paths" => {
+                    builder.expected_paths = Some(parse_toml_string_array(value, line_no)?)
+                }
+                "expected_symbols" => {
+                    builder.expected_symbols = Some(parse_toml_string_array(value, line_no)?)
+                }
+                "expected_symbol_patterns" => {
+                    builder.expected_symbol_patterns =
+                        Some(parse_toml_string_array(value, line_no)?)
+                }
+                "skip" => builder.skip = parse_toml_bool(value, line_no)?,
+                other => bail!("MANIFEST.toml line {line_no}: unknown repo field `{other}`"),
+            },
+            ManifestSection::ExpectedSymbol(symbol_index) => {
+                let Some(symbol) = builder.expected_symbol_specs.get_mut(symbol_index) else {
+                    bail!("MANIFEST.toml line {line_no}: expected symbol section missing");
+                };
+                match key {
+                    "language" => symbol.language = Some(parse_toml_string(value, line_no)?),
+                    "path" => symbol.path = Some(parse_toml_string(value, line_no)?),
+                    "kind" => symbol.kind = Some(parse_toml_string(value, line_no)?),
+                    "name" => symbol.name = Some(parse_toml_string(value, line_no)?),
+                    other => {
+                        bail!(
+                            "MANIFEST.toml line {line_no}: unknown expected_symbol field `{other}`"
+                        )
+                    }
+                }
             }
-            "expected_symbols" => {
-                builder.expected_symbols = Some(parse_toml_string_array(value, line_no)?)
+            ManifestSection::ExpectedSymbolPattern(pattern_index) => {
+                let Some(pattern) = builder.expected_symbol_pattern_specs.get_mut(pattern_index)
+                else {
+                    bail!("MANIFEST.toml line {line_no}: expected symbol pattern section missing");
+                };
+                match key {
+                    "language" => pattern.language = Some(parse_toml_string(value, line_no)?),
+                    "path_glob" => pattern.path_glob = Some(parse_toml_string(value, line_no)?),
+                    "kind" => pattern.kind = Some(parse_toml_string(value, line_no)?),
+                    "name_regex" => pattern.name_regex = Some(parse_toml_string(value, line_no)?),
+                    "min_count" => pattern.min_count = Some(parse_toml_usize(value, line_no)?),
+                    other => {
+                        bail!(
+                            "MANIFEST.toml line {line_no}: unknown expected_symbol_pattern field `{other}`"
+                        )
+                    }
+                }
             }
-            "expected_symbol_patterns" => {
-                builder.expected_symbol_patterns = Some(parse_toml_string_array(value, line_no)?)
+            ManifestSection::None => {
+                bail!("MANIFEST.toml line {line_no}: expected [[repo]] before fields")
             }
-            "skip" => builder.skip = parse_toml_bool(value, line_no)?,
-            other => bail!("MANIFEST.toml line {line_no}: unknown repo field `{other}`"),
         }
     }
 
@@ -386,6 +475,14 @@ fn load_benchmark_queries(root: &Path, records: &[IndexRecord]) -> Result<Vec<St
     Ok(fallback_queries(records))
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ManifestSection {
+    None,
+    Repo,
+    ExpectedSymbol(usize),
+    ExpectedSymbolPattern(usize),
+}
+
 #[derive(Debug, Default)]
 struct ManifestRepoBuilder {
     name: Option<String>,
@@ -396,7 +493,26 @@ struct ManifestRepoBuilder {
     expected_paths: Option<Vec<String>>,
     expected_symbols: Option<Vec<String>>,
     expected_symbol_patterns: Option<Vec<String>>,
+    expected_symbol_specs: Vec<ExpectedSymbolBuilder>,
+    expected_symbol_pattern_specs: Vec<ExpectedSymbolPatternBuilder>,
     skip: bool,
+}
+
+#[derive(Debug, Default)]
+struct ExpectedSymbolBuilder {
+    language: Option<String>,
+    path: Option<String>,
+    kind: Option<String>,
+    name: Option<String>,
+}
+
+#[derive(Debug, Default)]
+struct ExpectedSymbolPatternBuilder {
+    language: Option<String>,
+    path_glob: Option<String>,
+    kind: Option<String>,
+    name_regex: Option<String>,
+    min_count: Option<usize>,
 }
 
 fn finish_manifest_repo(
@@ -432,6 +548,10 @@ fn finish_manifest_repo(
         );
     }
 
+    let expected_symbol_specs = finish_expected_symbol_specs(&name, builder.expected_symbol_specs)?;
+    let expected_symbol_pattern_specs =
+        finish_expected_symbol_pattern_specs(&name, builder.expected_symbol_pattern_specs)?;
+
     Ok(Some(BenchmarkRepo {
         name,
         path,
@@ -441,8 +561,67 @@ fn finish_manifest_repo(
         expected_paths: builder.expected_paths.unwrap_or_default(),
         expected_symbols: builder.expected_symbols.unwrap_or_default(),
         expected_symbol_patterns: builder.expected_symbol_patterns.unwrap_or_default(),
+        expected_symbol_specs,
+        expected_symbol_pattern_specs,
         from_manifest: true,
     }))
+}
+
+fn finish_expected_symbol_specs(
+    repo_name: &str,
+    builders: Vec<ExpectedSymbolBuilder>,
+) -> Result<Vec<ExpectedSymbol>> {
+    builders
+        .into_iter()
+        .enumerate()
+        .map(|(index, builder)| {
+            let name = builder.name.ok_or_else(|| {
+                anyhow::anyhow!(
+                    "MANIFEST.toml repo `{repo_name}` expected_symbol #{} missing required field `name`",
+                    index + 1
+                )
+            })?;
+
+            Ok(ExpectedSymbol {
+                language: builder.language,
+                path: builder.path,
+                kind: builder.kind,
+                name,
+            })
+        })
+        .collect()
+}
+
+fn finish_expected_symbol_pattern_specs(
+    repo_name: &str,
+    builders: Vec<ExpectedSymbolPatternBuilder>,
+) -> Result<Vec<ExpectedSymbolPattern>> {
+    builders
+        .into_iter()
+        .enumerate()
+        .map(|(index, builder)| {
+            let name_regex = builder.name_regex.ok_or_else(|| {
+                anyhow::anyhow!(
+                    "MANIFEST.toml repo `{repo_name}` expected_symbol_pattern #{} missing required field `name_regex`",
+                    index + 1
+                )
+            })?;
+            let min_count = builder.min_count.ok_or_else(|| {
+                anyhow::anyhow!(
+                    "MANIFEST.toml repo `{repo_name}` expected_symbol_pattern #{} missing required field `min_count`",
+                    index + 1
+                )
+            })?;
+
+            Ok(ExpectedSymbolPattern {
+                language: builder.language,
+                path_glob: builder.path_glob,
+                kind: builder.kind,
+                name_regex,
+                min_count,
+            })
+        })
+        .collect()
 }
 
 fn resolve_manifest_repo_path(test_repos_root: &Path, raw_path: &str) -> PathBuf {
@@ -591,6 +770,12 @@ fn parse_toml_bool(value: &str, line_no: usize) -> Result<bool> {
         "false" => Ok(false),
         _ => bail!("MANIFEST.toml line {line_no}: expected boolean"),
     }
+}
+
+fn parse_toml_usize(value: &str, line_no: usize) -> Result<usize> {
+    value
+        .parse::<usize>()
+        .with_context(|| format!("MANIFEST.toml line {line_no}: expected unsigned integer"))
 }
 
 fn unescape_toml_string(value: &str, line_no: usize) -> Result<String> {

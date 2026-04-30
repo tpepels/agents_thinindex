@@ -193,3 +193,12 @@ Report:
 - verification commands and results
 - ignored local/real repo test status
 - commit hash
+
+## Phase tracking
+
+- [x] Add structured manifest support for `[[repo.expected_symbol]]` and `[[repo.expected_symbol_pattern]]`.
+- [x] Check structured expected symbols and minimum-count patterns in the ignored real-repo hardening path.
+- [x] Add normal tests for manifest parsing and symbol/pattern matching.
+- [x] Document targeted real-repo symbol coverage policy and manifest fields.
+- [x] Run required 12F verification.
+- [x] Commit with `Close parser symbol coverage gaps`.
