@@ -464,6 +464,7 @@ fn initialize_schema(conn: &Connection) -> Result<()> {
         CREATE TABLE IF NOT EXISTS usage_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp INTEGER NOT NULL,
+            command TEXT NOT NULL,
             query TEXT NOT NULL,
             query_len INTEGER NOT NULL,
             result_count INTEGER NOT NULL,

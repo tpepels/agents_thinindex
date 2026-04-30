@@ -4,6 +4,13 @@ Use superpowers:subagent-driven-development.
 
 Do not implement this until PLAN_38_OPTIONAL_SEMANTIC_ADAPTER_BOUNDARY.md is complete and green.
 
+Progress:
+- [x] Phase 1: inspect existing wi-init, wi-stats, usage logging, and instruction generation
+- [x] Phase 2: add local usage command categories and agent workflow audit summary
+- [x] Phase 3: add isolated Codex, Claude, generic, and MCP integration packs
+- [x] Phase 4: add tests for audit output, local-only claims, and instruction invariants
+- [x] Phase 5: run required verification and commit completed Plan 39 work
+
 Goal:
 Improve agent compliance with thinindex by adding integration packs, wrappers, and workflow checks.
 

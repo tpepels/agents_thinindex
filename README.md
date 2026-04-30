@@ -65,6 +65,8 @@ The canonical agent workflow is:
 
 `wi-init` creates or normalizes this workflow in `AGENTS.md` and normalizes an existing `CLAUDE.md` when present. It does not generate a `WI.md` instruction file.
 
+Optional integration packs for Codex, Claude, generic agents, and future local tool wrappers live under `integrations/agents/`. See [docs/AGENT_INTEGRATION.md](docs/AGENT_INTEGRATION.md) for read-budget guidance and the local-only `wi-stats` workflow audit.
+
 ## Commands
 
 Installed commands:
@@ -75,7 +77,7 @@ Installed commands:
 - `wi pack <term>`: returns a dependency-aware, deduplicated read set for implementation work.
 - `wi impact <term>`: returns dependency-aware related files with concrete reasons and confidence labels.
 - `wi bench`: measures build, search, context-command, size, count, latency, and integrity behavior.
-- `wi-stats`: shows local usage stats and hit/miss graphs.
+- `wi-stats`: shows local usage stats, hit/miss graphs, and advisory agent workflow audit counts.
 - `wi-init`: prepares a repository for agent use.
 - `wi-init --remove`: removes the repo-local index.
 

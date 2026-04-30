@@ -5,8 +5,8 @@ use clap::Parser;
 use thinindex::{
     indexer::find_repo_root,
     stats::{
-        compute_windows, current_unix_seconds, read_usage_events, render_hit_miss_graph,
-        render_usage_table,
+        compute_agent_workflow_audit, compute_windows, current_unix_seconds, read_usage_events,
+        render_agent_workflow_audit, render_hit_miss_graph, render_usage_table,
     },
 };
 
@@ -55,6 +55,9 @@ fn run() -> Result<()> {
     print!("{}", render_usage_table(&windows));
     println!();
     print!("{}", render_hit_miss_graph(&windows));
+    println!();
+    let audit = compute_agent_workflow_audit(&events);
+    print!("{}", render_agent_workflow_audit(&audit));
     println!();
     println!("Recent misses");
 

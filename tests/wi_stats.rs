@@ -101,6 +101,10 @@ class PromptService:
         "Hit ratio",
         "Avg results",
         "Hit/miss graph",
+        "Agent workflow audit",
+        "Recorded wi events",
+        "Context commands",
+        "Scope: local wi usage only",
         "Recent misses",
     ] {
         assert!(
@@ -108,6 +112,50 @@ class PromptService:
             "expected wi-stats stdout to contain '{needle}', got:\n{stdout}"
         );
     }
+}
+
+#[test]
+fn wi_stats_records_command_categories_for_agent_audit() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "src/main.py",
+        r#"
+class PromptService:
+    pass
+
+def consume():
+    return PromptService()
+"#,
+    );
+
+    run_build(root);
+    run_wi(root, &["PromptService"]);
+    run_wi(root, &["pack", "PromptService"]);
+    run_wi(root, &["impact", "PromptService"]);
+
+    let events = thinindex::stats::read_usage_events(root).expect("read usage events");
+    let commands: Vec<&str> = events.iter().map(|event| event.command.as_str()).collect();
+
+    assert_eq!(commands, vec!["search", "pack", "impact"]);
+
+    let output = wi_stats_bin()
+        .current_dir(root)
+        .output()
+        .expect("run wi-stats");
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Context commands: 2 (refs 0, pack 1, impact 1)"),
+        "expected command-category audit counts, got:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("Signal: pack and impact usage recorded"),
+        "expected implementation workflow signal, got:\n{stdout}"
+    );
 }
 
 #[test]

@@ -111,6 +111,7 @@ fn run() -> Result<()> {
 
     let event = UsageEvent {
         ts: stats::current_unix_seconds(),
+        command: command.usage_category().to_string(),
         query: usage_query.clone(),
         query_len: usage_query.chars().count(),
         result_count,

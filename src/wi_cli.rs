@@ -98,6 +98,18 @@ pub enum WiCommand {
     Bench,
 }
 
+impl WiCommand {
+    pub fn usage_category(self) -> &'static str {
+        match self {
+            WiCommand::Search => "search",
+            WiCommand::Refs => "refs",
+            WiCommand::Pack => "pack",
+            WiCommand::Impact => "impact",
+            WiCommand::Bench => "bench",
+        }
+    }
+}
+
 impl WiArgs {
     pub fn command(&self) -> WiCommand {
         match self.terms.first().map(String::as_str) {

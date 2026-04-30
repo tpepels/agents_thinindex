@@ -947,6 +947,7 @@ fn wi_impact_logs_usage_with_subcommand() {
 
     let events = thinindex::stats::read_usage_events(root).expect("read usage events");
     let event = events.last().expect("at least one usage event");
+    assert_eq!(event.command, "impact");
     assert_eq!(event.query, "impact PromptService");
     assert!(event.hit, "expected impact hit event: {event:?}");
     assert!(

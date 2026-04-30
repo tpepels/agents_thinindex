@@ -12,6 +12,7 @@ use crate::store::open_ready_database;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UsageEvent {
     pub ts: u64,
+    pub command: String,
     pub query: String,
     pub query_len: usize,
     pub result_count: usize,
@@ -35,6 +36,23 @@ pub struct WindowStats {
     pub avg_results: f64,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AgentWorkflowAudit {
+    pub total: usize,
+    pub search: usize,
+    pub refs: usize,
+    pub pack: usize,
+    pub impact: usize,
+    pub filtered_or_limited: usize,
+    pub misses: usize,
+}
+
+impl AgentWorkflowAudit {
+    pub fn context_commands(&self) -> usize {
+        self.refs + self.pack + self.impact
+    }
+}
+
 pub const WINDOW_DAYS: &[(u64, &str)] = &[(1, "1d"), (2, "2d"), (5, "5d"), (30, "30d")];
 
 pub fn current_unix_seconds() -> u64 {
@@ -53,12 +71,13 @@ pub fn append_usage_event(root: &Path, event: &UsageEvent) -> Result<()> {
 
     conn.execute(
         "INSERT INTO usage_events(
-            timestamp, query, query_len, result_count, hit,
+            timestamp, command, query, query_len, result_count, hit,
             used_type, used_lang, used_path, used_limit, repo, indexed_files
          )
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
         params![
             i64::try_from(event.ts).context("usage timestamp is too large")?,
+            &event.command,
             &event.query,
             i64::try_from(event.query_len).context("usage query_len is too large")?,
             i64::try_from(event.result_count).context("usage result_count is too large")?,
@@ -80,7 +99,7 @@ pub fn read_usage_events(root: &Path) -> Result<Vec<UsageEvent>> {
     let conn = open_ready_database(root)?;
     let mut stmt = conn
         .prepare(
-            "SELECT timestamp, query, query_len, result_count, hit,
+            "SELECT timestamp, command, query, query_len, result_count, hit,
                     used_type, used_lang, used_path, used_limit, repo, indexed_files
              FROM usage_events
              ORDER BY id",
@@ -92,15 +111,16 @@ pub fn read_usage_events(root: &Path) -> Result<Vec<UsageEvent>> {
             Ok((
                 row.get::<_, i64>(0)?,
                 row.get::<_, String>(1)?,
-                row.get::<_, i64>(2)?,
+                row.get::<_, String>(2)?,
                 row.get::<_, i64>(3)?,
                 row.get::<_, i64>(4)?,
                 row.get::<_, i64>(5)?,
                 row.get::<_, i64>(6)?,
                 row.get::<_, i64>(7)?,
                 row.get::<_, i64>(8)?,
-                row.get::<_, String>(9)?,
-                row.get::<_, i64>(10)?,
+                row.get::<_, i64>(9)?,
+                row.get::<_, String>(10)?,
+                row.get::<_, i64>(11)?,
             ))
         })
         .context("failed to query usage events")?;
@@ -109,6 +129,7 @@ pub fn read_usage_events(root: &Path) -> Result<Vec<UsageEvent>> {
     for row in rows {
         let (
             ts,
+            command,
             query,
             query_len,
             result_count,
@@ -123,6 +144,7 @@ pub fn read_usage_events(root: &Path) -> Result<Vec<UsageEvent>> {
 
         events.push(UsageEvent {
             ts: u64::try_from(ts).context("usage timestamp must be non-negative")?,
+            command,
             query,
             query_len: usize::try_from(query_len)
                 .context("usage query_len must be non-negative")?,
@@ -252,6 +274,73 @@ pub fn render_hit_miss_graph(windows: &[WindowStats]) -> String {
     out
 }
 
+pub fn compute_agent_workflow_audit(events: &[UsageEvent]) -> AgentWorkflowAudit {
+    let mut audit = AgentWorkflowAudit {
+        total: events.len(),
+        search: 0,
+        refs: 0,
+        pack: 0,
+        impact: 0,
+        filtered_or_limited: 0,
+        misses: 0,
+    };
+
+    for event in events {
+        match event.command.as_str() {
+            "refs" => audit.refs += 1,
+            "pack" => audit.pack += 1,
+            "impact" => audit.impact += 1,
+            _ => audit.search += 1,
+        }
+
+        if event.used_type || event.used_lang || event.used_path || event.used_limit {
+            audit.filtered_or_limited += 1;
+        }
+
+        if !event.hit {
+            audit.misses += 1;
+        }
+    }
+
+    audit
+}
+
+pub fn render_agent_workflow_audit(audit: &AgentWorkflowAudit) -> String {
+    let mut out = String::new();
+
+    out.push_str("Agent workflow audit\n");
+    out.push_str(&format!("Recorded wi events: {}\n", audit.total));
+    out.push_str(&format!("Search commands: {}\n", audit.search));
+    out.push_str(&format!(
+        "Context commands: {} (refs {}, pack {}, impact {})\n",
+        audit.context_commands(),
+        audit.refs,
+        audit.pack,
+        audit.impact
+    ));
+    out.push_str(&format!(
+        "Filtered or limited commands: {}\n",
+        audit.filtered_or_limited
+    ));
+    out.push_str(&format!("Misses: {}\n", audit.misses));
+
+    if audit.pack > 0 && audit.impact > 0 {
+        out.push_str("Signal: pack and impact usage recorded for implementation workflow.\n");
+    } else if audit.context_commands() > 0 {
+        out.push_str(
+            "Signal: context command usage recorded; prefer both pack and impact before edits.\n",
+        );
+    } else {
+        out.push_str("Signal: no refs/pack/impact usage recorded yet.\n");
+    }
+
+    out.push_str(
+        "Scope: local wi usage only; this cannot detect external grep/find/ls/Read usage.\n",
+    );
+
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -260,6 +349,7 @@ mod tests {
     fn sample_event(ts: u64, hit: bool, result_count: usize) -> UsageEvent {
         UsageEvent {
             ts,
+            command: "search".to_string(),
             query: "needle".to_string(),
             query_len: 6,
             result_count,
@@ -363,6 +453,32 @@ mod tests {
     }
 
     #[test]
+    fn agent_workflow_audit_counts_context_and_filter_usage() {
+        let mut search = sample_event(1, true, 2);
+        search.used_limit = true;
+
+        let mut pack = sample_event(2, true, 3);
+        pack.command = "pack".to_string();
+
+        let mut impact = sample_event(3, false, 0);
+        impact.command = "impact".to_string();
+
+        let audit = compute_agent_workflow_audit(&[search, pack, impact]);
+        let rendered = render_agent_workflow_audit(&audit);
+
+        assert_eq!(audit.total, 3);
+        assert_eq!(audit.search, 1);
+        assert_eq!(audit.pack, 1);
+        assert_eq!(audit.impact, 1);
+        assert_eq!(audit.context_commands(), 2);
+        assert_eq!(audit.filtered_or_limited, 1);
+        assert_eq!(audit.misses, 1);
+        assert!(rendered.contains("Agent workflow audit"));
+        assert!(rendered.contains("local wi usage only"));
+        assert!(rendered.contains("cannot detect external grep/find/ls/Read usage"));
+    }
+
+    #[test]
     fn append_and_read_round_trip() {
         let dir = tempdir().expect("tempdir");
         let root = dir.path();
@@ -370,6 +486,7 @@ mod tests {
 
         let event = UsageEvent {
             ts: 1_700_000_000,
+            command: "search".to_string(),
             query: "Foo".to_string(),
             query_len: 3,
             result_count: 2,
