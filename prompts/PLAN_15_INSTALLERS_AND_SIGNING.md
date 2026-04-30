@@ -38,7 +38,7 @@ Do not require every native installer format to be fully produced locally unless
 
 Windows:
 Preferred progression:
-1. zip archive from PLAN_13 remains supported
+1. zip archive from PLAN_14 remains supported
 2. add PowerShell install/uninstall scripts if not already robust
 3. add MSI/MSIX/WiX/Inno Setup plan or initial config only if practical
 
@@ -51,7 +51,7 @@ Required Windows docs:
 
 macOS:
 Preferred progression:
-1. tar.gz archive from PLAN_13 remains supported
+1. tar.gz archive from PLAN_14 remains supported
 2. add install/uninstall shell behavior
 3. add pkg/notarization plan or initial packaging config only if practical
 
@@ -63,7 +63,7 @@ Required macOS docs:
 
 Linux:
 Preferred progression:
-1. tar.gz archive from PLAN_13 remains supported
+1. tar.gz archive from PLAN_14 remains supported
 2. add install/uninstall shell behavior
 3. add deb/rpm/AppImage plan or initial packaging config only if practical
 
@@ -100,7 +100,7 @@ Required:
 If adding scripts, they must fail clearly when required signing env vars/certs are missing.
 
 Checksums:
-Keep SHA256 checksums from PLAN_13 if implemented.
+Keep SHA256 checksums from PLAN_14 if implemented.
 Installer docs should explain checksum verification.
 
 Docs:
@@ -159,7 +159,7 @@ Acceptance:
 - installer/signing docs exist and are accurate.
 - install/uninstall scripts or scaffolding are updated for all binaries.
 - no installer/uninstaller deletes `.dev_index`.
-- release archive flow from PLAN_13 remains intact.
+- release archive flow from PLAN_14 remains intact.
 - native installer status is honestly documented.
 - signing/notarization status is honestly documented.
 - no ctags bundling or GPL/AGPL dependency is introduced.
@@ -171,7 +171,7 @@ Verification:
 - `cargo test`
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - license audit command from PLAN_12, if added
-- run release packaging script from PLAN_13 for current platform
+- run release packaging script from PLAN_14 for current platform
 - inspect/list archive contents
 - run install script in a temp install directory if supported
 - run uninstall script in a temp install directory if supported

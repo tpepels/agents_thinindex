@@ -28,14 +28,14 @@ Do not position thinindex as:
 - a semantic code intelligence engine
 - a hosted search product
 - an ML prediction system
-- ready for proprietary commercial packaging while Universal Ctags remains in the product path
+- ready for proprietary commercial packaging before license audit, release hardening, and signing/installer work are complete
 
 Commercial packaging caveat:
 - Universal Ctags must not be bundled into proprietary release artifacts.
 - Do not claim ctags can be bundled.
-- Do not claim cross-platform commercial packaging is ready while ctags remains required.
-- Ctags removal and a permissively licensed native parser backend are blockers for proprietary Windows/macOS/Linux packages.
-- Until that parser work is complete, ctags may only be documented as an external user-installed dependency if it is still required by current code.
+- Do not claim cross-platform commercial packaging is ready if any production parser path requires ctags.
+- The Tree-sitter parser stack from PLAN_11A through PLAN_11C removes the old production ctags blocker; future packaging caveats should focus on current license audit, signing, installer, and release-hardening state.
+- Universal Ctags may only be documented as optional external quality-comparator tooling.
 
 Documentation targets:
 Audit and update docs that exist in the repo, likely including:
@@ -143,7 +143,7 @@ Document explicitly:
 - impact is evidence-backed but not exhaustive
 - agents can still ignore instructions
 - generated/build/vendor files should be ignored
-- proprietary packaging is blocked until Universal Ctags is removed from the required parser path
+- proprietary packaging is blocked if Universal Ctags returns to the required parser path
 - bundled parser dependencies must be permissively licensed and audited before commercial release artifacts
 
 Install/uninstall:
@@ -152,7 +152,7 @@ Keep docs aligned with PLAN_08:
 - all binaries support `--version`
 - uninstall does not delete `.dev_index`
 - `wi-init --remove` removes repo-local index
-- if ctags is still required, document it as external-only and not bundled
+- if ctags is referenced, document it as optional external quality-comparator tooling only
 - do not imply ctags will ship inside release archives
 
 ROADMAP:
@@ -161,7 +161,7 @@ Update docs/ROADMAP.md if present:
 - reflect refs/pack/impact/bench as current if implemented
 - move completed phases out of future tense where appropriate
 - keep future work separate from shipped behavior
-- add or preserve a blocker item for removing ctags and adding a permissively licensed native parser before proprietary cross-platform packaging
+- add or preserve a blocker item if production indexing ever again requires ctags before proprietary cross-platform packaging
 
 Instruction surfaces:
 - Do not reintroduce `WI.md`.
@@ -184,7 +184,7 @@ At minimum:
 - tests should verify README mentions `wi pack` and `wi impact` if those commands exist
 - tests should verify README does not claim ML prediction
 - tests should verify docs do not claim Universal Ctags can be bundled into proprietary releases
-- tests should verify docs mention ctags removal/native permissive parser as a packaging blocker if ctags is still present
+- tests should verify docs mention ctags as a packaging blocker only if ctags returns to production indexing
 
 Do not make tests brittle around long prose. Prefer focused substring/anti-substring checks.
 
@@ -196,7 +196,7 @@ Acceptance:
 - Docs do not describe JSONL as canonical storage.
 - Command docs match actual `wi --help`.
 - Real-repo and benchmark docs match implemented behavior.
-- Docs clearly state that proprietary release packaging is blocked until ctags is removed/replaced.
+- Docs clearly state that proprietary release packaging is blocked if production indexing again requires ctags.
 - Docs do not claim ctags can be bundled.
 - Existing code behavior remains unchanged unless fixing documented falsehoods.
 - No normal test depends on local repos or `test_repos/`.
@@ -216,7 +216,7 @@ Report:
 - docs rewritten/updated
 - positioning summary
 - stale docs removed
-- ctags/native-parser packaging caveat documented
+- Tree-sitter production parser and optional ctags-comparator packaging caveat documented
 - verification commands and results
 - whether ignored local test passed
 - whether ignored real-repo test ran, skipped, or failed

@@ -148,8 +148,8 @@ Existing ignored local/real-repo tests should still pass.
 Packaging constraint:
 - Do not bundle Universal Ctags.
 - Do not ship release archives/installers that require bundled ctags.
-- If ctags still exists at this point, install/release hardening may only document it as an external user-installed development dependency.
-- Cross-platform release artifacts are blocked until PLAN_11 removes ctags and adds a permissively licensed native parser.
+- Universal Ctags is optional quality-comparator tooling only; install/release hardening must not describe it as a production parser or bundled dependency.
+- Cross-platform release artifacts must use the Tree-sitter production parser stack from PLAN_11A through PLAN_11C and must not bundle ctags.
 
 Acceptance:
 - install/uninstall scripts mention and handle all binaries.

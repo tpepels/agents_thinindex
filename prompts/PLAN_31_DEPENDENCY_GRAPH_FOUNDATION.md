@@ -1,4 +1,4 @@
-# PLAN_31_MODULE_AND_DEPENDENCY_RESOLUTION_FOUNDATION.md
+# PLAN_31_DEPENDENCY_GRAPH_FOUNDATION.md
 
 Use superpowers:subagent-driven-development.
 

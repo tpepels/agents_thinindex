@@ -5,7 +5,7 @@ Use superpowers:subagent-driven-development.
 Do not implement this until PLAN_00 through PLAN_09 are complete and green.
 
 Goal:
-Define the product boundary between free/local thinindex and a future Pro edition, without prematurely adding licensing, payments, cloud services, artificial restrictions, or proprietary packaging claims that are blocked by the current parser dependency situation.
+Define the product boundary between free/local thinindex and a future Pro edition, without prematurely adding licensing, payments, cloud services, artificial restrictions, or proprietary packaging claims before license audit, release hardening, signing, and installer work are complete.
 
 This pass is product/design/documentation work with light code only if needed to expose current edition/status cleanly. Do not add payment integration, license checks, network calls, account systems, telemetry, or feature gating unless explicitly required by this plan.
 
@@ -37,18 +37,18 @@ Possible Pro candidates:
 - CI/reporting integrations
 - richer agent integration packs
 - team/shared policy packs
-- release-quality native parser backend, if it materially improves bundled parser quality
+- release-quality Tree-sitter parser hardening, if it materially improves bundled parser quality
 - exported reports for audits or team review
-- signed installers and managed update channel, after licensing/parser blockers are resolved
+- signed installers and managed update channel, after licensing, release-hardening, and signing/notarization blockers are resolved
 
 Do not decide final pricing in code. Define the boundary and product rationale.
 
 Commercial packaging blocker:
 - Universal Ctags must not be bundled into proprietary release artifacts.
 - Do not claim ctags can be bundled.
-- Do not claim proprietary Windows/macOS/Linux packaging is ready while ctags remains required.
-- Ctags removal and a permissively licensed native parser backend are blockers for proprietary same-binary Pro packaging.
-- Until that parser work is complete, ctags may only be documented as an external user-installed dependency if it is still required by current code.
+- Do not claim proprietary Windows/macOS/Linux packaging is ready if production indexing requires ctags.
+- The Tree-sitter parser stack from PLAN_11A through PLAN_11C removes the old production ctags blocker; current packaging readiness still depends on license audit, release hardening, signing/notarization scaffolding, and installer status.
+- Universal Ctags may only be documented as optional external quality-comparator tooling.
 - This plan must not add release artifacts, installers, or license gates.
 
 Required docs:
@@ -98,15 +98,15 @@ Describe as candidates, not implemented gates:
 - team policy/instruction packs
 - exported agent-readiness reports
 - advanced reference graph quality features
-- signed installers and managed update channel after parser/licensing blockers are removed
+- signed installers and managed update channel after licensing, release-hardening, and signing/notarization blockers are removed
 
 Packaging/licensing blockers:
 Document clearly:
 - Universal Ctags is not suitable for bundling in proprietary release artifacts.
-- A permissively licensed native parser backend is required before proprietary same-binary Pro packaging.
+- The permissively licensed Tree-sitter production parser stack must remain in place and audited before proprietary same-binary Pro packaging.
 - All bundled parser dependencies and grammar dependencies must be audited before packaging.
 - `THIRD_PARTY_NOTICES` and a dependency license audit are required before release packaging.
-- Packaging plans must not proceed until this blocker is resolved.
+- Packaging plans must not proceed until license audit, release hardening, signing/notarization, and installer requirements are satisfied.
 
 What is not being built yet:
 Explicitly say this plan does not add:
@@ -120,7 +120,7 @@ Explicitly say this plan does not add:
 - network calls
 - release installers
 - ctags bundling
-- native parser replacement
+- Tree-sitter parser hardening
 
 Evidence needed before charging:
 Document required proof:
@@ -148,14 +148,14 @@ Update README only if needed to mention:
 - thinindex is currently local/free
 - Pro features are roadmap/candidates, not current restrictions
 - no cloud/license/payment system exists yet
-- proprietary packaging is blocked until ctags is removed/replaced by permissively licensed native parser support
+- proprietary packaging is blocked if ctags is required by production indexing instead of the permissively licensed Tree-sitter parser stack
 
 ROADMAP:
 Update docs/ROADMAP.md if present:
 - add or update monetization section to match `PRODUCT_BOUNDARY.md`
 - remove stale claims if any say licensing/payment is currently implemented
 - keep future decisions clearly separate from shipped behavior
-- add ctags removal/native parser as a blocker before commercial packaging
+- add production ctags removal as a blocker before commercial packaging only if ctags returns to the production parser path
 
 Instruction surfaces:
 - Do not reintroduce `WI.md`.
@@ -174,9 +174,9 @@ If docs governance exists, add focused tests:
 - doc states payments/licensing are not implemented yet
 - doc does not claim current license enforcement
 - doc states ctags cannot be bundled into proprietary release artifacts
-- doc states native permissive parser work is a packaging blocker
+- doc states the permissively licensed Tree-sitter production parser stack must remain in place and audited for proprietary packaging
 - README does not claim paid features are currently gated unless code implements it
-- README does not claim proprietary packaging is ready while ctags remains required
+- README does not claim proprietary packaging is ready if ctags is required by production indexing
 
 Do not add brittle long-prose tests.
 
@@ -184,10 +184,10 @@ Acceptance:
 - product boundary is documented clearly
 - free/local core is protected in docs
 - Pro candidates are framed as candidates, not active gates
-- parser/licensing packaging blocker is documented clearly
+- packaging/licensing blockers are documented clearly
 - no license/payment/network/telemetry behavior is added
 - README/ROADMAP do not misrepresent current behavior
-- no proprietary packaging readiness is claimed while ctags remains required
+- no proprietary packaging readiness is claimed if ctags is required by production indexing
 - existing code behavior remains unchanged unless a small docs/status adjustment is required
 - no JSONL storage is reintroduced
 - no `WI.md` dependency is reintroduced

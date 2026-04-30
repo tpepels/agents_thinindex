@@ -1,4 +1,4 @@
-# PLAN_33_IMPACT_ANALYSIS_V2_DEPENDENCY_AND_TEST_MAPPING.md
+# PLAN_34_IMPACT_V2_DEPENDENCY_AWARE.md
 
 Use superpowers:subagent-driven-development.
 

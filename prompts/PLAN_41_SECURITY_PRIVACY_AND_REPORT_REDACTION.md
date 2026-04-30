@@ -1,4 +1,4 @@
-# PLAN_38_SECURITY_PRIVACY_AND_REPORT_REDACTION.md
+# PLAN_41_SECURITY_PRIVACY_AND_REPORT_REDACTION.md
 
 Use superpowers:subagent-driven-development.
 

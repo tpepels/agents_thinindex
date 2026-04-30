@@ -138,7 +138,7 @@ Required docs content:
 - what files are included
 - how users install from archive manually
 - `.dev_index/index.sqlite` is repo-local cache and not included
-- Universal Ctags is not bundled and not required after native parser work
+- Universal Ctags is not bundled and not required after Tree-sitter parser work
 - THIRD_PARTY_NOTICES ships with release artifacts
 - native installers/signing are a later plan
 

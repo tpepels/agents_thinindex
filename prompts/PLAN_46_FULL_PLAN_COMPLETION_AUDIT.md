@@ -3,7 +3,7 @@
 Use superpowers:subagent-driven-development.
 
 Do not implement this until both completed PLAN_45 workstreams are complete and green:
-- `PLAN_45_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md`
+- `PLAN_45A_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md`
 - `PLAN_45_TREE_SITTER_REAL_REPO_CONVERGENCE_LOOP.md`
 
 Goal:
@@ -12,11 +12,11 @@ Audit and align the active plan set after PLAN_45 so the project has one coheren
 This is an audit, cleanup, and alignment plan. It is not a product-feature plan.
 
 Progress:
-- [ ] Phase 1: rebuild/search index and re-inventory every active `prompts/PLAN_*.md` file.
-- [ ] Phase 2: resolve active plan-sequence conflicts and stale plan headings/references without reviving superseded plans.
-- [ ] Phase 3: verify checkbox status against implementation, tests, docs, and git evidence.
-- [ ] Phase 4: clean stale prompt/docs assumptions that conflict with current product architecture.
-- [ ] Phase 5: rerun consolidated verification and commit the audit cleanup.
+- [x] Phase 1: rebuild/search index and re-inventory every active `prompts/PLAN_*.md` file.
+- [x] Phase 2: resolve active plan-sequence conflicts and stale plan headings/references without reviving superseded plans.
+- [x] Phase 3: verify checkbox status against implementation, tests, docs, and git evidence.
+- [x] Phase 4: clean stale prompt/docs assumptions that conflict with current product architecture.
+- [x] Phase 5: rerun consolidated verification and commit the audit cleanup.
 
 Hard constraints:
 - Do not revive superseded plans.
@@ -30,13 +30,13 @@ Hard constraints:
 - Do not add release packaging, signing, license enforcement, payment behavior, telemetry, cloud behavior, or hosted behavior.
 
 Current Audit Snapshot
-This snapshot was created while adding PLAN_46. Re-run Phase 1 when executing the plan.
+This snapshot was updated while executing PLAN_46. Re-run Phase 1 before any future plan-sequence cleanup.
 
 Active plan count:
-- 55 active files matched `prompts/PLAN_*.md`.
+- 56 active files matched `prompts/PLAN_*.md`, including this PLAN_46 file.
 - `prompts/superseded/**` was excluded.
 - No unchecked `- [ ]` boxes were found in active `PLAN_*.md` files.
-- No `PLAN_46` file existed before this plan was created.
+- No duplicate active root plan number remains after renaming the team/CI roadmap to `PLAN_45A_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md`.
 
 Inventory Table
 
@@ -50,12 +50,12 @@ Inventory Table
 | 05 | `PLAN_05_AGENT_VALUE_BENCHMARKS.md` | complete | 6/6 checked | `wi bench`/bench tests exist; old exact commit not visible | Keep complete |
 | 06 | `PLAN_06_AGENT_WORKFLOW_INTEGRATION.md` | complete | 6/6 checked | agent instruction generation exists; old exact commit not visible | Keep complete |
 | 07 | `PLAN_07_REAL_REPO_BENCHMARK_SET.md` | complete | 6/6 checked | real-repo manifest support exists; old exact commit not visible | Keep complete |
-| 08 | `PLAN_08_INSTALL_AND_RELEASE_HARDENING.md` | complete | 6/6 checked | install/release tests/docs exist; old exact commit not visible | Stale ctags/native-parser blocker text must be audited |
-| 09 | `PLAN_09_DOCUMENTATION_AND_PRODUCT_POSITIONING.md` | complete | 5/5 checked | README/roadmap governance exists; old exact commit not visible | Stale ctags/native-parser blocker text must be audited |
-| 10 | `PLAN_10_PRICING_BOUNDARY_AND_PRO_EDITION.md` | complete | 5/5 checked | product boundary docs/tests exist; old exact commit not visible | Stale ctags/native-parser blocker text must be audited |
+| 08 | `PLAN_08_INSTALL_AND_RELEASE_HARDENING.md` | complete | 6/6 checked | install/release tests/docs exist; old exact commit not visible | Stale ctags/native-parser blocker text cleaned |
+| 09 | `PLAN_09_DOCUMENTATION_AND_PRODUCT_POSITIONING.md` | complete | 5/5 checked | README/roadmap governance exists; old exact commit not visible | Stale ctags/native-parser blocker text cleaned |
+| 10 | `PLAN_10_PRICING_BOUNDARY_AND_PRO_EDITION.md` | complete | 5/5 checked | product boundary docs/tests exist; old exact commit not visible | Stale ctags/native-parser blocker text cleaned |
 | 11A | `PLAN_11A_TREE_SITTER_EXTRACTION_FRAMEWORK.md` | complete | 5/5 checked | `4153735 Add Tree-sitter extraction framework` | Keep complete |
 | 11B | `PLAN_11B_REPRESENTATIVE_LANGUAGE_PACK.md` | complete | 7/7 checked | `47ae249 Add representative Tree-sitter language pack` | Keep complete |
-| 11C | `PLAN_11C_PARSER_CONFORMANCE_AND_DOCS.md` | complete | 7/7 checked | `4c957bd Harden Tree-sitter parser conformance and docs` | Replace stale `PLAN_12_EXTENDED_LANGUAGE_PACK` reference |
+| 11C | `PLAN_11C_PARSER_CONFORMANCE_AND_DOCS.md` | complete | 7/7 checked | `4c957bd Harden Tree-sitter parser conformance and docs` | Stale `PLAN_12_EXTENDED_LANGUAGE_PACK` reference cleaned |
 | 12A | `PLAN_12A_EXTENDED_JVM_DOTNET_LANGUAGE_PACK.md` | complete | 6/6 checked | `e7a6c83 Add extended JVM and .NET parser pack` | Keep complete |
 | 12B | `PLAN_12B_EXTENDED_APP_SYSTEM_LANGUAGE_PACK.md` | complete | 6/6 checked | `9fc0675 Add extended app and system parser pack` | Keep complete |
 | 12C | `PLAN_12C_EXTENDED_WEB_DOC_CONFIG_LANGUAGE_PACK.md` | complete | 6/6 checked | `fcc2c97 Add extended web doc and config parser pack` | Keep complete |
@@ -63,7 +63,7 @@ Inventory Table
 | 12E | `PLAN_12E_REAL_REPO_LANGUAGE_HARDENING.md` | complete | 6/6 checked | `a9a6e0b Harden parser support on real repos` | Keep complete |
 | 12F | `PLAN_12F_PARSER_COVERAGE_CLOSURE.md` | complete | 6/6 checked | `eb94b2d Close parser symbol coverage gaps` | Keep complete |
 | 12G | `PLAN_12G_PARSER_PERFORMANCE_AND_REGRESSION_GATES.md` | complete | 6/6 checked | `1573318 Add parser performance regression gates` | Keep complete |
-| 13 | `PLAN_13_LICENSE_AUDIT_AND_THIRD_PARTY_NOTICES.md` | complete | 8/8 checked | `c4da535 Add license audit and third-party notices` | Replace stale `PLAN_11A through PLAN_11E` reference |
+| 13 | `PLAN_13_LICENSE_AUDIT_AND_THIRD_PARTY_NOTICES.md` | complete | 8/8 checked | `c4da535 Add license audit and third-party notices` | Stale `PLAN_11A through PLAN_11E` reference cleaned |
 | 14 | `PLAN_14_CROSS_PLATFORM_RELEASE_ARCHIVES.md` | complete | 9/9 checked | `f353189 Add cross-platform release archives` | Keep complete |
 | 15 | `PLAN_15_INSTALLERS_AND_SIGNING.md` | complete | 9/9 checked | `4f6ccc5 Add installer and signing scaffolding` | Keep complete |
 | 16 | `PLAN_16_RELEASE_AUTOMATION_AND_CI.md` | complete | 9/9 checked | `70e48db Add release automation and CI gates` | Keep complete |
@@ -81,52 +81,43 @@ Inventory Table
 | 28 | `PLAN_28_PARSER_QUERY_MAINTENANCE_GUIDE.md` | complete | 6/6 checked | `f2292cb Add parser query maintenance guide` | Keep complete |
 | 29 | `PLAN_29_QUALITY_PLUGIN_CI_READINESS.md` | complete | 6/6 checked | `0eb6d0d Make quality gates CI-ready` | Keep complete |
 | 30 | `PLAN_30_QUALITY_SYSTEM_FINAL_AUDIT.md` | complete | 6/6 checked | `38feb14 Finalize parser quality system audit` | Keep complete |
-| 31 | `PLAN_31_DEPENDENCY_GRAPH_FOUNDATION.md` | complete | 7/7 checked | `c9c7e5a Add dependency graph foundation` | Header name differs but number matches |
+| 31 | `PLAN_31_DEPENDENCY_GRAPH_FOUNDATION.md` | complete | 7/7 checked | `c9c7e5a Add dependency graph foundation` | Header aligned |
 | 32 | `PLAN_32_IMPORT_MODULE_RESOLUTION_PACKS.md` | complete | 5/5 checked | `d87e53e Add import module resolution packs` | Keep complete |
 | 33 | `PLAN_33_REFERENCE_GRAPH_V2.md` | complete | 6/6 checked | `c951ffd Upgrade reference graph evidence` | Keep complete |
-| 34 | `PLAN_34_IMPACT_V2_DEPENDENCY_AWARE.md` | complete | 6/6 checked | `e834d9d Add dependency-aware impact analysis` | Header says old PLAN_33 name |
+| 34 | `PLAN_34_IMPACT_V2_DEPENDENCY_AWARE.md` | complete | 6/6 checked | `e834d9d Add dependency-aware impact analysis` | Header aligned |
 | 35 | `PLAN_35_CONTEXT_PACK_V2_DEPENDENCY_AWARE.md` | complete | 6/6 checked | `d986b4c Add dependency-aware context packs` | Keep complete |
 | 36 | `PLAN_36_TEST_BUILD_CONFIG_MAPPING.md` | complete | 6/6 checked | `a59b8b9 Add test build config mappings` | Keep complete |
 | 37 | `PLAN_37_MONOREPO_SCALE_AND_INCREMENTAL_INDEXING.md` | complete | 6/6 checked | `a22ef68 Add monorepo indexing safeguards` | Keep complete |
-| 38 | `PLAN_38_OPTIONAL_SEMANTIC_ADAPTER_BOUNDARY.md` | complete | 6/6 checked | `9ef7da4 Add optional semantic adapter boundary` | Header says old PLAN_32 name |
-| 39 | `PLAN_39_AGENT_WORKFLOW_ENFORCEMENT_AND_INTEGRATION_PACKS.md` | complete | 5/5 checked | `ccff686 Add agent workflow integration packs` | Header says old PLAN_34 name |
+| 38 | `PLAN_38_OPTIONAL_SEMANTIC_ADAPTER_BOUNDARY.md` | complete | 6/6 checked | `9ef7da4 Add optional semantic adapter boundary` | Header aligned |
+| 39 | `PLAN_39_AGENT_WORKFLOW_ENFORCEMENT_AND_INTEGRATION_PACKS.md` | complete | 5/5 checked | `ccff686 Add agent workflow integration packs` | Header aligned |
 | 40 | `PLAN_40_TECHNICAL_FINAL_AUDIT.md` | complete | 4/4 checked | `30d05e9 Add technical final audit` | Keep complete |
-| 41 | `PLAN_41_SECURITY_PRIVACY_AND_REPORT_REDACTION.md` | complete | 5/5 checked | `93c75a5 Add security privacy redaction policy` | Header says old PLAN_38 name |
-| 42 | `PLAN_42_SIGNED_INSTALLER_AND_DISTRIBUTION_HARDENING.md` | complete | 5/5 checked | `4098b45 Harden signed installer distribution` | Header says old PLAN_36 name |
-| 43 | `PLAN_43_PRO_LICENSING_FOUNDATION_NO_ENFORCEMENT.md` | complete | 5/5 checked | `14b82b1 Add licensing foundation without enforcement` | Header says old PLAN_35 name |
-| 44 | `PLAN_44_ONBOARDING_DOCTOR_AND_PRODUCT_POLISH.md` | complete | 5/5 checked | `3d323ba Add onboarding doctor and product polish` | Header says old PLAN_39 name |
-| 45A candidate | `PLAN_45_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md` | complete | 5/5 checked | `6ff426f Add team CI hosted value roadmap` | Active duplicate PLAN_45; header says old PLAN_40 name |
-| 45 | `PLAN_45_TREE_SITTER_REAL_REPO_CONVERGENCE_LOOP.md` | complete | 5/5 checked | `961e527 Converge Tree-sitter real-repo quality cycle`; `bf77c71 Align Tree-sitter convergence quality state` | Active duplicate PLAN_45; recent audit cleanup exists |
+| 41 | `PLAN_41_SECURITY_PRIVACY_AND_REPORT_REDACTION.md` | complete | 5/5 checked | `93c75a5 Add security privacy redaction policy` | Header aligned |
+| 42 | `PLAN_42_SIGNED_INSTALLER_AND_DISTRIBUTION_HARDENING.md` | complete | 5/5 checked | `4098b45 Harden signed installer distribution` | Header aligned |
+| 43 | `PLAN_43_PRO_LICENSING_FOUNDATION_NO_ENFORCEMENT.md` | complete | 5/5 checked | `14b82b1 Add licensing foundation without enforcement` | Header aligned |
+| 44 | `PLAN_44_ONBOARDING_DOCTOR_AND_PRODUCT_POLISH.md` | complete | 5/5 checked | `3d323ba Add onboarding doctor and product polish` | Header aligned |
+| 45A | `PLAN_45A_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md` | complete | 5/5 checked | `6ff426f Add team CI hosted value roadmap` | Renamed from duplicate PLAN_45 and heading aligned |
+| 45 | `PLAN_45_TREE_SITTER_REAL_REPO_CONVERGENCE_LOOP.md` | complete | 5/5 checked | `961e527 Converge Tree-sitter real-repo quality cycle`; `bf77c71 Align Tree-sitter convergence quality state` | Kept as canonical PLAN_45 convergence loop |
+| 46 | `PLAN_46_FULL_PLAN_COMPLETION_AUDIT.md` | complete | 5/5 checked | current cleanup commit | Audit cleanup plan executed |
 
 Missing Plan Files
 - No required active plan file is missing for the observed sequence `PLAN_00` through `PLAN_45`, with lettered `PLAN_11A` through `PLAN_11C` and `PLAN_12A` through `PLAN_12G`.
-- There is no active `PLAN_11D`, `PLAN_11E`, or monolithic `PLAN_12_EXTENDED_LANGUAGE_PACK`; active references to those names are stale.
+- There is no active `PLAN_11D`, `PLAN_11E`, or monolithic `PLAN_12_EXTENDED_LANGUAGE_PACK`; stale active references to those names were cleaned.
 - `PLAN_46_FULL_PLAN_COMPLETION_AUDIT.md` is created by this plan-addition pass.
 
 Duplicate Or Conflicting Plan Files
-- Two active files use `PLAN_45`:
-  - `PLAN_45_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md`
-  - `PLAN_45_TREE_SITTER_REAL_REPO_CONVERGENCE_LOOP.md`
-- Cleanup should resolve this active sequence break. Preferred cleanup is to rename the team/CI roadmap file to `PLAN_45A_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md`, update its heading, and make PLAN_46 depend on both `PLAN_45A` and `PLAN_45`. If tooling or history conventions reject lettered `45A`, document the duplicate explicitly instead of silently leaving it ambiguous.
-- Several active headings are stale from older numbering and should be aligned with filenames:
-  - `PLAN_34_IMPACT_V2_DEPENDENCY_AWARE.md`
-  - `PLAN_38_OPTIONAL_SEMANTIC_ADAPTER_BOUNDARY.md`
-  - `PLAN_39_AGENT_WORKFLOW_ENFORCEMENT_AND_INTEGRATION_PACKS.md`
-  - `PLAN_41_SECURITY_PRIVACY_AND_REPORT_REDACTION.md`
-  - `PLAN_42_SIGNED_INSTALLER_AND_DISTRIBUTION_HARDENING.md`
-  - `PLAN_43_PRO_LICENSING_FOUNDATION_NO_ENFORCEMENT.md`
-  - `PLAN_44_ONBOARDING_DOCTOR_AND_PRODUCT_POLISH.md`
-  - `PLAN_45_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md`
-- `PLAN_31_DEPENDENCY_GRAPH_FOUNDATION.md` has a descriptive heading that differs from the filename but keeps the same number. Normalize only if the audit chooses filename/header exactness as the rule.
+- The active duplicate `PLAN_45` conflict was resolved by renaming the team/CI roadmap to `PLAN_45A_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md`.
+- Stale active headings from older numbering were aligned with filenames for PLAN_31, PLAN_34, PLAN_38, PLAN_39, and PLAN_41 through PLAN_45A.
+- No active duplicate plan-number conflict remains.
 
 Prerequisite-Chain Problems
 - The main prerequisite chain is coherent through `PLAN_44`.
-- Both active `PLAN_45` files depend on `PLAN_44`, so the chain forks at 45. Resolve the fork before adding further product plans.
-- Stale prerequisite or cross-plan references found:
-  - `PLAN_08_INSTALL_AND_RELEASE_HARDENING.md` references broad `PLAN_11` cleanup in a way that predates the rewritten `PLAN_11A` through `PLAN_11C` series.
-  - `PLAN_11C_PARSER_CONFORMANCE_AND_DOCS.md` references non-existent `PLAN_12_EXTENDED_LANGUAGE_PACK`.
-  - `PLAN_13_LICENSE_AUDIT_AND_THIRD_PARTY_NOTICES.md` references `PLAN_11A through PLAN_11E`, but active 11-series ends at `PLAN_11C`.
-  - `PLAN_14`, `PLAN_15`, and `PLAN_16` mention release packaging from old plan numbers in a few historical implementation instructions; verify whether they now mean `PLAN_14_CROSS_PLATFORM_RELEASE_ARCHIVES.md`.
+- `PLAN_45A` and `PLAN_45` now explicitly represent separate completed post-44 workstreams.
+- `PLAN_46` depends on both `PLAN_45A` and `PLAN_45`.
+- Stale prerequisite and cross-plan references found during the audit were cleaned:
+  - broad `PLAN_11` parser cleanup references now point to the rewritten `PLAN_11A` through `PLAN_11C` series where needed.
+  - non-existent `PLAN_12_EXTENDED_LANGUAGE_PACK` now points to the active `PLAN_12A` through `PLAN_12G` series.
+  - `PLAN_11A through PLAN_11E` now points to the active `PLAN_11A` through `PLAN_11C` series.
+  - old release packaging script/checksum references now point to current `PLAN_14` archive work and `PLAN_15` signing scaffolding where appropriate.
 
 Incomplete Checkbox Phases
 - None found in active `PLAN_*.md` files at snapshot time.
@@ -140,8 +131,8 @@ Implementation Evidence With Stale Unchecked Boxes
 - None found.
 
 Stale Docs, Prompts, Or Code Assumptions
-- `prompts/local_repo_test.md` is not an active `PLAN_*.md` file but still describes `.dev_index/index.jsonl` and raw JSONL shared checks. It should be updated to SQLite or moved/marked superseded.
-- `PLAN_08`, `PLAN_09`, and `PLAN_10` contain old ctags/native-parser packaging blocker wording. The current architecture is Tree-sitter production parsing with Universal Ctags isolated as optional quality comparator only.
+- `prompts/local_repo_test.md` is not an active `PLAN_*.md` file and has been updated from `.dev_index/index.jsonl` assumptions to SQLite snapshot integrity checks.
+- `PLAN_08`, `PLAN_09`, and `PLAN_10` old ctags/native-parser packaging blocker wording has been updated to reflect Tree-sitter production parsing with Universal Ctags isolated as optional quality comparator only.
 - Active plans intentionally mention `WI.md`, JSONL, and ctags in many "do not reintroduce" or boundary contexts. Do not remove these guardrails. Remove or rewrite only text that claims they are current product surfaces.
 - JSONL quality exports such as `.dev_index/quality/QUALITY_REPORT_DETAILS.jsonl` are intentional report artifacts. They are not canonical index storage.
 - `source = "ctags"` may appear in quality gates/tests as forbidden-source assertions. It must not appear in production records/refs.

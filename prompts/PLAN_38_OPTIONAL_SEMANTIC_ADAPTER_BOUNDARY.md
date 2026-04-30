@@ -1,4 +1,4 @@
-# PLAN_32_SEMANTIC_ADAPTER_PLUGIN_BOUNDARY.md
+# PLAN_38_OPTIONAL_SEMANTIC_ADAPTER_BOUNDARY.md
 
 Use superpowers:subagent-driven-development.
 

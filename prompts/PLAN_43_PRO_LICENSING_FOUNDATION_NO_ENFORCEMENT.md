@@ -1,4 +1,4 @@
-# PLAN_35_PRO_LICENSING_FOUNDATION_NO_ENFORCEMENT.md
+# PLAN_43_PRO_LICENSING_FOUNDATION_NO_ENFORCEMENT.md
 
 Use superpowers:subagent-driven-development.
 

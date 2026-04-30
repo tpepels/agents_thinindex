@@ -15,7 +15,7 @@ No bundled dependency may be assumed commercially safe without an explicit licen
 Hard requirements:
 - Do not add GPL or AGPL dependencies.
 - Do not reintroduce Universal Ctags.
-- Confirm rewritten PLAN_11A through PLAN_11E removed Universal Ctags from active code/tests/install requirements and added the audited Tree-sitter framework/query pack.
+- Confirm rewritten PLAN_11A through PLAN_11C removed Universal Ctags from active code/tests/install requirements and added the audited Tree-sitter framework/query pack.
 - Do not reintroduce JSONL storage.
 - Do not reintroduce `WI.md`.
 - Do not add license enforcement or payment code.

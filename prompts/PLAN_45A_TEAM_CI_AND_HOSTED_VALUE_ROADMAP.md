@@ -1,4 +1,4 @@
-# PLAN_40_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md
+# PLAN_45A_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md
 
 Use superpowers:subagent-driven-development.
 
@@ -9,7 +9,7 @@ Progress:
 - [x] Phase 2: add team/CI roadmap and local report artifact shape
 - [x] Phase 3: document CI integration, privacy constraints, and hosted boundaries
 - [x] Phase 4: add docs/governance tests and release-doc coverage
-- [x] Phase 5: run required verification and commit completed Plan 45 work
+- [x] Phase 5: run required verification and commit completed Plan 45A work
 
 Goal:
 Define and scaffold the next product layer: team/CI value, hosted reports, and enterprise-ready workflows.

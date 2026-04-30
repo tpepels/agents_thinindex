@@ -7,7 +7,7 @@ Do not implement this until PLAN_11A and PLAN_11B are complete and green.
 Goal:
 Harden the Tree-sitter parser framework with shared conformance tests, real-repo validation, license documentation, and honest parser-support docs.
 
-This pass does not add the extended language pack. That belongs in PLAN_12_EXTENDED_LANGUAGE_PACK. Do not add release packaging, license enforcement, payment behavior, telemetry, cloud behavior, or new product commands.
+This pass does not add the extended language pack. That belongs in PLAN_12A through PLAN_12G. Do not add release packaging, license enforcement, payment behavior, telemetry, cloud behavior, or new product commands.
 
 Product rule:
 A supported language is not supported until it passes shared conformance and has a license entry, docs entry, and real-repo behavior that does not break integrity checks.

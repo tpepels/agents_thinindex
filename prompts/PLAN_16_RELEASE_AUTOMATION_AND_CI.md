@@ -69,7 +69,7 @@ Required jobs:
    - `cargo run --bin wi-stats -- --version`
 
 6. package smoke
-   - run release packaging script from PLAN_13 for current platform
+   - run release packaging script from PLAN_14 for current platform
    - inspect/list artifact contents
    - verify all binaries are present
    - verify `THIRD_PARTY_NOTICES` is present
@@ -93,7 +93,7 @@ Required behavior:
 
 Do not require signing secrets in this plan.
 Do not commit secrets.
-Do not require notarization/code signing yet unless PLAN_14 already implemented it.
+Do not require notarization/code signing yet unless PLAN_15 already implemented it.
 
 Cross-platform:
 If practical, add matrix jobs for:
@@ -192,7 +192,7 @@ Verification:
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - license audit command from PLAN_12, if added
 - run local release-check script if added
-- run release packaging script from PLAN_13 for current platform
+- run release packaging script from PLAN_14 for current platform
 - inspect/list archive contents
 - `cargo run --bin wi -- --help`
 - `cargo run --bin wi -- --version`
