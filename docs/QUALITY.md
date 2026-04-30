@@ -2,6 +2,8 @@
 
 thinindex quality plugins are isolated evaluation tools. They do not participate in production indexing, search, packaging, install, or release artifact creation.
 
+The full parser-quality coherence checkpoint is documented in `docs/QUALITY_SYSTEM_AUDIT.md`.
+
 ## Boundary
 
 - Production indexing remains Tree-sitter based.

@@ -344,6 +344,8 @@ scripts/check-ci
 
 Normal CI uses checked-in parser and quality fixtures only. It does not require local real repositories, ignored tests, network-fetched side repos, or optional external comparator commands. Manual quality checks that use `test_repos/` stay ignored and local.
 
+Parser-quality audit status is summarized in [docs/QUALITY_SYSTEM_AUDIT.md](docs/QUALITY_SYSTEM_AUDIT.md).
+
 Manual smoke:
 
 ```bash

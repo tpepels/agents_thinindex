@@ -18,6 +18,8 @@ make ci-check
 
 This runs formatting, normal tests, deterministic parser/quality fixture suites, clippy, license audit, and command smoke checks. It intentionally does not run ignored tests and does not require local real repositories or optional comparator commands.
 
+The current parser-quality coherence checkpoint is `docs/QUALITY_SYSTEM_AUDIT.md`.
+
 Run the standard local release check with:
 
 ```bash
