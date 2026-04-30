@@ -182,15 +182,6 @@ pub fn assert_no_dev_index_paths(name: &str, records: &[IndexRecord]) {
     }
 }
 
-pub fn assert_no_ctags_source(name: &str, records: &[IndexRecord]) {
-    for rec in records {
-        assert_ne!(
-            rec.source, "ctags",
-            "[{name}] record source must not be ctags: {rec:?}"
-        );
-    }
-}
-
 /// Assert that each string in `expected_paths` appears as a substring in at
 /// least one record's `path` field.  No-op when `expected_paths` is empty.
 pub fn assert_expected_paths_present(name: &str, records: &[IndexRecord], expected_paths: &[&str]) {
@@ -311,7 +302,7 @@ pub fn run_named_index_integrity_checks(
     assert_required_fields(name, &snapshot.records);
     assert_no_duplicate_locations(name, &snapshot.records);
     assert_no_dev_index_paths(name, &snapshot.records);
-    assert_no_ctags_source(name, &snapshot.records);
+    thinindex::quality::assert_no_forbidden_index_sources(name, &snapshot.records, &snapshot.refs);
     assert_expected_paths_present(name, &snapshot.records, expected_paths);
     run_named_ref_integrity_checks(name, &snapshot.refs);
 }

@@ -63,7 +63,7 @@ Current bundled parser/grammar crates are MIT-licensed:
 
 Generated parser sources are bundled through those grammar crates and are covered by the crate license metadata recorded in `THIRD_PARTY_NOTICES`.
 
-Universal Ctags is not bundled, not used, not detected, and not required by active code, tests, install scripts, or release documentation.
+Universal Ctags is optional, external, not bundled, not required, and not used by production indexing.
 
 ## SQLite Status
 
@@ -77,6 +77,6 @@ Universal Ctags is not bundled, not used, not detected, and not required by acti
 - bundled Tree-sitter parser and grammar crates
 - generated parser source status
 - bundled SQLite and `libsqlite3-sys` status
-- the explicit statement that Universal Ctags is not bundled and not used
+- the explicit statement that Universal Ctags is optional, external, not bundled, not required, and not used by production indexing
 
 If `cargo deny check licenses` fails, or if a dependency has unknown/copyleft/custom/non-commercial terms, proprietary packaging remains blocked until the dependency is removed or a documented review exception is approved in a future plan.

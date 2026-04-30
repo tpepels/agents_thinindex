@@ -299,7 +299,7 @@ wi-init --remove
 
 ## Packaging/licensing caveat
 
-SQLite and Tree-sitter parser dependencies are bundled through the Rust dependency configuration. Universal Ctags is removed from the active parser path and is not bundled or used.
+SQLite and Tree-sitter parser dependencies are bundled through the Rust dependency configuration. Universal Ctags is optional, external, not bundled, not required, and not used by production indexing.
 
 Dependency license policy is configured in `deny.toml` and checked with:
 

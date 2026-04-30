@@ -1,4 +1,5 @@
 pub mod comparator;
+pub mod ctags_gate;
 pub mod cycle;
 pub mod gate;
 pub mod manifest;
@@ -7,6 +8,10 @@ pub mod report;
 pub use comparator::{
     ComparatorRecord, ComparatorRun, ComparatorStatus, QualityComparator, UniversalCtagsComparator,
     parse_ctags_json_record,
+};
+pub use ctags_gate::{
+    CtagsAllowlistViolation, PackageArtifactViolation, assert_no_forbidden_index_sources,
+    check_ctags_allowlist, check_package_artifacts, scan_repo_for_ctags_allowlist,
 };
 pub use cycle::{
     CyclePlanOptions, DEFAULT_MAX_GAPS_PER_CYCLE, GapSeverity, GapStatus, QualityCyclePlan,

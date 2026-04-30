@@ -62,7 +62,7 @@ The following must remain part of the local/free core:
 
 ## Packaging/licensing blockers
 
-Universal Ctags has been removed from the active parser path. It is not bundled, detected, or called by thinindex.
+No external parser command is required for production indexing. Universal Ctags is optional, external, not bundled, not required, and not used by production indexing.
 
 Tree-sitter parser dependencies and grammar dependencies must be permissively licensed and audited before release packaging.
 

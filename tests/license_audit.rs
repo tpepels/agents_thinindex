@@ -113,7 +113,7 @@ fn audit_command_and_packaging_blockers_are_documented() {
 }
 
 #[test]
-fn third_party_notices_cover_runtime_parsers_sqlite_and_removed_ctags() {
+fn third_party_notices_cover_runtime_parsers_and_sqlite() {
     let notices = repo_file("THIRD_PARTY_NOTICES");
 
     for runtime in ["anyhow", "clap", "ignore", "regex", "rusqlite", "serde"] {
@@ -161,51 +161,6 @@ fn third_party_notices_cover_runtime_parsers_sqlite_and_removed_ctags() {
             && notices.contains("bundled through the Tree-sitter grammar crates"),
         "THIRD_PARTY_NOTICES should document generated parser code status"
     );
-    assert!(
-        notices.contains("Universal Ctags")
-            && notices.contains("Bundled: no")
-            && notices.contains("Used at runtime: no"),
-        "THIRD_PARTY_NOTICES should state Universal Ctags is not bundled or used"
-    );
-}
-
-#[test]
-fn docs_only_mention_ctags_as_removed_or_not_used() {
-    for path in [
-        "README.md",
-        "docs/LICENSE_AUDIT.md",
-        "docs/INSTALLERS.md",
-        "docs/PRODUCT_BOUNDARY.md",
-        "docs/RELEASING.md",
-        "docs/ROADMAP.md",
-        "docs/RELEASE_CHECKLIST.md",
-        "THIRD_PARTY_NOTICES",
-        "install.sh",
-        "uninstall.sh",
-        "Cargo.toml",
-    ] {
-        let contents = repo_file(path);
-
-        for (line_number, line) in contents.lines().enumerate() {
-            if !line.to_ascii_lowercase().contains("ctags") {
-                continue;
-            }
-
-            let normalized = line.to_ascii_lowercase();
-            assert!(
-                normalized.contains("removed")
-                    || normalized.contains("not bundled")
-                    || normalized.contains("not used")
-                    || normalized.contains("not required")
-                    || normalized.contains("not called")
-                    || normalized.contains("not detected")
-                    || normalized.contains("fallback")
-                    || normalized.contains("no longer shells out"),
-                "{path}:{} should mention ctags only as removed/not bundled/not used, got `{line}`",
-                line_number + 1,
-            );
-        }
-    }
 }
 
 fn assert_notice_entry(notices: &str, package: &str, first: &str, second: &str) {

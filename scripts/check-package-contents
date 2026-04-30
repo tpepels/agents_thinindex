@@ -73,6 +73,5 @@ reject_entry '(^|/)\.dev_index(/|$)' ".dev_index"
 reject_entry '(^|/)test_repos(/|$)' "test_repos"
 reject_entry '(^|/)target(/|$)' "target build directory"
 reject_entry '(^|/)dist(/|$)' "dist build directory"
-reject_entry '(^|/)ctags([^/]*)(\.exe)?$' "ctags artifact"
 
 echo "package content ok: $ARCHIVE"

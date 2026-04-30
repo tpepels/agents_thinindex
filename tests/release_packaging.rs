@@ -57,10 +57,6 @@ fn release_package_script_stages_expected_payload() {
         "release package script should document excluded local/source artifacts"
     );
     assert!(
-        !script.to_ascii_lowercase().contains("ctags"),
-        "release package script must not mention or bundle ctags"
-    );
-    assert!(
         !script.contains("cp -R .") && !script.contains("cp -r ."),
         "release package script should stage explicit files, not the source checkout"
     );
@@ -156,10 +152,6 @@ fn release_docs_describe_archive_install_and_boundaries() {
             && releasing.contains("scripts/windows/install.ps1")
             && releasing.contains("docs/INSTALLERS.md"),
         "release docs should mention archive install helpers and installer docs"
-    );
-    assert!(
-        releasing.contains("Universal Ctags is not bundled and not required"),
-        "release docs should state ctags is not bundled or required"
     );
     assert!(
         roadmap

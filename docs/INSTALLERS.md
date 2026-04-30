@@ -29,7 +29,7 @@ All installer helpers install only the thinindex commands:
 
 They do not run `wi-init`, create `.dev_index`, mutate user repositories, delete repo-local `.dev_index`, or remove project files. Uninstall helpers remove only installed thinindex command files from the selected bin directory.
 
-`THIRD_PARTY_NOTICES` ships with release artifacts and must stay with distributed archives or installers. Universal Ctags is not bundled and not required.
+`THIRD_PARTY_NOTICES` ships with release artifacts and must stay with distributed archives or installers.
 
 ## Windows
 

@@ -106,7 +106,7 @@ fn package_content_check_rejects_missing_notices() {
 
 #[test]
 fn package_content_check_rejects_forbidden_artifacts() {
-    for forbidden in ["dev-index", "test-repos", "ctags"] {
+    for forbidden in ["dev-index", "test-repos"] {
         let archive = make_archive(&[forbidden]);
 
         Command::new(repo_root().join("scripts/check-package-contents"))
@@ -146,10 +146,6 @@ fn make_archive(options: &[&str]) -> PathBuf {
     if options.contains(&"test-repos") {
         fs::create_dir_all(package.join("test_repos")).expect("create test_repos");
         fs::write(package.join("test_repos/README.md"), "repo").expect("write test repo");
-    }
-
-    if options.contains(&"ctags") {
-        fs::write(package.join("ctags"), "ctags").expect("write ctags");
     }
 
     let archive = root.join("thinindex-9.9.9-test-target.tar.gz");

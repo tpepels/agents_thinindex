@@ -36,7 +36,7 @@ Manual repo smoke:
 
 Packaging note:
 
-- Universal Ctags is removed, not bundled, and not used.
+- Universal Ctags is optional, external, not bundled, not required, and not used by production indexing.
 - Tree-sitter parser and grammar dependencies are bundled and must remain permissively licensed.
 - Cross-platform release archives and installers require a passing `cargo deny check licenses` run.
 - Proprietary packaging remains blocked by GPL, AGPL, LGPL-only, MPL-only, EPL, CDDL, unknown, custom, or non-commercial dependency terms unless a future plan records an explicit review exception.

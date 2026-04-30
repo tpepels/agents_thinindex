@@ -153,7 +153,7 @@ fn docs_do_not_describe_legacy_files_as_current_instruction_or_storage() {
 }
 
 #[test]
-fn docs_state_tree_sitter_is_bundled_and_ctags_removed() {
+fn docs_state_tree_sitter_is_bundled_and_external_parser_path_is_absent() {
     let readme = repo_file("README.md");
     let roadmap = repo_file("docs/ROADMAP.md");
     let release = repo_file("docs/RELEASE_CHECKLIST.md");
@@ -166,8 +166,7 @@ fn docs_state_tree_sitter_is_bundled_and_ctags_removed() {
         "README should describe self-contained parser behavior"
     );
     assert!(
-        readme.contains("Universal Ctags is removed from the active parser path")
-            && readme.contains("Tree-sitter parser dependencies are bundled"),
+        readme.contains("Tree-sitter parser dependencies are bundled"),
         "README should document Tree-sitter parser packaging status"
     );
     assert!(
@@ -176,14 +175,14 @@ fn docs_state_tree_sitter_is_bundled_and_ctags_removed() {
         "roadmap should describe Tree-sitter as current parser path"
     );
     assert!(
-        product_boundary.contains("Universal Ctags has been removed from the active parser path")
+        product_boundary.contains("No external parser command is required")
             && product_boundary.contains("Tree-sitter parser dependencies"),
         "product boundary should document parser dependency status"
     );
     assert!(
-        release.contains("Universal Ctags is removed, not bundled, and not used")
+        release.contains("Tree-sitter parser and grammar dependencies are bundled")
             && release.contains("cargo deny check licenses"),
-        "release checklist should document ctags removal and license audit"
+        "release checklist should document parser packaging and license audit"
     );
     assert!(
         third_party.contains("tree-sitter")

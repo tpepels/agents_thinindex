@@ -97,10 +97,6 @@ fn installer_docs_are_honest_about_platform_status_and_signing() {
         "installer/release docs should require notices with artifacts"
     );
     assert!(
-        installers.contains("Universal Ctags is not bundled and not required"),
-        "installer docs should state ctags is not bundled or required"
-    );
-    assert!(
         installers.contains("Authenticode signing is not implemented")
             && installers.contains("Developer ID signing is not implemented")
             && installers.contains("Notarization and stapling are not implemented")

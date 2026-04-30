@@ -88,7 +88,7 @@ Do not add new command families or broader search semantics without a plan that 
 
 ## Parser and packaging
 
-Universal Ctags is removed from the active parser path. Dependency license audit policy is configured through `cargo deny check licenses`, and proprietary cross-platform packages still require a passing audit, notice review, and release hardening.
+Universal Ctags is optional, external, not bundled, not required, and not used by production indexing. Dependency license audit policy is configured through `cargo deny check licenses`, and proprietary cross-platform packages still require a passing audit, notice review, and release hardening.
 
 Before proprietary Windows/macOS/Linux packages are viable, thinindex needs:
 

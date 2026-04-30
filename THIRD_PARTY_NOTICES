@@ -6,11 +6,11 @@ Release artifacts should include `THIRD_PARTY_NOTICES` and should be cut only af
 
 ## Removed External Parser
 
-Universal Ctags removed/not bundled/not used
-- Status: removed.
+Universal Ctags optional QA comparator
+- Status: optional external quality comparator only.
 - Bundled: no.
 - Used at runtime: no.
-- Accepted reason: not applicable; thinindex no longer shells out to ctags and does not emit `source = "ctags"` records.
+- Accepted reason: Universal Ctags is optional, external, not bundled, not required, and not used by production indexing. thinindex does not emit `source = "ctags"` production records.
 
 ## Direct Runtime Dependencies
 

@@ -1,22 +1,18 @@
 mod common;
 
-use std::fs;
-
 use anyhow::Result;
 use thinindex::{
     bench::ExpectedSymbol,
     model::IndexRecord,
     quality::{
         ComparatorRecord, ComparatorRun, ComparatorStatus, QualityComparator,
-        QualityComparisonOptions, UniversalCtagsComparator, compare_quality,
-        parse_ctags_json_record, render_quality_report, write_quality_report,
+        QualityComparisonOptions, UniversalCtagsComparator, assert_no_forbidden_index_sources,
+        compare_quality, parse_ctags_json_record, render_quality_report, write_quality_report,
     },
     store::load_records,
 };
 
-use common::{
-    assert_no_ctags_source, load_index_snapshot_from_sqlite, run_build, temp_repo, write_file,
-};
+use common::{load_index_snapshot_from_sqlite, run_build, temp_repo, write_file};
 
 struct FakeComparator {
     records: Vec<ComparatorRecord>,
@@ -208,7 +204,7 @@ fn comparator_output_is_not_written_to_production_index_tables() {
     write_file(temp.path(), "src/lib.rs", "pub fn indexed_symbol() {}\n");
     run_build(temp.path());
     let before = load_records(temp.path()).expect("load records before quality report");
-    assert_no_ctags_source("quality-before", &before);
+    assert_no_forbidden_index_sources("quality-before", &before, &[]);
 
     let report = compare_quality(
         &before,
@@ -237,7 +233,7 @@ fn comparator_output_is_not_written_to_production_index_tables() {
     assert!(report_path.exists());
 
     let snapshot = load_index_snapshot_from_sqlite(temp.path());
-    assert_no_ctags_source("quality-after", &snapshot.records);
+    assert_no_forbidden_index_sources("quality-after", &snapshot.records, &snapshot.refs);
     assert_eq!(before, snapshot.records);
     assert!(
         !snapshot
@@ -245,30 +241,6 @@ fn comparator_output_is_not_written_to_production_index_tables() {
             .iter()
             .any(|record| record.path.contains(".dev_index/quality"))
     );
-}
-
-#[test]
-fn quality_ctags_mentions_are_isolated_or_explicitly_forbidden_boundary_checks() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let paths = [
-        "src",
-        "tests",
-        "docs",
-        "README.md",
-        "Cargo.toml",
-        "install.sh",
-        "uninstall.sh",
-        "THIRD_PARTY_NOTICES",
-        "scripts",
-    ];
-
-    for path in paths {
-        let path = root.join(path);
-        if !path.exists() {
-            continue;
-        }
-        scan_ctags_mentions(&path, root);
-    }
 }
 
 #[test]
@@ -303,7 +275,7 @@ fn optional_external_ctags_comparator_generates_isolated_quality_report_or_skips
 
     assert!(report_path.exists());
     assert!(report_path.to_string_lossy().contains(".dev_index/quality"));
-    assert_no_ctags_source("optional-comparator", &load_records(temp.path())?);
+    assert_no_forbidden_index_sources("optional-comparator", &load_records(temp.path())?, &[]);
     Ok(())
 }
 
@@ -332,72 +304,4 @@ fn malformed_thinindex_records_fail_quality_checks() {
         )
         .is_err()
     );
-}
-
-fn scan_ctags_mentions(path: &std::path::Path, root: &std::path::Path) {
-    if path.is_dir() {
-        for entry in fs::read_dir(path).expect("read scan dir") {
-            let entry = entry.expect("read scan entry");
-            let path = entry.path();
-            if path
-                .components()
-                .any(|component| component.as_os_str() == ".git")
-            {
-                continue;
-            }
-            scan_ctags_mentions(&path, root);
-        }
-        return;
-    }
-
-    let Ok(contents) = fs::read_to_string(path) else {
-        return;
-    };
-    let relpath = path.strip_prefix(root).unwrap_or(path).to_string_lossy();
-
-    for (line_number, line) in contents.lines().enumerate() {
-        if !line.to_ascii_lowercase().contains("ctags") {
-            continue;
-        }
-
-        assert!(
-            allowed_ctags_reference(&relpath, line),
-            "{}:{} contains an unapproved ctags reference: {}",
-            relpath,
-            line_number + 1,
-            line,
-        );
-    }
-}
-
-fn allowed_ctags_reference(relpath: &str, line: &str) -> bool {
-    if relpath.starts_with("src/quality/")
-        || relpath.starts_with("tests/quality")
-        || relpath.starts_with("docs/QUALITY")
-    {
-        return true;
-    }
-
-    if relpath.starts_with("tests/")
-        && (relpath.contains("release")
-            || relpath.contains("install")
-            || relpath.contains("license")
-            || relpath.contains("common"))
-    {
-        return true;
-    }
-
-    if relpath.starts_with("scripts/") && line.contains("reject_entry") {
-        return true;
-    }
-
-    let normalized = line.to_ascii_lowercase();
-    normalized.contains("removed")
-        || normalized.contains("not bundled")
-        || normalized.contains("not used")
-        || normalized.contains("not required")
-        || normalized.contains("not called")
-        || normalized.contains("not detected")
-        || normalized.contains("no longer shells out")
-        || normalized.contains("must not")
 }
