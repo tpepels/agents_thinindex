@@ -7,7 +7,9 @@ use std::{
     time::Duration,
 };
 
-use common::{load_index_snapshot_from_sqlite, run_named_index_integrity_checks};
+use common::{
+    load_index_snapshot_from_sqlite, run_named_index_integrity_checks, temp_repo, write_file,
+};
 use regex::Regex;
 use thinindex::{
     bench::{
@@ -108,7 +110,13 @@ fn check_repo(repo: &BenchmarkRepo) -> RepoHardeningReport {
     run_named_index_integrity_checks(&repo.name, &snapshot, &expected_paths);
 
     let coverage = collect_parser_coverage(repo, &snapshot.records, &snapshot.refs);
-    let zero_record_languages = supported_languages_without_records(&coverage);
+    let zero_record_languages = declared_languages_without_records(repo, &coverage);
+    assert!(
+        zero_record_languages.is_empty(),
+        "supported languages with real files but zero useful records for {}: {:?}",
+        repo.name,
+        zero_record_languages
+    );
 
     let symbol_coverage = check_expected_symbols(repo, &snapshot.records);
     assert!(
@@ -123,6 +131,12 @@ fn check_repo(repo: &BenchmarkRepo) -> RepoHardeningReport {
     );
 
     let query_smoke = run_manifest_query_smokes(repo);
+    assert!(
+        query_smoke.failures.is_empty(),
+        "manifest query smoke failures for {}: {:?}",
+        repo.name,
+        query_smoke.failures,
+    );
     let manifest = load_manifest(&repo.path)
         .unwrap_or_else(|error| panic!("failed to load manifest for {}: {error:#}", repo.name));
     let report = RepoHardeningReport {
@@ -191,6 +205,7 @@ struct SymbolCoverage {
 struct QuerySmoke {
     checked: usize,
     misses: usize,
+    failures: Vec<String>,
 }
 
 #[derive(Debug, Default)]
@@ -462,14 +477,17 @@ fn language_or_format_for_path(registry: &LanguageRegistry, relpath: &str) -> St
         .unwrap_or_else(|| "unknown".to_string())
 }
 
-fn supported_languages_without_records(coverage: &ParserCoverage) -> Vec<String> {
-    coverage
-        .files_seen_by_language
-        .keys()
+fn declared_languages_without_records(
+    repo: &BenchmarkRepo,
+    coverage: &ParserCoverage,
+) -> Vec<String> {
+    repo.languages
+        .iter()
+        .filter(|language| coverage.files_seen_by_language.contains_key(*language))
         .filter(|language| {
             coverage
                 .records_by_language
-                .get(*language)
+                .get(language.as_str())
                 .copied()
                 .unwrap_or(0)
                 == 0
@@ -780,35 +798,111 @@ fn run_manifest_query_smokes(repo: &BenchmarkRepo) -> QuerySmoke {
         });
 
         if results.is_empty() {
-            smoke.misses += 1;
+            record_query_smoke_failure(&mut smoke, repo, query, "wi", "no search results");
         }
 
         let refs_options = SearchOptions {
             limit: 20,
             ..SearchOptions::default()
         };
-        render_refs_command(&repo.path, query, &refs_options).unwrap_or_else(|error| {
-            panic!("wi refs failed for {} `{query}`: {error:#}", repo.name)
-        });
+        let refs_output =
+            render_refs_command(&repo.path, query, &refs_options).unwrap_or_else(|error| {
+                panic!("wi refs failed for {} `{query}`: {error:#}", repo.name)
+            });
+        if refs_output.result_count == 0 {
+            record_query_smoke_failure(&mut smoke, repo, query, "wi refs", "no primary results");
+        }
 
         let pack_options = SearchOptions {
             limit: 10,
             ..SearchOptions::default()
         };
-        render_pack_command(&repo.path, query, &pack_options).unwrap_or_else(|error| {
-            panic!("wi pack failed for {} `{query}`: {error:#}", repo.name)
-        });
+        let pack_output =
+            render_pack_command(&repo.path, query, &pack_options).unwrap_or_else(|error| {
+                panic!("wi pack failed for {} `{query}`: {error:#}", repo.name)
+            });
+        if pack_output.result_count == 0 {
+            record_query_smoke_failure(&mut smoke, repo, query, "wi pack", "no primary results");
+        }
 
         let impact_options = SearchOptions {
             limit: 15,
             ..SearchOptions::default()
         };
-        render_impact_command(&repo.path, query, &impact_options).unwrap_or_else(|error| {
-            panic!("wi impact failed for {} `{query}`: {error:#}", repo.name)
-        });
+        let impact_output = render_impact_command(&repo.path, query, &impact_options)
+            .unwrap_or_else(|error| {
+                panic!("wi impact failed for {} `{query}`: {error:#}", repo.name)
+            });
+        if impact_output.result_count == 0 {
+            record_query_smoke_failure(&mut smoke, repo, query, "wi impact", "no primary results");
+        }
     }
 
     smoke
+}
+
+fn record_query_smoke_failure(
+    smoke: &mut QuerySmoke,
+    repo: &BenchmarkRepo,
+    query: &str,
+    command: &str,
+    reason: &str,
+) {
+    smoke.misses += 1;
+    smoke.failures.push(format!(
+        "repo={} query={query} command={command} reason={reason}",
+        repo.name
+    ));
+}
+
+#[test]
+fn manifest_query_smoke_reports_missing_search_and_context_results() {
+    let temp = temp_repo();
+    write_file(temp.path(), "src/lib.rs", "pub fn present_symbol() {}\n");
+    build_index(temp.path()).expect("build fixture index");
+    let repo = BenchmarkRepo {
+        name: "fixture".to_string(),
+        path: temp.path().to_path_buf(),
+        kind: Some("rust-fixture".to_string()),
+        languages: vec!["rs".to_string()],
+        description: None,
+        skip_reason: None,
+        notes: None,
+        ignore_guidance: None,
+        queries: Some(vec![
+            "present_symbol".to_string(),
+            "definitely_missing_symbol".to_string(),
+        ]),
+        expected_paths: Vec::new(),
+        expected_symbols: Vec::new(),
+        expected_symbol_patterns: Vec::new(),
+        expected_symbol_specs: Vec::new(),
+        expected_symbol_pattern_specs: Vec::new(),
+        expected_absent_symbol_specs: Vec::new(),
+        quality_thresholds: Vec::new(),
+        from_manifest: true,
+    };
+
+    let smoke = run_manifest_query_smokes(&repo);
+
+    assert_eq!(smoke.checked, 2);
+    assert_eq!(smoke.misses, 4);
+    assert!(smoke.failures.iter().any(|failure| {
+        failure.contains("query=definitely_missing_symbol command=wi reason=no search results")
+    }));
+    assert!(
+        smoke.failures.iter().any(|failure| failure
+            .contains("query=definitely_missing_symbol command=wi refs reason=no primary results"))
+    );
+    assert!(
+        smoke.failures.iter().any(|failure| failure
+            .contains("query=definitely_missing_symbol command=wi pack reason=no primary results"))
+    );
+    assert!(
+        smoke.failures.iter().any(|failure| failure.contains(
+            "query=definitely_missing_symbol command=wi impact reason=no primary results"
+        ))
+    );
 }
 
 impl AggregateCoverage {
