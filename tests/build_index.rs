@@ -183,6 +183,119 @@ class PromptService:
 }
 
 #[test]
+fn large_source_files_are_skipped_reported_and_tracked_incrementally() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "src/small.py", "class SmallService: pass\n");
+    let huge_symbol_text = "class HugeGeneratedService:\n    pass\n";
+    let padding = "x".repeat(thinindex::indexer::MAX_INDEXED_FILE_BYTES as usize + 1);
+    write_file(
+        root,
+        "src/huge_generated.py",
+        &format!("{huge_symbol_text}{padding}\n"),
+    );
+
+    let first = run_build(root);
+    assert!(
+        first.contains("changed files: 2"),
+        "expected small and large files to be tracked as changed, got:\n{first}"
+    );
+    assert!(
+        first.contains("skipped large files: 1")
+            && first.contains("warning: skipped large file src/huge_generated.py"),
+        "expected skipped large file warning, got:\n{first}"
+    );
+
+    let small = run_wi(root, &["SmallService"]);
+    assert!(
+        small.contains("src/small.py"),
+        "small source file should be indexed, got:\n{small}"
+    );
+    let huge = run_wi(root, &["HugeGeneratedService"]);
+    assert!(
+        huge.trim().is_empty(),
+        "large skipped source should not emit records, got:\n{huge}"
+    );
+
+    let second = run_build(root);
+    assert!(
+        second.contains("changed files: 0"),
+        "skipped large file metadata should be tracked, got:\n{second}"
+    );
+}
+
+#[test]
+fn build_index_stats_reports_scale_metrics_without_large_snapshots() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "src/service.py", "class StatsService: pass\n");
+
+    let output = build_index_bin()
+        .current_dir(root)
+        .arg("--stats")
+        .output()
+        .expect("run build_index --stats");
+
+    assert!(
+        output.status.success(),
+        "build_index --stats failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for needle in [
+        "refs:",
+        "dependencies:",
+        "total file bytes:",
+        "max indexed file bytes:",
+        "performance:",
+        "large files:",
+        "sqlite tuning:",
+    ] {
+        assert!(
+            stdout.contains(needle),
+            "missing stats field {needle:?}, got:\n{stdout}"
+        );
+    }
+}
+
+#[test]
+fn largeish_fixture_build_stays_bounded_and_incremental() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    for index in 0..150 {
+        write_file(
+            root,
+            &format!("crates/pkg_{index}/src/lib.py"),
+            &format!("class Service{index}: pass\n"),
+        );
+    }
+
+    let first = run_build(root);
+    assert!(
+        first.contains("changed files: 150"),
+        "expected all fixture files to index once, got:\n{first}"
+    );
+
+    let records = thinindex::store::load_records(root).expect("load records");
+    assert!(
+        records.len() >= 150 && records.len() < thinindex::indexer::MAX_RECORDS_PER_FILE,
+        "large-ish fixture should stay bounded, got {} records",
+        records.len()
+    );
+
+    let second = run_build(root);
+    assert!(
+        second.contains("changed files: 0"),
+        "expected unchanged fixture rebuild to stay incremental, got:\n{second}"
+    );
+}
+
+#[test]
 fn changed_files_are_reindexed() {
     let repo = temp_repo();
     let root = repo.path();

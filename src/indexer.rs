@@ -3,7 +3,7 @@ use std::{
     fs,
     io::{ErrorKind, Read},
     path::{Path, PathBuf},
-    time::UNIX_EPOCH,
+    time::{Duration, Instant, UNIX_EPOCH},
 };
 
 use anyhow::{Context, Result};
@@ -23,14 +23,56 @@ use crate::{
 
 const IGNORE_DIRS: &[&str] = &[".git", ".dev_index"];
 pub const MAX_RECORDS_PER_FILE: usize = 50_000;
+pub const MAX_INDEXED_FILE_BYTES: u64 = 2 * 1024 * 1024;
+pub const LARGE_FILE_WARNING_BYTES: u64 = 512 * 1024;
+const MAX_SIZE_WARNINGS: usize = 20;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum FileSizeAction {
+    Skipped,
+    Indexed,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileSizeWarning {
+    pub path: String,
+    pub size: u64,
+    pub threshold: u64,
+    pub action: FileSizeAction,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct BuildTimings {
+    pub discover: Duration,
+    pub change_detection: Duration,
+    pub parse: Duration,
+    pub dependencies: Duration,
+    pub refs: Duration,
+    pub save: Duration,
+    pub total: Duration,
+}
+
+#[derive(Debug, Clone)]
+struct DiscoveredFile {
+    path: PathBuf,
+    rel: String,
+    meta: FileMeta,
+    indexable: bool,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BuildStats {
     pub root: PathBuf,
     pub scanned_files: usize,
     pub changed_files: usize,
+    pub unchanged_files: usize,
     pub deleted_files: usize,
     pub records: usize,
+    pub refs: usize,
+    pub dependencies: usize,
+    pub total_file_bytes: u64,
+    pub large_files: Vec<FileSizeWarning>,
+    pub timings: BuildTimings,
     /// Populated when an existing index was reset (schema bump or corrupted
     /// manifest). Callers may surface this; library code stays silent.
     pub reset_message: Option<&'static str>,
@@ -51,17 +93,64 @@ pub fn find_repo_root(start: &Path) -> Result<PathBuf> {
 }
 
 pub fn build_index(start: &Path) -> Result<BuildStats> {
+    let total_start = Instant::now();
     let root = find_repo_root(start)?;
 
     let (mut manifest, reset_message) = prepare_for_build(&root)?;
 
     let existing_records = load_records(&root)?;
 
+    let discover_start = Instant::now();
     let files = discover_files(&root)?;
-    let current_paths: BTreeSet<String> = files
-        .iter()
-        .map(|path| relpath(&root, path))
-        .collect::<Result<_>>()?;
+    let discover_elapsed = discover_start.elapsed();
+
+    let change_start = Instant::now();
+    let mut discovered_files = Vec::new();
+    let mut current_paths = BTreeSet::new();
+    let mut total_file_bytes = 0u64;
+    let mut large_files = Vec::new();
+
+    for path in files {
+        let rel = relpath(&root, &path)?;
+        let meta = file_meta(&path)?;
+        let indexable = meta.size <= MAX_INDEXED_FILE_BYTES;
+
+        total_file_bytes = total_file_bytes.saturating_add(meta.size);
+        current_paths.insert(rel.clone());
+
+        if meta.size >= LARGE_FILE_WARNING_BYTES {
+            large_files.push(FileSizeWarning {
+                path: rel.clone(),
+                size: meta.size,
+                threshold: if indexable {
+                    LARGE_FILE_WARNING_BYTES
+                } else {
+                    MAX_INDEXED_FILE_BYTES
+                },
+                action: if indexable {
+                    FileSizeAction::Indexed
+                } else {
+                    FileSizeAction::Skipped
+                },
+            });
+        }
+
+        discovered_files.push(DiscoveredFile {
+            path,
+            rel,
+            meta,
+            indexable,
+        });
+    }
+
+    large_files.sort_by_key(|warning| {
+        (
+            warning.action,
+            std::cmp::Reverse(warning.size),
+            warning.path.clone(),
+        )
+    });
+    large_files.truncate(MAX_SIZE_WARNINGS);
 
     let deleted_paths: Vec<String> = manifest
         .files
@@ -76,22 +165,40 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
 
     let mut changed_paths = Vec::new();
     let mut changed_files = Vec::new();
+    let mut indexable_files = Vec::new();
+    let mut unchanged_files = 0usize;
 
-    for path in &files {
-        let rel = relpath(&root, path)?;
-        let next_meta = file_meta(path)?;
+    for discovered in discovered_files {
+        let changed = manifest.files.get(&discovered.rel) != Some(&discovered.meta);
 
-        if manifest.files.get(&rel) != Some(&next_meta) {
-            changed_paths.push(rel.clone());
-            changed_files.push((path.clone(), rel, next_meta));
+        if changed {
+            changed_paths.push(discovered.rel.clone());
+        } else {
+            unchanged_files += 1;
+        }
+
+        if discovered.indexable {
+            indexable_files.push(discovered.path.clone());
+
+            if changed {
+                changed_files.push((
+                    discovered.path,
+                    discovered.rel.clone(),
+                    discovered.meta.clone(),
+                ));
+            }
+        } else if changed {
+            manifest.files.insert(discovered.rel, discovered.meta);
         }
     }
+    let change_elapsed = change_start.elapsed();
 
     let mut stale_paths = deleted_paths.clone();
     stale_paths.extend(changed_paths.clone());
 
     let mut records = remove_records_for_paths(existing_records, &stale_paths);
 
+    let parse_start = Instant::now();
     if !changed_files.is_empty() {
         let parser = TreeSitterExtractionEngine::default();
 
@@ -113,26 +220,47 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
             manifest.files.insert(rel, meta);
         }
     }
+    let parse_elapsed = parse_start.elapsed();
 
     dedupe_records_by_location(&mut records);
     debug_assert_unique_record_locations(&records);
     sort_records(&mut records);
 
-    let dependencies = extract_dependencies(&root, &files, &records)?;
+    let dependencies_start = Instant::now();
+    let dependencies = extract_dependencies(&root, &indexable_files, &records)?;
+    let dependencies_elapsed = dependencies_start.elapsed();
 
-    let mut refs = extract_all_refs(&root, &files, &records, &dependencies)?;
+    let refs_start = Instant::now();
+    let mut refs = extract_all_refs(&root, &indexable_files, &records, &dependencies)?;
     dedupe_refs_by_location(&mut refs);
     refs = finalize_refs(refs);
     sort_refs(&mut refs);
+    let refs_elapsed = refs_start.elapsed();
 
+    let save_start = Instant::now();
     save_index_snapshot(&root, &manifest, &records, &refs, &dependencies)?;
+    let save_elapsed = save_start.elapsed();
 
     Ok(BuildStats {
         root,
         scanned_files: current_paths.len(),
         changed_files: changed_paths.len(),
+        unchanged_files,
         deleted_files: deleted_paths.len(),
         records: records.len(),
+        refs: refs.len(),
+        dependencies: dependencies.len(),
+        total_file_bytes,
+        large_files,
+        timings: BuildTimings {
+            discover: discover_elapsed,
+            change_detection: change_elapsed,
+            parse: parse_elapsed,
+            dependencies: dependencies_elapsed,
+            refs: refs_elapsed,
+            save: save_elapsed,
+            total: total_start.elapsed(),
+        },
         reset_message,
     })
 }

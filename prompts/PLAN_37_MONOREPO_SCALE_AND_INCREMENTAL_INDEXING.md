@@ -4,6 +4,14 @@ Use superpowers:subagent-driven-development.
 
 Do not implement this until PLAN_36_TEST_BUILD_CONFIG_MAPPING.md is complete and green.
 
+Progress:
+- [x] Phase 1: inspect current indexer, ignore handling, real-repo performance hooks, and Plan 36 state
+- [x] Phase 2: add bounded file-size policy, large-file reporting, and incremental tracking safeguards
+- [x] Phase 3: add compact `build_index --stats` scale diagnostics and SQLite connection tuning
+- [x] Phase 4: update tests for large fixtures, skipped large files, stats output, and incremental correctness
+- [x] Phase 5: document performance, ignore, and monorepo guidance
+- [x] Phase 6: run required verification and commit completed Plan 37 work
+
 Goal:
 Make thinindex robust on large repositories and monorepos.
 

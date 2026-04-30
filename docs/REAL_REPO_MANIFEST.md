@@ -16,6 +16,8 @@ Pick repos intentionally:
 
 When a useful repo has noisy generated/vendor paths, add local ignore rules in that cloned repo and record `ignore_guidance` in the manifest.
 
+Run `build_index --stats` inside large or noisy local clones before tightening expected symbols. The compact stats report surfaces large skipped files, broad size warnings, and phase timings without writing bulky snapshots.
+
 ## Required Repo Fields
 
 Every active repo entry must include:

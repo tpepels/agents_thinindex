@@ -2,6 +2,11 @@ node_modules/
 .next/
 dist/
 build/
+generated/
+vendor/
+third_party/
+*.min.js
+*.min.css
 coverage/
 playwright-report/
 test-results/

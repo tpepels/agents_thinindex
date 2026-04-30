@@ -289,6 +289,7 @@ fn create_database(root: &Path) -> Result<Connection> {
     let path = sqlite_path(root);
     let conn =
         Connection::open(&path).with_context(|| format!("failed to open {}", path.display()))?;
+    configure_connection(&conn)?;
     initialize_schema(&conn)?;
     Ok(conn)
 }
@@ -303,14 +304,29 @@ fn open_existing_database(root: &Path) -> Result<Connection> {
         bail!("index database missing; run `build_index`");
     }
 
-    Connection::open(&path)
-        .with_context(|| format!("failed to open {}; run `build_index`", path.display()))
+    let conn = Connection::open(&path)
+        .with_context(|| format!("failed to open {}; run `build_index`", path.display()))?;
+    configure_connection(&conn)?;
+    Ok(conn)
+}
+
+fn configure_connection(conn: &Connection) -> Result<()> {
+    conn.execute_batch(
+        "
+        PRAGMA journal_mode = WAL;
+        PRAGMA synchronous = NORMAL;
+        PRAGMA temp_store = MEMORY;
+        PRAGMA cache_size = -20000;
+        ",
+    )
+    .context("failed to configure SQLite connection")?;
+
+    Ok(())
 }
 
 fn initialize_schema(conn: &Connection) -> Result<()> {
     conn.execute_batch(
         "
-        PRAGMA journal_mode = WAL;
         CREATE TABLE IF NOT EXISTS meta (
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL

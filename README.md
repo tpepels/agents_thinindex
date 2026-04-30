@@ -69,7 +69,7 @@ The canonical agent workflow is:
 
 Installed commands:
 
-- `build_index`: builds or updates `.dev_index/index.sqlite`.
+- `build_index`: builds or updates `.dev_index/index.sqlite`; `build_index --stats` adds compact scale diagnostics.
 - `wi <term>`: searches named landmarks and returns compact file:line results.
 - `wi refs <term>`: shows deterministic references for matching landmarks.
 - `wi pack <term>`: returns a dependency-aware, deduplicated read set for implementation work.
@@ -162,7 +162,7 @@ cargo test --test bench_repos -- --ignored
 
 Use those numbers to evaluate whether thinindex helps a particular repository and workflow. Do not infer broad agent-performance gains from a single benchmark run.
 
-Parser performance expectations are intentionally practical rather than exact: fixture builds should stay fast in normal tests, real-repo timing is reported by ignored tests, and timing regressions should be investigated with local repo context instead of brittle global thresholds.
+Parser performance expectations are intentionally practical rather than exact: fixture builds should stay fast in normal tests, real-repo timing is reported by ignored tests, and timing regressions should be investigated with local repo context instead of brittle global thresholds. See [docs/PERFORMANCE.md](docs/PERFORMANCE.md) for file-size limits, SQLite tuning, and monorepo ignore guidance.
 
 ## Limitations
 
