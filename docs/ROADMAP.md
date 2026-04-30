@@ -20,7 +20,7 @@ The current toolchain provides:
 
 Current storage is `.dev_index/index.sqlite`. The entire `.dev_index/` directory is a disposable local cache. Old pre-alpha cache files are not current storage; `build_index` rebuilds them into SQLite.
 
-The index also stores a local best-effort dependency graph for imports, includes, requires, source statements, and unresolved dependency evidence. This graph powers dependency-aware context and impact output without claiming compiler, LSP, package-manager, or network-backed resolution.
+The index also stores a local best-effort dependency graph for imports, includes, requires, source statements, unresolved dependency evidence, and coarse file-role mapping. This graph powers dependency-aware context and impact output without claiming compiler, LSP, package-manager, build-tool, or network-backed resolution.
 
 Current instruction surfaces are `AGENTS.md` and, when already present, `CLAUDE.md`. `wi-init` creates or normalizes the canonical `## Repository search` block and does not create a separate instruction file.
 

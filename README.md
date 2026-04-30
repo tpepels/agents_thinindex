@@ -99,7 +99,7 @@ Pre-alpha JSONL `.dev_index` caches are also disposable. `build_index` detects t
 
 Usage stats are stored in the same SQLite database. `make uninstall` removes installed binaries only; it does not remove repo-local caches.
 
-The SQLite index also stores internal local dependency and reference graphs for resolved/unresolved imports, syntax references, structured docs/style references, and capped text fallback. The graphs are best-effort foundation data for dependency-aware context and impact. See [docs/DEPENDENCY_GRAPH.md](docs/DEPENDENCY_GRAPH.md), [docs/REFERENCE_GRAPH.md](docs/REFERENCE_GRAPH.md), [docs/CONTEXT_PACKS.md](docs/CONTEXT_PACKS.md), and [docs/IMPACT_ANALYSIS.md](docs/IMPACT_ANALYSIS.md).
+The SQLite index also stores internal local dependency and reference graphs for resolved/unresolved imports, syntax references, structured docs/style references, capped text fallback, and file-role mapping. The graphs are best-effort foundation data for dependency-aware context and impact. See [docs/DEPENDENCY_GRAPH.md](docs/DEPENDENCY_GRAPH.md), [docs/REFERENCE_GRAPH.md](docs/REFERENCE_GRAPH.md), [docs/FILE_ROLES.md](docs/FILE_ROLES.md), [docs/CONTEXT_PACKS.md](docs/CONTEXT_PACKS.md), and [docs/IMPACT_ANALYSIS.md](docs/IMPACT_ANALYSIS.md).
 
 ## Real-repo hardening
 

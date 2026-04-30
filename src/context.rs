@@ -6,6 +6,7 @@ use std::{
 use anyhow::Result;
 
 use crate::{
+    file_roles::{FileRole, classify_path, is_operational_role, is_source_role},
     model::{DependencyEdge, IndexRecord, ReferenceRecord},
     search::{SearchOptions, SearchResult, search},
     store::{load_dependencies, load_records, load_refs},
@@ -621,7 +622,11 @@ fn split_pack_unknown_rows(
     let mut unresolved_hints = Vec::new();
 
     for row in pack_rows_from_impact(unknown, ref_counts) {
-        if is_fixture_path(&row.path) || is_doc_path(&row.path) {
+        if matches!(
+            classify_path(&row.path),
+            FileRole::Docs | FileRole::Generated | FileRole::Vendor
+        ) || is_fixture_path(&row.path)
+        {
             docs_examples.push(row);
         } else {
             unresolved_hints.push(row);
@@ -739,6 +744,7 @@ fn build_impact_groups(
 
     add_dependency_impact_rows(&mut groups, dependencies, primary_paths);
     add_test_mapping_rows(&mut groups, records, primary_paths, primary_names);
+    add_build_config_mapping_rows(&mut groups, records, primary_paths);
 
     for rows in groups.values_mut() {
         rows.sort_by_key(impact_row_key);
@@ -848,6 +854,56 @@ fn add_dependency_impact_rows(
     }
 }
 
+fn add_build_config_mapping_rows(
+    groups: &mut BTreeMap<ImpactGroup, Vec<ImpactRow>>,
+    records: &[IndexRecord],
+    primary_paths: &BTreeSet<String>,
+) {
+    let primary_source_paths: BTreeSet<&str> = primary_paths
+        .iter()
+        .map(String::as_str)
+        .filter(|path| is_source_role(classify_path(path)))
+        .collect();
+
+    if primary_source_paths.is_empty() {
+        return;
+    }
+
+    let primary_roots: BTreeSet<String> = primary_source_paths
+        .iter()
+        .filter_map(|path| top_level_dir(path))
+        .map(ToOwned::to_owned)
+        .collect();
+
+    let mut seen_paths = BTreeSet::new();
+    for record in records {
+        if primary_paths.contains(&record.path) || !seen_paths.insert(record.path.clone()) {
+            continue;
+        }
+
+        let role = classify_path(&record.path);
+        if !is_operational_role(role)
+            || !operational_file_applies(&record.path, role, &primary_roots)
+        {
+            continue;
+        }
+
+        groups
+            .entry(ImpactGroup::Config)
+            .or_default()
+            .push(ImpactRow {
+                path: record.path.clone(),
+                line: record.line,
+                col: record.col,
+                kind: format!("file_role:{}", role.as_str()),
+                target: source_area_label(&primary_roots),
+                confidence: "heuristic",
+                reason: format!("{} applies to source area", role.as_str()),
+                priority: operational_role_priority(role, &record.path),
+            });
+    }
+}
+
 fn add_test_mapping_rows(
     groups: &mut BTreeMap<ImpactGroup, Vec<ImpactRow>>,
     records: &[IndexRecord],
@@ -925,8 +981,9 @@ fn take_impact_rows(
 
 fn impact_group_for_ref(reference: &ReferenceRecord) -> ImpactGroup {
     let path = &reference.from_path;
+    let role = classify_path(path);
 
-    if reference.ref_kind == "test_reference" || is_test_path(path) {
+    if reference.ref_kind == "test_reference" || role == FileRole::Test {
         return ImpactGroup::Tests;
     }
 
@@ -938,15 +995,15 @@ fn impact_group_for_ref(reference: &ReferenceRecord) -> ImpactGroup {
         };
     }
 
-    if reference.ref_kind == "markdown_link" || is_doc_path(path) {
+    if reference.ref_kind == "markdown_link" || role == FileRole::Docs {
         return ImpactGroup::Docs;
     }
 
-    if is_config_route_schema_path(path) {
+    if is_operational_role(role) {
         return ImpactGroup::Config;
     }
 
-    if is_fixture_path(path) {
+    if is_fixture_path(path) || matches!(role, FileRole::Generated | FileRole::Vendor) {
         return ImpactGroup::Unknown;
     }
 
@@ -1062,53 +1119,77 @@ fn command_limit(options: &SearchOptions, default_limit: usize) -> usize {
 }
 
 fn path_penalty(path: &str) -> usize {
-    let normalized = path.replace('\\', "/").to_ascii_lowercase();
+    let normalized = crate::file_roles::normalize_path(path);
+    let role = classify_path(&normalized);
+
+    if matches!(role, FileRole::Generated | FileRole::Vendor) {
+        return 30;
+    }
 
     if is_fixture_path(&normalized) {
         return 25;
     }
 
-    if is_test_path(&normalized) {
+    if role == FileRole::Test {
         return 10;
     }
 
-    if is_doc_path(&normalized) {
+    if role == FileRole::Docs {
         return 15;
+    }
+
+    if is_operational_role(role) {
+        return 20;
     }
 
     0
 }
 
-fn is_doc_path(path: &str) -> bool {
-    let normalized = path.replace('\\', "/").to_ascii_lowercase();
+fn operational_file_applies(path: &str, role: FileRole, primary_roots: &BTreeSet<String>) -> bool {
+    let normalized = crate::file_roles::normalize_path(path);
 
-    normalized.contains("/docs/")
-        || normalized.starts_with("docs/")
-        || normalized.ends_with(".md")
-        || normalized.ends_with(".mdx")
+    match role {
+        FileRole::PackageManifest | FileRole::Build => {
+            is_root_level_path(&normalized)
+                || normalized.starts_with(".github/workflows/")
+                || top_level_dir(&normalized).is_some_and(|root| primary_roots.contains(root))
+        }
+        FileRole::Config => {
+            normalized.starts_with("config/")
+                || normalized.starts_with("configs/")
+                || normalized.starts_with("routes/")
+                || normalized.starts_with("schemas/")
+                || top_level_dir(&normalized).is_some_and(|root| primary_roots.contains(root))
+        }
+        _ => false,
+    }
 }
 
-fn is_config_route_schema_path(path: &str) -> bool {
-    let normalized = path.replace('\\', "/").to_ascii_lowercase();
-    let filename = normalized.rsplit('/').next().unwrap_or(&normalized);
+fn operational_role_priority(role: FileRole, path: &str) -> usize {
+    match role {
+        FileRole::PackageManifest => 0,
+        FileRole::Build if crate::file_roles::normalize_path(path).starts_with(".github/") => 4,
+        FileRole::Build => 1,
+        FileRole::Config => 3,
+        _ => 9,
+    }
+}
 
-    normalized.contains("/config/")
-        || normalized.starts_with("config/")
-        || normalized.contains("/configs/")
-        || normalized.starts_with("configs/")
-        || normalized.contains("/routes/")
-        || normalized.starts_with("routes/")
-        || normalized.contains("/schemas/")
-        || normalized.starts_with("schemas/")
-        || filename.contains("config")
-        || filename.contains("settings")
-        || filename.contains("route")
-        || filename.contains("router")
-        || filename.contains("schema")
-        || normalized.ends_with(".json")
-        || normalized.ends_with(".toml")
-        || normalized.ends_with(".yaml")
-        || normalized.ends_with(".yml")
+fn source_area_label(primary_roots: &BTreeSet<String>) -> String {
+    if primary_roots.is_empty() {
+        return "source".to_string();
+    }
+
+    primary_roots.iter().cloned().collect::<Vec<_>>().join(",")
+}
+
+fn top_level_dir(path: &str) -> Option<&str> {
+    let normalized = path.trim_start_matches("./");
+    normalized.split('/').next().filter(|part| !part.is_empty())
+}
+
+fn is_root_level_path(path: &str) -> bool {
+    !path.contains('/')
 }
 
 fn file_stem(path: &str) -> Option<&str> {
@@ -1142,16 +1223,5 @@ fn is_fixture_path(path: &str) -> bool {
 }
 
 fn is_test_path(path: &str) -> bool {
-    let normalized = path.replace('\\', "/").to_ascii_lowercase();
-    let filename = normalized.rsplit('/').next().unwrap_or(&normalized);
-
-    normalized.contains("/tests/")
-        || normalized.starts_with("tests/")
-        || normalized.contains("/test/")
-        || normalized.starts_with("test/")
-        || normalized.contains("/__tests__/")
-        || normalized.starts_with("__tests__/")
-        || filename.contains("_test")
-        || filename.contains(".test.")
-        || filename.contains(".spec.")
+    classify_path(path) == FileRole::Test
 }

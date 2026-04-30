@@ -4,6 +4,8 @@
 
 Pack output is built from SQLite `records`, `refs`, `dependencies`, and the same evidence model used by `wi impact`. Every row includes a reason and confidence label.
 
+File-role classification controls how test, build, package manifest, config, docs, generated, and vendor paths are grouped. See [FILE_ROLES.md](FILE_ROLES.md).
+
 ## Groups
 
 - `Primary definitions`: direct symbol or structured-landmark matches for the query.

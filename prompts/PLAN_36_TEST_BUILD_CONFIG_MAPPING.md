@@ -4,6 +4,14 @@ Use superpowers:subagent-driven-development.
 
 Do not implement this until PLAN_35_CONTEXT_PACK_V2_DEPENDENCY_AWARE.md is complete and green.
 
+Progress:
+- [x] Phase 1: inspect Plan 35 pack/impact evidence flow and current test/config heuristics
+- [x] Phase 2: add shared file-role classification for source, test, build, package manifest, config, docs, generated, vendor, and unknown paths
+- [x] Phase 3: add source/test pairing and package/build/config mappings into pack and impact
+- [x] Phase 4: add role, pairing, operational mapping, determinism, and generated/vendor tests
+- [x] Phase 5: document file roles and run required verification
+- [x] Phase 6: commit completed Plan 36 work
+
 Goal:
 Map tests, build files, package manifests, and config files to source areas so impact/pack can include operationally relevant files.
 

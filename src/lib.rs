@@ -2,6 +2,7 @@ pub mod bench;
 pub mod context;
 pub mod deps;
 pub mod extras;
+pub mod file_roles;
 pub mod indexer;
 pub mod model;
 pub mod quality;

@@ -38,6 +38,14 @@ def consume():
     );
     write_file(
         root,
+        "Cargo.toml",
+        r#"
+[package]
+name = "prompt-fixture"
+"#,
+    );
+    write_file(
+        root,
         "tests/test_prompt_service.py",
         r#"
 from prompt_service import PromptService
@@ -427,8 +435,9 @@ fn wi_pack_prompt_service_groups_compact_read_set() {
     assert!(
         output.contains("src/helpers.py")
             && output.contains("src/module_consumer.py")
-            && output.contains("config/impact.json"),
-        "missing dependency/dependent/config read-plan files:\n{output}"
+            && output.contains("config/impact.json")
+            && output.contains("Cargo.toml"),
+        "missing dependency/dependent/config/package read-plan files:\n{output}"
     );
     assert_impact_rows_have_reasons_and_confidence(&output);
     assert!(
@@ -575,6 +584,10 @@ fn wi_impact_prompt_service_groups_affected_files() {
     assert!(
         output.contains("src/module_consumer.py") && output.contains("config/impact.json"),
         "missing dependency/config impact files:\n{output}"
+    );
+    assert!(
+        output.contains("Cargo.toml") && output.contains("file_role:package_manifest"),
+        "missing package manifest impact mapping:\n{output}"
     );
     assert_impact_rows_have_reasons_and_confidence(&output);
     assert!(
@@ -820,6 +833,77 @@ fn wi_impact_stale_dependency_changes_update_output() {
             .iter()
             .any(|row| row.contains("src/consumer.py")),
         "stale dependency should be removed from impact output:\n{after}"
+    );
+}
+
+#[test]
+fn wi_impact_maps_same_name_tests_without_references() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_file(
+        root,
+        "app/services/payment.py",
+        "class PaymentService: pass\n",
+    );
+    write_file(
+        root,
+        "tests/app/services/test_payment.py",
+        "def test_payment_flow():\n    assert True\n",
+    );
+    run_build(root);
+
+    let output = run_wi(root, &["impact", "PaymentService"]);
+    assert!(
+        group_rows(&output, "Likely tests:")
+            .iter()
+            .any(|row| row.contains("tests/app/services/test_payment.py")),
+        "expected same-name source/test mapping:\n{output}"
+    );
+    assert!(
+        output.contains("same-name test convention") && output.contains("confidence: test-related"),
+        "expected test mapping reason/confidence:\n{output}"
+    );
+}
+
+#[test]
+fn wi_pack_and_impact_map_package_build_config_files_to_source() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_file(root, "src/service.py", "class BuildMappedService: pass\n");
+    write_file(root, "config/service.json", r#"{ "enabled": true }"#);
+    write_file(
+        root,
+        "package.json",
+        r#"{ "name": "build-mapped-fixture" }"#,
+    );
+    write_file(root, ".github/workflows/ci.yml", "name: ci\non: [push]\n");
+    run_build(root);
+
+    let pack = run_wi(root, &["pack", "BuildMappedService"]);
+    assert!(
+        group_rows(&pack, "Configs/build files:")
+            .iter()
+            .any(|row| row.contains("package.json")),
+        "expected package manifest in pack:\n{pack}"
+    );
+    assert!(
+        pack.contains("file_role:package_manifest")
+            && pack.contains("confidence: heuristic")
+            && pack.contains("applies to source area"),
+        "expected package manifest mapping reason/confidence in pack:\n{pack}"
+    );
+
+    let impact = run_wi(root, &["impact", "BuildMappedService"]);
+    let config_rows = group_rows(&impact, "Build/config files:");
+    assert!(
+        config_rows.iter().any(|row| row.contains("package.json"))
+            && config_rows
+                .iter()
+                .any(|row| row.contains(".github/workflows/ci.yml"))
+            && config_rows
+                .iter()
+                .any(|row| row.contains("config/service.json")),
+        "expected package/build/config mapping in impact:\n{impact}"
     );
 }
 

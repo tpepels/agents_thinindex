@@ -4,6 +4,8 @@
 
 Impact rows come from SQLite `records`, `refs`, and `dependencies`. A row is included only when thinindex can attach a concrete file:line reason from indexed evidence.
 
+File-role classification controls how source, test, build, package manifest, config, docs, generated, and vendor paths are mapped into impact groups. See [FILE_ROLES.md](FILE_ROLES.md).
+
 ## Output Groups
 
 - `Direct definitions`: primary search results for definitions or structured landmarks.
