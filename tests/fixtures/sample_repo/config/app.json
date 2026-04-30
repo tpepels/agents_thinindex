@@ -1,0 +1,7 @@
+{
+  "serviceName": "thinindex fixture",
+  "featureFlags": {
+    "parserConfigEnabled": true,
+    "description": "JsonStringFake should not become a symbol"
+  }
+}

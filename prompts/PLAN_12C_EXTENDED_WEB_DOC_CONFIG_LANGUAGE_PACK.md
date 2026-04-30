@@ -119,3 +119,12 @@ Report:
 - verification commands and results
 - ignored local/real repo test status
 - commit hash
+
+## Phase tracking
+
+- [x] Add non-noisy JSON, TOML, and YAML extraction through project-owned extras.
+- [x] Keep CSS, HTML, and Markdown on the existing extras path with fixture coverage.
+- [x] Add config fixtures and tests for key/table/section behavior and scalar non-indexing.
+- [x] Update support matrix, known gaps, help text, and third-party notices.
+- [x] Run required 12C verification.
+- [x] Commit with `Add extended web doc and config parser pack`.

@@ -1,0 +1,7 @@
+[tool.thinindex]
+profile = "fixture"
+parser_config_enabled = true
+
+[tool.thinindex.paths]
+fixture_root = "tests/fixtures"
+note = "TomlStringFake should not become a symbol"

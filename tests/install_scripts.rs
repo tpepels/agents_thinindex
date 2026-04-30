@@ -217,6 +217,9 @@ fn docs_state_tree_sitter_is_bundled_and_ctags_removed() {
             && readme.contains("| Nix | `.nix` | `tree-sitter-nix` |")
             && readme.contains("| Go | `.go` | `tree-sitter-go` |")
             && readme.contains("| PHP | `.php` | `tree-sitter-php` |")
+            && readme.contains("| JSON | `.json` | project-owned extras |")
+            && readme.contains("| TOML | `.toml` | project-owned extras |")
+            && readme.contains("| YAML | `.yaml`, `.yml` | project-owned extras |")
             && readme.contains("Unsupported or deferred languages are not silently parsed"),
         "README should document the representative parser support matrix"
     );

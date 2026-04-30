@@ -68,6 +68,8 @@ Tree-sitter parser dependencies and grammar dependencies must be permissively li
 
 The current Tree-sitter-backed language pack covers Rust, Python, JavaScript, JSX, TypeScript, TSX, Java, C#, Scala, Kotlin, Swift, Dart, Nix, Go, C, C++, Shell, Ruby, and PHP. Additional language support must be added through the same registry, grammar, query, fixture, and notice path rather than a second parser architecture.
 
+CSS, HTML, Markdown, JSON, TOML, and YAML are supported by project-owned extras. Config extraction records useful keys, tables, and sections without treating every scalar value as a symbol.
+
 Before packaging work proceeds, thinindex also needs:
 
 - `THIRD_PARTY_NOTICES`

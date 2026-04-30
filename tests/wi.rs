@@ -893,6 +893,38 @@ fn fixture_repo_indexes_markdown_extras() {
 }
 
 #[test]
+fn fixture_repo_indexes_config_extras_without_scalar_noise() {
+    let repo = fixture_repo("sample_repo");
+    let root = repo.path();
+
+    run_build(root);
+
+    let json_key = run_wi(root, &["parserConfigEnabled", "-t", "key"]);
+    assert!(
+        json_key.contains("config/app.json"),
+        "expected JSON key result, got:\n{json_key}"
+    );
+
+    let toml_table = run_wi(root, &["tool.thinindex", "-t", "table"]);
+    assert!(
+        toml_table.contains("config/thinindex.toml"),
+        "expected TOML table result, got:\n{toml_table}"
+    );
+
+    let yaml_section = run_wi(root, &["pipeline", "-t", "section"]);
+    assert!(
+        yaml_section.contains("config/pipeline.yaml"),
+        "expected YAML section result, got:\n{yaml_section}"
+    );
+
+    let scalar_value = run_wi(root, &["YamlStringFake"]);
+    assert!(
+        scalar_value.trim().is_empty(),
+        "YAML scalar string should not be indexed as a symbol, got:\n{scalar_value}"
+    );
+}
+
+#[test]
 fn fixture_repo_indexes_jsx_extras() {
     let repo = fixture_repo("sample_repo");
     let root = repo.path();

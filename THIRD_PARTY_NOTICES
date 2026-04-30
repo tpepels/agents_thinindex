@@ -118,6 +118,11 @@ Tree-sitter PHP grammar
 - License: MIT
 - Accepted reason: PHP grammar for registry-backed extraction.
 
+Project-owned extras extractors
+- Formats: CSS, HTML, Markdown, JSON, TOML, YAML
+- Third-party parser dependency: none
+- Accepted reason: deterministic local format landmarks without bundled grammar dependencies.
+
 ## Audit Status
 
 The parser dependencies listed above are permissively licensed. Proprietary release artifacts still require a full dependency audit against `Cargo.lock` before publishing.

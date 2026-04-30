@@ -27,11 +27,14 @@ pub fn index_extras(path: &str, text: &str) -> Vec<IndexRecord> {
         match lang {
             "css" => index_css_line(&ctx, &mut records),
             "html" => index_html_line(&ctx, &mut records),
+            "json" => index_json_line(&ctx, &mut records),
             "tsx" | "jsx" => {
                 index_html_line(&ctx, &mut records);
                 index_jsx_line(&ctx, &mut records);
             }
             "md" | "markdown" => index_markdown_line(&ctx, &mut records),
+            "toml" => index_toml_line(&ctx, &mut records),
+            "yaml" | "yml" => index_yaml_line(&ctx, &mut records),
             _ => {}
         }
     }
@@ -328,6 +331,96 @@ fn index_markdown_line(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {
     }
 }
 
+fn index_json_line(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {
+    let mut search_start = 0;
+
+    while let Some((open, close)) = quoted_span(ctx.text, search_start, '"') {
+        let mut after = close + 1;
+
+        while after < ctx.text.len()
+            && ctx.text[after..]
+                .chars()
+                .next()
+                .is_some_and(char::is_whitespace)
+        {
+            after += ctx.text[after..].chars().next().unwrap().len_utf8();
+        }
+
+        if ctx.text[after..].starts_with(':')
+            && let Some(name) = normalize_config_key(&ctx.text[open + 1..close])
+        {
+            push_record(records, ctx, open + 2, "key", name);
+        }
+
+        search_start = close + 1;
+    }
+}
+
+fn index_toml_line(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {
+    let comment_start = comment_start_outside_quotes(ctx.text);
+    let content = &ctx.text[..comment_start];
+    let trimmed = content.trim_start();
+    let leading_spaces = content.len() - trimmed.len();
+
+    if trimmed.is_empty() {
+        return;
+    }
+
+    if let Some((name, col)) = toml_table_name(trimmed, leading_spaces) {
+        push_record(records, ctx, col, "table", name);
+        return;
+    }
+
+    if let Some(equals) = find_unquoted_char(content, '=') {
+        let raw_key = content[..equals].trim();
+
+        if let Some(name) = normalize_config_key(raw_key) {
+            let key_start = content[..equals]
+                .find(raw_key)
+                .map(|index| index + 1)
+                .unwrap_or(1);
+            push_record(records, ctx, key_start, "key", name);
+        }
+    }
+}
+
+fn index_yaml_line(ctx: &LineContext<'_>, records: &mut Vec<IndexRecord>) {
+    let comment_start = comment_start_outside_quotes(ctx.text);
+    let content = &ctx.text[..comment_start];
+    let trimmed = content.trim_start();
+    let mut leading_spaces = content.len() - trimmed.len();
+    let mut candidate = trimmed;
+
+    if candidate.is_empty() || candidate == "---" || candidate == "..." {
+        return;
+    }
+
+    if let Some(rest) = candidate.strip_prefix("- ") {
+        leading_spaces += 2;
+        candidate = rest.trim_start();
+        leading_spaces += rest.len() - candidate.len();
+    }
+
+    let Some(colon) = find_unquoted_char(candidate, ':') else {
+        return;
+    };
+
+    let raw_key = candidate[..colon].trim();
+    let Some(name) = normalize_config_key(raw_key) else {
+        return;
+    };
+
+    let key_start = leading_spaces
+        + candidate[..colon]
+            .find(raw_key)
+            .map(|index| index + 1)
+            .unwrap_or(1);
+    let value = candidate[colon + 1..].trim();
+    let kind = if value.is_empty() { "section" } else { "key" };
+
+    push_record(records, ctx, key_start, kind, name);
+}
+
 fn push_class_records(
     records: &mut Vec<IndexRecord>,
     ctx: &LineContext<'_>,
@@ -356,6 +449,147 @@ fn push_class_records(
             offset += relative_index + class_name.len();
         }
     }
+}
+
+fn toml_table_name(trimmed: &str, leading_spaces: usize) -> Option<(String, usize)> {
+    if let Some(rest) = trimmed.strip_prefix("[[") {
+        let close = rest.find("]]")?;
+        let raw_name = rest[..close].trim();
+        let name_offset = rest[..close].find(raw_name).unwrap_or_default();
+        return normalize_config_key(raw_name).map(|name| (name, leading_spaces + 3 + name_offset));
+    }
+
+    if let Some(rest) = trimmed.strip_prefix('[') {
+        let close = rest.find(']')?;
+        let raw_name = rest[..close].trim();
+        let name_offset = rest[..close].find(raw_name).unwrap_or_default();
+        return normalize_config_key(raw_name).map(|name| (name, leading_spaces + 2 + name_offset));
+    }
+
+    None
+}
+
+fn normalize_config_key(raw: &str) -> Option<String> {
+    let key = raw.trim();
+
+    if key.is_empty() || key.starts_with('#') || key.starts_with('?') {
+        return None;
+    }
+
+    let key = key
+        .strip_prefix('"')
+        .and_then(|value| value.strip_suffix('"'))
+        .or_else(|| {
+            key.strip_prefix('\'')
+                .and_then(|value| value.strip_suffix('\''))
+        })
+        .unwrap_or(key)
+        .trim();
+
+    if key.is_empty()
+        || !key.chars().any(|ch| ch.is_ascii_alphanumeric())
+        || !key.chars().all(is_config_key_char)
+    {
+        None
+    } else {
+        Some(key.to_string())
+    }
+}
+
+fn is_config_key_char(ch: char) -> bool {
+    ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | '$' | '@' | ':')
+}
+
+fn quoted_span(line: &str, start: usize, quote: char) -> Option<(usize, usize)> {
+    let quote_byte = quote as u8;
+    let bytes = line.as_bytes();
+    let mut open = start;
+
+    while open < bytes.len() && bytes[open] != quote_byte {
+        open += 1;
+    }
+
+    if open >= bytes.len() {
+        return None;
+    }
+
+    let mut index = open + 1;
+    let mut escaped = false;
+
+    while index < bytes.len() {
+        let byte = bytes[index];
+
+        if escaped {
+            escaped = false;
+        } else if byte == b'\\' {
+            escaped = true;
+        } else if byte == quote_byte {
+            return Some((open, index));
+        }
+
+        index += 1;
+    }
+
+    None
+}
+
+fn comment_start_outside_quotes(line: &str) -> usize {
+    let bytes = line.as_bytes();
+    let mut index = 0;
+    let mut quote: Option<u8> = None;
+    let mut escaped = false;
+
+    while index < bytes.len() {
+        let byte = bytes[index];
+
+        if escaped {
+            escaped = false;
+        } else if byte == b'\\' {
+            escaped = true;
+        } else if let Some(active_quote) = quote {
+            if byte == active_quote {
+                quote = None;
+            }
+        } else if byte == b'\'' || byte == b'"' {
+            quote = Some(byte);
+        } else if byte == b'#' {
+            return index;
+        }
+
+        index += 1;
+    }
+
+    line.len()
+}
+
+fn find_unquoted_char(line: &str, needle: char) -> Option<usize> {
+    let needle = needle as u8;
+    let bytes = line.as_bytes();
+    let mut index = 0;
+    let mut quote: Option<u8> = None;
+    let mut escaped = false;
+
+    while index < bytes.len() {
+        let byte = bytes[index];
+
+        if escaped {
+            escaped = false;
+        } else if byte == b'\\' {
+            escaped = true;
+        } else if let Some(active_quote) = quote {
+            if byte == active_quote {
+                quote = None;
+            }
+        } else if byte == b'\'' || byte == b'"' {
+            quote = Some(byte);
+        } else if byte == needle {
+            return Some(index);
+        }
+
+        index += 1;
+    }
+
+    None
 }
 
 fn attribute_value(attrs: &str, after_name: usize) -> Option<(usize, &str)> {
@@ -445,5 +679,51 @@ mod tests {
         // not slice past the end.
         let _ = index_extras("page.html", "abc<");
         let _ = index_extras("page.html", "<");
+    }
+
+    #[test]
+    fn config_extras_index_keys_without_scalar_values() {
+        let records = index_extras(
+            "config/app.json",
+            r#"{ "serviceName": "JsonStringFake", "nested": { "enabled": true } }"#,
+        );
+        assert!(records.iter().any(|record| record.name == "serviceName"));
+        assert!(records.iter().any(|record| record.name == "enabled"));
+        assert!(!records.iter().any(|record| record.name == "JsonStringFake"));
+
+        let records = index_extras(
+            "settings.json",
+            r#"{ "./target/debug/build_index": true, "parserConfigEnabled": true }"#,
+        );
+        assert!(
+            !records
+                .iter()
+                .any(|record| record.name == "./target/debug/build_index")
+        );
+        assert!(
+            records
+                .iter()
+                .any(|record| record.name == "parserConfigEnabled")
+        );
+
+        let records = index_extras(
+            "thinindex.toml",
+            "[tool.thinindex]\nprofile = \"TomlStringFake\"\n",
+        );
+        assert!(records.iter().any(|record| {
+            record.kind == "table" && record.name == "tool.thinindex" && record.line == 1
+        }));
+        assert!(records.iter().any(|record| record.name == "profile"));
+        assert!(!records.iter().any(|record| record.name == "TomlStringFake"));
+
+        let records = index_extras(
+            "pipeline.yaml",
+            "pipeline:\n  name: parser-config\n  note: \"YamlStringFake: no symbol\"\n",
+        );
+        assert!(records.iter().any(|record| {
+            record.kind == "section" && record.name == "pipeline" && record.line == 1
+        }));
+        assert!(records.iter().any(|record| record.name == "name"));
+        assert!(!records.iter().any(|record| record.name == "YamlStringFake"));
     }
 }

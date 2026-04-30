@@ -194,6 +194,7 @@ fn kind_rank(kind: &str) -> usize {
         "css_id" | "css_class" | "css_variable" | "keyframes" => 4,
         "jsx_class" | "component_usage" => 5,
         "html_id" | "html_class" | "html_tag" | "data_attribute" | "id" => 6,
+        "key" | "table" => 6,
         "todo" | "fixme" => 7,
         "heading" | "markdown_heading" | "section" => 8,
         "checklist" | "link" => 9,

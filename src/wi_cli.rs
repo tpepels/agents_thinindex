@@ -31,6 +31,7 @@ Examples:
   wi -t css_variable -- --paper-bg
   wi '#mainHeader' -t html_id
   wi 'Tests' -t section
+  wi parser_config_enabled -t key
 ",
     next_line_help = false
 )]
@@ -45,14 +46,14 @@ pub struct WiArgs {
     #[arg(
         short = 't',
         value_name = "KIND",
-        help = "Filter by indexed record kind. Common kinds: class, function, method, css_class, css_variable, html_id, html_class, html_tag, data_attribute, section, checklist, link, todo, fixme, keyframes"
+        help = "Filter by indexed record kind. Common kinds: class, function, method, css_class, css_variable, html_id, html_class, html_tag, data_attribute, section, checklist, link, key, table, todo, fixme, keyframes"
     )]
     pub kind: Option<String>,
 
     #[arg(
         short = 'l',
         value_name = "EXT",
-        help = "Filter by file extension/language. Use extension-style values: py, rs, js, jsx, ts, tsx, css, html, md"
+        help = "Filter by file extension/language. Use extension-style values: py, rs, js, jsx, ts, tsx, css, html, md, json, toml, yaml"
     )]
     pub lang: Option<String>,
 

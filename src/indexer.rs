@@ -191,6 +191,8 @@ fn record_location_preference_rank(record: &IndexRecord) -> usize {
         | ("extras", "data_attribute")
         | ("extras", "jsx_class")
         | ("extras", "component_usage")
+        | ("extras", "key")
+        | ("extras", "table")
         | ("extras", "todo")
         | ("extras", "fixme")
         | ("extras", "checklist")

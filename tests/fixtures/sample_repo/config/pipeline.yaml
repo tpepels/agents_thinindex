@@ -1,0 +1,7 @@
+pipeline:
+  name: parser-config-fixture
+  steps:
+    - name: collect-symbols
+      uses: thinindex/local
+metadata:
+  note: "YamlStringFake: should not become a symbol"
