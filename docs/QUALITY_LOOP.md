@@ -60,7 +60,7 @@ Gaps are grouped by language, syntax construct, severity, and evidence source. E
 
 Comparator triage groups comparator-only and thinindex-only symbols by language, kind, and path. Use exactly these states: `open`, `accepted_expected_symbol`, `fixture_needed`, `comparator_false_positive`, `unsupported_syntax`, `low_value_noise`, and `fixed`.
 
-Cycle plans are bounded to one pass and at most 10 gaps by default. Prefer supported-language missing symbols and failing expected patterns over comparator-only noise.
+Cycle plans are bounded to one pass and at most 10 gaps by default. They select actionable parser, fixture, manifest, threshold, integrity, or performance gaps. Optional comparator-only and thinindex-only mismatches stay in comparator triage unless a maintainer promotes one to an expected-symbol or fixture gap.
 
 The cycle runner records `cycles_executed = 1` and `automatic_next_cycle_allowed = false`. Raising the requested gap limit above 10 is capped back to 10.
 
@@ -73,7 +73,7 @@ For the selected batch:
 3. Add a conformance fixture for each fixed parser miss where practical.
 4. Add a manifest expected symbol for important real-repo misses where practical.
 5. Rerun normal and applicable ignored quality gates.
-6. Mark remaining comparator-only findings with one of the explicit triage states.
+6. Mark remaining comparator-only findings with one of the explicit triage states when doing manual comparator triage; do not treat raw comparator mismatches as selected parser work.
 7. Write `.dev_index/quality/QUALITY_CYCLE_01_REPORT.md`.
 8. Stop after this cycle and commit the bounded fix batch.
 

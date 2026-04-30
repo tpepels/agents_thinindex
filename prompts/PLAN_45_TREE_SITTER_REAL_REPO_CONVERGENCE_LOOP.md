@@ -9,6 +9,13 @@ Continuously improve Tree-sitter parser/query quality until every configured `te
 
 This is a focused Tree-sitter quality-convergence plan. It is not packaging, licensing, product polish, telemetry, cloud, or hosted functionality.
 
+Progress:
+- [x] Phase 1: inspect prerequisites, active manifests, quality tooling, and real-repo fixtures.
+- [x] Phase 2: run one check phase and write/update `.dev_index/quality/TREE_SITTER_GAPS.md`.
+- [x] Phase 3: select at most 10 fixable gaps and implement only that bounded fix set.
+- [x] Phase 4: add fixture, manifest, or documentation regression coverage where practical.
+- [x] Phase 5: run full verification, update this checklist, and commit the convergence cycle.
+
 Product rule:
 A supported language is only credible if it survives real repositories and captures the important symbols those repositories contain.
 

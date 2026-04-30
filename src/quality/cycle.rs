@@ -476,23 +476,26 @@ pub fn generate_cycle_plan(
     options: CyclePlanOptions,
 ) -> QualityCyclePlan {
     let max_gaps = options.max_gaps.min(DEFAULT_MAX_GAPS_PER_CYCLE);
-    let mut open_gaps = report
+    let mut selectable_gaps = report
         .gaps
         .iter()
-        .filter(|gap| gap.status == GapStatus::Open)
+        .filter(|gap| gap.status == GapStatus::Open && is_actionable_cycle_gap(gap))
         .cloned()
         .collect::<Vec<_>>();
-    open_gaps.sort_by_key(plan_sort_key);
+    selectable_gaps.sort_by_key(plan_sort_key);
 
-    let selected_gaps = open_gaps.iter().take(max_gaps).cloned().collect::<Vec<_>>();
+    let selected_gaps = selectable_gaps
+        .iter()
+        .take(max_gaps)
+        .cloned()
+        .collect::<Vec<_>>();
     let selected_ids = selected_gaps
         .iter()
         .map(|gap| gap.id.clone())
         .collect::<BTreeSet<_>>();
-    let deferred_gap_ids = open_gaps
-        .into_iter()
+    let deferred_gap_ids = open_gaps(&report.gaps)
         .filter(|gap| !selected_ids.contains(&gap.id))
-        .map(|gap| gap.id)
+        .map(|gap| gap.id.clone())
         .collect::<Vec<_>>();
 
     QualityCyclePlan {
@@ -561,7 +564,7 @@ pub fn finalize_quality_cycle(
     if !remaining_gaps.is_empty()
         && remaining_gaps
             .iter()
-            .all(|gap| gap.status == GapStatus::FalsePositive)
+            .all(|gap| gap.status == GapStatus::FalsePositive || is_comparator_triage_gap(gap))
     {
         stop_conditions.insert(QualityCycleStopCondition::RemainingGapsComparatorFalsePositive);
     }
@@ -962,6 +965,22 @@ fn plan_sort_key(gap: &QualityGap) -> (u8, u8, u8, String, String, String) {
         gap.path.clone().unwrap_or_default(),
         gap.id.clone(),
     )
+}
+
+fn open_gaps(gaps: &[QualityGap]) -> impl Iterator<Item = &QualityGap> {
+    gaps.iter().filter(|gap| gap.status == GapStatus::Open)
+}
+
+fn is_actionable_cycle_gap(gap: &QualityGap) -> bool {
+    !is_comparator_triage_gap(gap) && gap.suggested_fix != SuggestedFixType::Documentation
+}
+
+fn is_comparator_triage_gap(gap: &QualityGap) -> bool {
+    gap.suggested_fix == SuggestedFixType::ComparatorTriage
+        || matches!(
+            gap.evidence_source.as_str(),
+            "comparator-only" | "thinindex-only"
+        )
 }
 
 fn evidence_rank(source: &str) -> u8 {

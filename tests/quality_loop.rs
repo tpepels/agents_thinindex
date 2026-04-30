@@ -175,6 +175,58 @@ fn cycle_plan_is_bounded_and_prioritizes_expected_symbols_over_comparator_noise(
 }
 
 #[test]
+fn cycle_plan_does_not_select_optional_comparator_noise_as_parser_work() {
+    let report = QualityGapReport {
+        repo_name: "fixture".to_string(),
+        repo_path: "/tmp/fixture".to_string(),
+        gaps: vec![
+            gap(
+                "GAP-0001",
+                "rs",
+                "function",
+                "comparator-only",
+                GapSeverity::Medium,
+            ),
+            gap(
+                "GAP-0002",
+                "rs",
+                "function",
+                "thinindex-only",
+                GapSeverity::Low,
+            ),
+        ],
+    };
+
+    let plan = generate_cycle_plan(&report, CyclePlanOptions::default());
+    let final_report = finalize_quality_cycle(
+        &plan,
+        &report.gaps,
+        vec![QualityCycleVerification::passed(
+            "cargo test --test quality_loop -- --ignored",
+        )],
+    );
+
+    assert!(
+        plan.selected_gaps.is_empty(),
+        "optional comparator mismatches are triage data, not selected parser work"
+    );
+    assert_eq!(
+        plan.deferred_gap_ids,
+        vec!["GAP-0001".to_string(), "GAP-0002".to_string()]
+    );
+    assert!(
+        final_report
+            .stop_conditions
+            .contains(&QualityCycleStopCondition::NoSelectedGaps)
+    );
+    assert!(
+        final_report
+            .stop_conditions
+            .contains(&QualityCycleStopCondition::RemainingGapsComparatorFalsePositive)
+    );
+}
+
+#[test]
 fn cycle_plan_caps_requested_gap_limit_at_default_max() {
     let report = QualityGapReport {
         repo_name: "fixture".to_string(),
