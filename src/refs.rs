@@ -1,6 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::model::{IndexRecord, ReferenceRecord};
+use crate::{
+    model::{DependencyEdge, IndexRecord, ReferenceRecord},
+    tree_sitter_extraction::{TREE_SITTER_SOURCE, TreeSitterExtractionEngine},
+};
 
 pub const MIN_TEXT_REFERENCE_SYMBOL_LEN: usize = 3;
 pub const MAX_REFS_PER_TARGET_NAME: usize = 20;
@@ -13,6 +16,7 @@ pub const REFERENCE_STOPLIST: &[&str] = &[
 const SOURCE_TEXT: &str = "text";
 const SOURCE_IMPORTS: &str = "imports";
 const SOURCE_EXTRAS: &str = "extras";
+const SOURCE_DEPENDENCY_GRAPH: &str = "dependency_graph";
 
 #[derive(Debug, Clone)]
 struct TargetSymbol {
@@ -40,7 +44,9 @@ struct RefSpec<'a> {
 pub fn extract_refs(path: &str, text: &str, records: &[IndexRecord]) -> Vec<ReferenceRecord> {
     let targets = target_symbols(records);
     let lang = lang_from_path(path);
-    let mut refs = Vec::new();
+    let mut refs = TreeSitterExtractionEngine::default()
+        .parse_reference_records(path, text)
+        .unwrap_or_default();
 
     for (line_index, line) in text.lines().enumerate() {
         let ctx = LineContext {
@@ -60,6 +66,57 @@ pub fn extract_refs(path: &str, text: &str, records: &[IndexRecord]) -> Vec<Refe
             "tsx" | "jsx" => extract_html_usages(&ctx, &mut refs),
             _ => {}
         }
+    }
+
+    enrich_reference_confidence(&mut refs, records);
+    finalize_refs(refs)
+}
+
+pub fn refs_from_dependencies(
+    dependencies: &[DependencyEdge],
+    records: &[IndexRecord],
+) -> Vec<ReferenceRecord> {
+    let record_paths: BTreeSet<&str> = records
+        .iter()
+        .filter(|record| is_dependency_reference_target(record))
+        .map(|record| record.path.as_str())
+        .collect();
+
+    let mut refs = Vec::new();
+
+    for dependency in dependencies {
+        let (to_name, to_kind, confidence, reason) =
+            if let Some(target_path) = dependency.target_path.as_deref() {
+                let reason = if record_paths.contains(target_path) {
+                    "dependency_graph_resolved_file"
+                } else {
+                    "dependency_graph_resolved_path"
+                };
+                (target_path, Some("file"), "dependency", reason)
+            } else {
+                (
+                    dependency.import_path.as_str(),
+                    Some("module"),
+                    "unresolved",
+                    dependency
+                        .unresolved_reason
+                        .as_deref()
+                        .unwrap_or("dependency_unresolved"),
+                )
+            };
+
+        refs.push(ReferenceRecord::new_with_confidence(
+            dependency.from_path.as_str(),
+            dependency.from_line,
+            dependency.from_col,
+            to_name,
+            to_kind,
+            "module_dependency",
+            confidence,
+            Some(reason),
+            dependency.evidence.as_str(),
+            SOURCE_DEPENDENCY_GRAPH,
+        ));
     }
 
     finalize_refs(refs)
@@ -87,6 +144,42 @@ fn target_symbols(records: &[IndexRecord]) -> BTreeMap<String, TargetSymbol> {
     }
 
     targets
+}
+
+fn enrich_reference_confidence(refs: &mut [ReferenceRecord], records: &[IndexRecord]) {
+    let local_symbols: BTreeSet<&str> = records
+        .iter()
+        .filter(|record| is_dependency_reference_target(record))
+        .map(|record| record.name.as_str())
+        .collect();
+
+    for reference in refs {
+        if matches!(
+            reference.ref_kind.as_str(),
+            "import" | "export" | "call" | "type_reference"
+        ) && local_symbols.contains(reference.to_name.as_str())
+        {
+            reference.confidence = "exact_local".to_string();
+            reference.reason = Some("local_symbol_match".to_string());
+        }
+    }
+}
+
+fn is_dependency_reference_target(record: &IndexRecord) -> bool {
+    matches!(
+        record.kind.as_str(),
+        "class"
+            | "constant"
+            | "enum"
+            | "function"
+            | "interface"
+            | "method"
+            | "module"
+            | "struct"
+            | "trait"
+            | "type"
+            | "variable"
+    ) && record.source == TREE_SITTER_SOURCE
 }
 
 fn is_text_reference_target(name: &str) -> bool {
@@ -839,6 +932,59 @@ mod tests {
     }
 
     #[test]
+    fn extracts_tree_sitter_call_references_with_syntax_confidence() {
+        let refs = extract_refs("src/use_service.py", "build_prompt()\n", &[]);
+
+        assert!(refs.iter().any(|r| {
+            r.to_name == "build_prompt"
+                && r.ref_kind == "call"
+                && r.confidence == "syntax"
+                && r.reason.as_deref() == Some("tree_sitter_reference_capture")
+                && r.source == TREE_SITTER_SOURCE
+        }));
+    }
+
+    #[test]
+    fn upgrades_syntax_reference_to_exact_local_when_symbol_exists() {
+        let records = vec![record("src/service.py", 1, 5, "function", "build_prompt")];
+        let refs = extract_refs("src/use_service.py", "build_prompt()\n", &records);
+
+        assert!(refs.iter().any(|r| {
+            r.to_name == "build_prompt"
+                && r.ref_kind == "call"
+                && r.confidence == "exact_local"
+                && r.reason.as_deref() == Some("local_symbol_match")
+        }));
+    }
+
+    #[test]
+    fn creates_dependency_graph_module_refs() {
+        let dependencies = vec![DependencyEdge::new(
+            "src/use_service.py",
+            1,
+            6,
+            "service",
+            Some("src/service.py"),
+            "python_import",
+            "py",
+            "resolved",
+            None::<String>,
+            "import service",
+            "tree_sitter",
+        )];
+        let records = vec![record("src/service.py", 1, 7, "class", "PromptService")];
+        let refs = refs_from_dependencies(&dependencies, &records);
+
+        assert!(refs.iter().any(|r| {
+            r.to_name == "src/service.py"
+                && r.to_kind.as_deref() == Some("file")
+                && r.ref_kind == "module_dependency"
+                && r.confidence == "dependency"
+                && r.reason.as_deref() == Some("dependency_graph_resolved_file")
+        }));
+    }
+
+    #[test]
     fn extracts_markdown_link_reference() {
         let refs = extract_refs("docs/guide.md", "[Guide](../src/service.py)\n", &[]);
 
@@ -899,11 +1045,14 @@ mod tests {
             &records,
         );
 
+        assert!(refs.iter().any(|r| r.to_name == "PromptService"
+            && r.from_line == 1
+            && r.ref_kind == "text_reference"));
         assert!(
-            refs.iter()
-                .any(|r| r.to_name == "PromptService" && r.from_line == 1)
+            !refs
+                .iter()
+                .any(|r| r.from_line == 2 && r.ref_kind == "text_reference")
         );
-        assert!(!refs.iter().any(|r| r.from_line == 2));
     }
 
     #[test]
@@ -926,7 +1075,10 @@ mod tests {
         let records = vec![record("src/app.py", 1, 5, "function", "run")];
         let refs = extract_refs("src/use_app.py", "run()\n", &records);
 
-        assert!(refs.is_empty());
+        assert!(
+            refs.iter()
+                .all(|reference| reference.ref_kind != "text_reference")
+        );
     }
 
     #[test]

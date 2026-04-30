@@ -10,8 +10,9 @@ use thinindex::{
     model::IndexRecord,
     support::{SupportBackend, support_matrix},
     tree_sitter_extraction::{
-        ALLOWED_DEFINITION_CAPTURE_KINDS, ALLOWED_NORMALIZED_CAPTURE_KINDS, LanguageRegistry,
-        QUERY_DEFINITION_CAPTURE_PREFIX, QUERY_INTERNAL_CAPTURE_PREFIX, QUERY_NAME_CAPTURE,
+        ALLOWED_DEFINITION_CAPTURE_KINDS, ALLOWED_NORMALIZED_CAPTURE_KINDS,
+        ALLOWED_REFERENCE_CAPTURE_KINDS, LanguageRegistry, QUERY_DEFINITION_CAPTURE_PREFIX,
+        QUERY_INTERNAL_CAPTURE_PREFIX, QUERY_NAME_CAPTURE, QUERY_REFERENCE_CAPTURE_PREFIX,
         TREE_SITTER_SOURCE, validate_query_specs,
     },
 };
@@ -719,6 +720,13 @@ fn parser_maintenance_guide_documents_query_guardrails() {
         assert!(
             guide.contains(&format!("`@{QUERY_DEFINITION_CAPTURE_PREFIX}{kind}`")),
             "guide should document allowed definition capture {kind}",
+        );
+    }
+
+    for kind in ALLOWED_REFERENCE_CAPTURE_KINDS {
+        assert!(
+            guide.contains(&format!("`@{QUERY_REFERENCE_CAPTURE_PREFIX}{kind}`")),
+            "guide should document allowed reference capture {kind}",
         );
     }
 

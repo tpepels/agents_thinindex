@@ -466,6 +466,11 @@ fn collect_ref_metrics(
             || reference.from_col == 0
             || reference.to_name.is_empty()
             || reference.ref_kind.is_empty()
+            || reference.confidence.is_empty()
+            || reference
+                .reason
+                .as_ref()
+                .is_none_or(|reason| reason.is_empty())
             || reference.evidence.is_empty()
             || reference.source.is_empty()
         {

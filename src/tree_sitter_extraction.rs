@@ -3,11 +3,12 @@ use std::{collections::BTreeMap, path::Path, time::Duration};
 use anyhow::{Context, Result, bail};
 use tree_sitter::{Language, Parser, Query, QueryCursor, StreamingIterator};
 
-use crate::model::IndexRecord;
+use crate::model::{IndexRecord, ReferenceRecord};
 
 pub const TREE_SITTER_SOURCE: &str = "tree_sitter";
 pub const QUERY_NAME_CAPTURE: &str = "name";
 pub const QUERY_DEFINITION_CAPTURE_PREFIX: &str = "definition.";
+pub const QUERY_REFERENCE_CAPTURE_PREFIX: &str = "reference.";
 pub const QUERY_INTERNAL_CAPTURE_PREFIX: &str = "internal.";
 
 pub const ALLOWED_DEFINITION_CAPTURE_KINDS: &[&str] = &[
@@ -47,6 +48,9 @@ pub const ALLOWED_NORMALIZED_CAPTURE_KINDS: &[&str] = &[
     "type",
     "variable",
 ];
+
+pub const ALLOWED_REFERENCE_CAPTURE_KINDS: &[&str] =
+    &["call", "export", "import", "module", "type"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LicenseEntry {
@@ -170,6 +174,33 @@ impl TreeSitterExtractionEngine {
 
     pub fn parse_file(&self, rel_path: &str, text: &str) -> Result<Vec<IndexRecord>> {
         Ok(self.parse_file_with_diagnostics(rel_path, text)?.records)
+    }
+
+    pub fn parse_reference_records(
+        &self,
+        rel_path: &str,
+        text: &str,
+    ) -> Result<Vec<ReferenceRecord>> {
+        let Some(adapter) = self.registry.adapter_for_path(rel_path) else {
+            return Ok(Vec::new());
+        };
+
+        let language = (adapter.language)();
+        let mut parser = Parser::new();
+        parser
+            .set_language(&language)
+            .with_context(|| format!("failed to load {} grammar", adapter.display_name))?;
+
+        let Some(tree) = parser.parse(text, None) else {
+            return Ok(Vec::new());
+        };
+
+        let query = Query::new(&language, adapter.query_pack.source)
+            .with_context(|| format!("failed to compile {} query pack", adapter.display_name))?;
+        validate_query_capture_names(adapter, &query)?;
+        let mapper = CaptureMapper::new(adapter, &query);
+
+        mapper.reference_records_from_query(rel_path, text, tree.root_node())
     }
 
     pub fn parse_file_with_diagnostics(&self, rel_path: &str, text: &str) -> Result<ParsedFile> {
@@ -315,6 +346,104 @@ impl<'a> CaptureMapper<'a> {
 
         Ok(records)
     }
+
+    pub fn reference_records_from_query(
+        &self,
+        rel_path: &str,
+        text: &str,
+        root: tree_sitter::Node<'_>,
+    ) -> Result<Vec<ReferenceRecord>> {
+        let mut cursor = QueryCursor::new();
+        let bytes = text.as_bytes();
+        let capture_names = self.query.capture_names();
+        let mut refs = Vec::new();
+        let mut matches = cursor.matches(self.query, root, bytes);
+
+        while let Some(query_match) = matches.next() {
+            let reference_capture = query_match.captures.iter().find_map(|capture| {
+                let capture_name = capture_names[capture.index as usize];
+                capture_name
+                    .strip_prefix(QUERY_REFERENCE_CAPTURE_PREFIX)
+                    .map(|kind| (kind, capture.node))
+            });
+
+            let Some((capture_kind, reference_node)) = reference_capture else {
+                continue;
+            };
+
+            let Some(name_node) = query_match.captures.iter().find_map(|capture| {
+                let capture_name = capture_names[capture.index as usize];
+
+                if capture_name == QUERY_NAME_CAPTURE {
+                    Some(capture.node)
+                } else {
+                    None
+                }
+            }) else {
+                continue;
+            };
+
+            let Ok(name) = name_node.utf8_text(bytes) else {
+                continue;
+            };
+            let name = clean_reference_name(name);
+
+            if name.is_empty() {
+                continue;
+            }
+
+            let start = name_node.start_position();
+            let line = start.row + 1;
+            let col = start.column + 1;
+            let evidence = source_line(text, line).unwrap_or_else(|| {
+                reference_node
+                    .utf8_text(bytes)
+                    .unwrap_or(name)
+                    .lines()
+                    .next()
+                    .unwrap_or(name)
+            });
+
+            refs.push(ReferenceRecord::new_with_confidence(
+                rel_path,
+                line,
+                col,
+                name,
+                reference_to_kind(capture_kind),
+                normalize_reference_capture_kind(capture_kind),
+                "syntax",
+                Some("tree_sitter_reference_capture"),
+                evidence.trim(),
+                TREE_SITTER_SOURCE,
+            ));
+        }
+
+        refs.sort_by(|a, b| {
+            (
+                &a.from_path,
+                a.from_line,
+                a.from_col,
+                &a.ref_kind,
+                &a.to_name,
+            )
+                .cmp(&(
+                    &b.from_path,
+                    b.from_line,
+                    b.from_col,
+                    &b.ref_kind,
+                    &b.to_name,
+                ))
+        });
+        refs.dedup_by(|a, b| {
+            a.from_path == b.from_path
+                && a.from_line == b.from_line
+                && a.from_col == b.from_col
+                && a.ref_kind == b.ref_kind
+                && a.to_name == b.to_name
+        });
+
+        Ok(refs)
+    }
 }
 
 fn source_line(text: &str, line: usize) -> Option<&str> {
@@ -331,6 +460,33 @@ pub fn normalize_query_capture_kind(kind: &str) -> &str {
         "property" => "variable",
         other => other,
     }
+}
+
+fn normalize_reference_capture_kind(kind: &str) -> &str {
+    match kind {
+        "type" => "type_reference",
+        "module" => "module_dependency",
+        other => other,
+    }
+}
+
+fn reference_to_kind(kind: &str) -> Option<&'static str> {
+    match kind {
+        "call" => Some("callable"),
+        "export" => Some("export"),
+        "import" | "module" => Some("module"),
+        "type" => Some("type"),
+        _ => None,
+    }
+}
+
+fn clean_reference_name(value: &str) -> &str {
+    value
+        .trim()
+        .trim_matches('"')
+        .trim_matches('\'')
+        .trim_matches('`')
+        .trim()
 }
 
 pub fn validate_query_specs(registry: &LanguageRegistry) -> Result<()> {
@@ -380,12 +536,23 @@ fn validate_query_capture_names(adapter: &GrammarAdapter, query: &Query) -> Resu
             continue;
         }
 
+        if let Some(kind) = capture_name.strip_prefix(QUERY_REFERENCE_CAPTURE_PREFIX) {
+            if !ALLOWED_REFERENCE_CAPTURE_KINDS.contains(&kind) {
+                bail!(
+                    "{} query uses unsupported reference capture `@{capture_name}`",
+                    adapter.display_name
+                );
+            }
+
+            continue;
+        }
+
         if capture_name.starts_with(QUERY_INTERNAL_CAPTURE_PREFIX) {
             continue;
         }
 
         bail!(
-            "{} query uses unsupported capture `@{capture_name}`; use `@name`, `@definition.<kind>`, or `@internal.<purpose>`",
+            "{} query uses unsupported capture `@{capture_name}`; use `@name`, `@definition.<kind>`, `@reference.<kind>`, or `@internal.<purpose>`",
             adapter.display_name
         );
     }
@@ -740,6 +907,8 @@ const RUST_QUERY: &str = r#"
 (type_item name: (type_identifier) @name) @definition.type
 (const_item name: (identifier) @name) @definition.constant
 (static_item name: (identifier) @name) @definition.variable
+(call_expression function: (identifier) @name) @reference.call
+(call_expression function: (scoped_identifier name: (identifier) @name)) @reference.call
 "#;
 
 const PYTHON_QUERY: &str = r#"
@@ -748,6 +917,8 @@ const PYTHON_QUERY: &str = r#"
 (assignment left: (identifier) @name) @definition.variable
 (import_statement name: (dotted_name) @name) @definition.import
 (import_from_statement module_name: (dotted_name) @name) @definition.import
+(call function: (identifier) @name) @reference.call
+(call function: (attribute attribute: (identifier) @name)) @reference.call
 "#;
 
 const JAVASCRIPT_QUERY: &str = r#"
@@ -761,6 +932,9 @@ const JAVASCRIPT_QUERY: &str = r#"
 (variable_declaration (variable_declarator name: (identifier) @name value: [(number) (string)])) @definition.variable
 (import_statement source: (string) @name) @definition.import
 (export_statement (export_clause (export_specifier name: (identifier) @name))) @definition.export
+(call_expression function: (identifier) @name) @reference.call
+(call_expression function: (member_expression property: (property_identifier) @name)) @reference.call
+(export_statement (export_clause (export_specifier name: (identifier) @name))) @reference.export
 "#;
 
 const TYPESCRIPT_QUERY: &str = r#"
@@ -774,6 +948,9 @@ const TYPESCRIPT_QUERY: &str = r#"
 (lexical_declaration (variable_declarator name: (identifier) @name value: [(number) (string)])) @definition.variable
 (import_statement source: (string) @name) @definition.import
 (export_statement (export_clause (export_specifier name: (identifier) @name))) @definition.export
+(call_expression function: (identifier) @name) @reference.call
+(call_expression function: (member_expression property: (property_identifier) @name)) @reference.call
+(export_statement (export_clause (export_specifier name: (identifier) @name))) @reference.export
 "#;
 
 const JAVA_QUERY: &str = r#"
@@ -786,6 +963,7 @@ const JAVA_QUERY: &str = r#"
 (field_declaration declarator: (variable_declarator name: (identifier) @name)) @definition.variable
 (import_declaration (identifier) @name) @definition.import
 (import_declaration (scoped_identifier) @name) @definition.import
+(method_invocation name: (identifier) @name) @reference.call
 "#;
 
 const GO_QUERY: &str = r#"
@@ -798,6 +976,8 @@ const GO_QUERY: &str = r#"
 (const_declaration (const_spec name: (identifier) @name)) @definition.constant
 (var_declaration (var_spec name: (identifier) @name)) @definition.variable
 (import_declaration (import_spec path: (interpreted_string_literal) @name)) @definition.import
+(call_expression function: (identifier) @name) @reference.call
+(call_expression function: (selector_expression field: (field_identifier) @name)) @reference.call
 "#;
 
 const C_QUERY: &str = r#"
@@ -809,6 +989,7 @@ const C_QUERY: &str = r#"
 (enum_specifier name: (type_identifier) @name body: (_)) @definition.enum
 (type_definition declarator: (type_identifier) @name) @definition.type
 (declaration declarator: (init_declarator declarator: (identifier) @name)) @definition.variable
+(call_expression function: (identifier) @name) @reference.call
 "#;
 
 const C_SHARP_QUERY: &str = r#"
@@ -840,6 +1021,8 @@ const CPP_QUERY: &str = r#"
 (enum_specifier name: (type_identifier) @name body: (_)) @definition.enum
 (type_definition declarator: (type_identifier) @name) @definition.type
 (declaration declarator: (init_declarator declarator: (identifier) @name)) @definition.variable
+(call_expression function: (identifier) @name) @reference.call
+(call_expression function: (field_expression field: (field_identifier) @name)) @reference.call
 "#;
 
 const SHELL_QUERY: &str = r#"
@@ -1088,6 +1271,22 @@ mod tests {
     fn default_query_specs_use_allowed_capture_names() {
         validate_query_specs(&LanguageRegistry::default())
             .expect("default query specs should pass");
+    }
+
+    #[test]
+    fn tree_sitter_reference_captures_emit_reference_records() {
+        let engine = TreeSitterExtractionEngine::default();
+        let refs = engine
+            .parse_reference_records("src/use_service.py", "build_prompt()\n")
+            .expect("parse references");
+
+        assert!(refs.iter().any(|reference| {
+            reference.to_name == "build_prompt"
+                && reference.ref_kind == "call"
+                && reference.confidence == "syntax"
+                && reference.reason.as_deref() == Some("tree_sitter_reference_capture")
+                && reference.source == TREE_SITTER_SOURCE
+        }));
     }
 
     #[test]

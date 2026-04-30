@@ -13,7 +13,7 @@ use crate::{
     deps::extract_dependencies,
     extras::index_extras,
     model::{FileMeta, IndexRecord},
-    refs::{extract_refs, finalize_refs},
+    refs::{extract_refs, finalize_refs, refs_from_dependencies},
     store::{
         load_manifest, load_records, prepare_for_build, remove_records_for_paths,
         save_index_snapshot, sort_records, sort_refs,
@@ -120,7 +120,7 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
 
     let dependencies = extract_dependencies(&root, &files, &records)?;
 
-    let mut refs = extract_all_refs(&root, &files, &records)?;
+    let mut refs = extract_all_refs(&root, &files, &records, &dependencies)?;
     dedupe_refs_by_location(&mut refs);
     refs = finalize_refs(refs);
     sort_refs(&mut refs);
@@ -255,6 +255,7 @@ fn extract_all_refs(
     root: &Path,
     files: &[PathBuf],
     records: &[IndexRecord],
+    dependencies: &[crate::model::DependencyEdge],
 ) -> Result<Vec<crate::model::ReferenceRecord>> {
     let mut refs = Vec::new();
 
@@ -267,6 +268,8 @@ fn extract_all_refs(
         let mut file_refs = extract_refs(&rel, &text, records);
         refs.append(&mut file_refs);
     }
+
+    refs.extend(refs_from_dependencies(dependencies, records));
 
     Ok(refs)
 }

@@ -170,9 +170,18 @@ pub fn save_index_snapshot(
         let mut stmt = tx
             .prepare(
                 "INSERT INTO refs(
-                    from_path, from_line, from_col, to_name, to_kind, ref_kind, evidence, source
+                    from_path,
+                    from_line,
+                    from_col,
+                    to_name,
+                    to_kind,
+                    ref_kind,
+                    confidence,
+                    reason,
+                    evidence,
+                    source
                  )
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             )
             .context("failed to prepare ref insert")?;
 
@@ -184,6 +193,8 @@ pub fn save_index_snapshot(
                 &reference.to_name,
                 reference.to_kind.as_deref(),
                 &reference.ref_kind,
+                &reference.confidence,
+                reference.reason.as_deref(),
                 &reference.evidence,
                 &reference.source,
             ])
@@ -332,6 +343,8 @@ fn initialize_schema(conn: &Connection) -> Result<()> {
             to_name TEXT NOT NULL,
             to_kind TEXT,
             ref_kind TEXT NOT NULL,
+            confidence TEXT NOT NULL,
+            reason TEXT,
             evidence TEXT NOT NULL,
             source TEXT NOT NULL,
             UNIQUE(from_path, from_line, from_col, to_name, ref_kind)
@@ -339,6 +352,7 @@ fn initialize_schema(conn: &Connection) -> Result<()> {
         CREATE INDEX IF NOT EXISTS refs_to_name_idx ON refs(to_name);
         CREATE INDEX IF NOT EXISTS refs_from_path_idx ON refs(from_path);
         CREATE INDEX IF NOT EXISTS refs_ref_kind_idx ON refs(ref_kind);
+        CREATE INDEX IF NOT EXISTS refs_confidence_idx ON refs(confidence);
         CREATE INDEX IF NOT EXISTS refs_source_idx ON refs(source);
         CREATE TABLE IF NOT EXISTS dependencies (
             from_path TEXT NOT NULL,
@@ -508,7 +522,17 @@ fn load_records_from_conn(conn: &Connection) -> Result<Vec<IndexRecord>> {
 fn load_refs_from_conn(conn: &Connection) -> Result<Vec<ReferenceRecord>> {
     let mut stmt = conn
         .prepare(
-            "SELECT from_path, from_line, from_col, to_name, to_kind, ref_kind, evidence, source
+            "SELECT
+                from_path,
+                from_line,
+                from_col,
+                to_name,
+                to_kind,
+                ref_kind,
+                confidence,
+                reason,
+                evidence,
+                source
              FROM refs
              ORDER BY from_path, from_line, from_col, to_name, ref_kind, source",
         )
@@ -527,15 +551,27 @@ fn load_refs_from_conn(conn: &Connection) -> Result<Vec<ReferenceRecord>> {
                 row.get::<_, Option<String>>(4)?,
                 row.get::<_, String>(5)?,
                 row.get::<_, String>(6)?,
-                row.get::<_, String>(7)?,
+                row.get::<_, Option<String>>(7)?,
+                row.get::<_, String>(8)?,
+                row.get::<_, String>(9)?,
             ))
         })
         .context("failed to query refs")?;
 
     let mut refs = Vec::new();
     for row in rows {
-        let (from_path, from_line, from_col, to_name, to_kind, ref_kind, evidence, source) =
-            row.context("failed to read ref row")?;
+        let (
+            from_path,
+            from_line,
+            from_col,
+            to_name,
+            to_kind,
+            ref_kind,
+            confidence,
+            reason,
+            evidence,
+            source,
+        ) = row.context("failed to read ref row")?;
 
         refs.push(ReferenceRecord {
             from_path,
@@ -544,6 +580,8 @@ fn load_refs_from_conn(conn: &Connection) -> Result<Vec<ReferenceRecord>> {
             to_name,
             to_kind,
             ref_kind,
+            confidence,
+            reason,
             evidence,
             source,
         });

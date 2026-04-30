@@ -26,6 +26,26 @@ fn assert_ref_exists(refs: &[thinindex::model::ReferenceRecord], ref_kind: &str,
     );
 }
 
+fn assert_ref_state(
+    refs: &[thinindex::model::ReferenceRecord],
+    from_path: &str,
+    ref_kind: &str,
+    to_name: &str,
+    confidence: &str,
+    reason: &str,
+) {
+    assert!(
+        refs.iter().any(|reference| {
+            reference.from_path == from_path
+                && reference.ref_kind == ref_kind
+                && reference.to_name == to_name
+                && reference.confidence == confidence
+                && reference.reason.as_deref() == Some(reason)
+        }),
+        "expected ref {from_path} {ref_kind} {to_name} confidence={confidence} reason={reason}, got:\n{refs:#?}"
+    );
+}
+
 fn assert_dependency(
     dependencies: &[thinindex::model::DependencyEdge],
     from_path: &str,
@@ -1170,6 +1190,8 @@ def test_prompt_service():
     let refs = snapshot.refs;
     assert_ref_exists(&refs, "import", "PromptService");
     assert_ref_exists(&refs, "import", "prompt_service");
+    assert_ref_exists(&refs, "call", "PromptService");
+    assert_ref_exists(&refs, "module_dependency", "src/prompt_service.py");
     assert_ref_exists(&refs, "markdown_link", "../src/prompt_service.py");
     assert_ref_exists(&refs, "css_usage", ".headerNavigation");
     assert_ref_exists(&refs, "css_usage", "--paper-bg");
@@ -1177,6 +1199,22 @@ def test_prompt_service():
     assert_ref_exists(&refs, "html_usage", ".headerNavigation");
     assert_ref_exists(&refs, "html_usage", "data-testid");
     assert_ref_exists(&refs, "test_reference", "PromptService");
+    assert_ref_state(
+        &refs,
+        "src/consumer.py",
+        "call",
+        "PromptService",
+        "exact_local",
+        "local_symbol_match",
+    );
+    assert_ref_state(
+        &refs,
+        "src/consumer.py",
+        "module_dependency",
+        "src/prompt_service.py",
+        "dependency",
+        "dependency_graph_resolved_file",
+    );
 }
 
 #[test]

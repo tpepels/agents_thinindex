@@ -38,7 +38,9 @@ Query specs are inline constants in `src/tree_sitter_extraction.rs`. Each record
 - one symbol name with `@name`
 - one record kind with `@definition.<kind>`
 
-Auxiliary captures used only by predicates must be named `@internal.<purpose>`. They do not produce records.
+Reference-producing patterns should capture one reference token with `@name` and one reference kind with `@reference.<kind>`. Reference captures populate SQLite `refs`; they do not produce search records.
+
+Auxiliary captures used only by predicates must be named `@internal.<purpose>`. They do not produce records or refs.
 
 Keep query specs conservative. Prefer missing a difficult construct over indexing noisy comments, strings, broad expression fragments, or synthetic names.
 
@@ -81,6 +83,14 @@ Normalized record kinds are:
 - `trait`
 - `type`
 - `variable`
+
+Allowed reference captures are:
+
+- `@reference.call`
+- `@reference.export`
+- `@reference.import`
+- `@reference.module`
+- `@reference.type`
 
 The explicit aliases are:
 

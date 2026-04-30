@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-pub const INDEX_SCHEMA_VERSION: u32 = 8;
+pub const INDEX_SCHEMA_VERSION: u32 = 9;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IndexRecord {
@@ -23,6 +23,8 @@ pub struct ReferenceRecord {
     pub to_name: String,
     pub to_kind: Option<String>,
     pub ref_kind: String,
+    pub confidence: String,
+    pub reason: Option<String>,
     pub evidence: String,
     pub source: String,
 }
@@ -54,6 +56,37 @@ impl ReferenceRecord {
         evidence: impl Into<String>,
         source: impl Into<String>,
     ) -> Self {
+        let source = source.into();
+        let ref_kind = ref_kind.into();
+        let (confidence, reason) = default_ref_confidence_and_reason(&source, &ref_kind);
+
+        Self::new_with_confidence(
+            from_path,
+            from_line,
+            from_col,
+            to_name,
+            to_kind,
+            ref_kind,
+            confidence,
+            Some(reason),
+            evidence,
+            source,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_with_confidence(
+        from_path: impl Into<String>,
+        from_line: usize,
+        from_col: usize,
+        to_name: impl Into<String>,
+        to_kind: Option<impl Into<String>>,
+        ref_kind: impl Into<String>,
+        confidence: impl Into<String>,
+        reason: Option<impl Into<String>>,
+        evidence: impl Into<String>,
+        source: impl Into<String>,
+    ) -> Self {
         Self {
             from_path: from_path.into(),
             from_line,
@@ -61,9 +94,23 @@ impl ReferenceRecord {
             to_name: to_name.into(),
             to_kind: to_kind.map(Into::into),
             ref_kind: ref_kind.into(),
+            confidence: confidence.into(),
+            reason: reason.map(|value| truncate(value.into(), 120)),
             evidence: truncate(evidence.into(), 120),
             source: source.into(),
         }
+    }
+}
+
+fn default_ref_confidence_and_reason(source: &str, ref_kind: &str) -> (&'static str, &'static str) {
+    match source {
+        "tree_sitter" => ("syntax", "tree_sitter_reference_capture"),
+        "dependency_graph" => ("dependency", "dependency_graph_edge"),
+        "imports" => ("syntax", "line_import_syntax"),
+        "extras" => ("syntax", "structured_format_reference"),
+        "text" if ref_kind == "test_reference" => ("heuristic", "test_text_reference"),
+        "text" => ("heuristic", "broad_text_fallback"),
+        _ => ("heuristic", "legacy_reference"),
     }
 }
 

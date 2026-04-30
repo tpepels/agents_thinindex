@@ -225,6 +225,17 @@ pub fn assert_required_ref_fields(name: &str, refs: &[ReferenceRecord]) {
             "[{name}] ref `ref_kind` must not be empty for {reference:?}"
         );
         assert!(
+            !reference.confidence.is_empty(),
+            "[{name}] ref `confidence` must not be empty for {reference:?}"
+        );
+        assert!(
+            reference
+                .reason
+                .as_ref()
+                .is_some_and(|reason| !reason.is_empty()),
+            "[{name}] ref `reason` must not be empty for {reference:?}"
+        );
+        assert!(
             !reference.evidence.is_empty(),
             "[{name}] ref `evidence` must not be empty for {reference:?}"
         );
@@ -239,6 +250,10 @@ pub fn assert_allowed_ref_kinds(name: &str, refs: &[ReferenceRecord]) {
     let allowed = [
         "text_reference",
         "import",
+        "export",
+        "call",
+        "type_reference",
+        "module_dependency",
         "markdown_link",
         "css_usage",
         "html_usage",
@@ -250,6 +265,19 @@ pub fn assert_allowed_ref_kinds(name: &str, refs: &[ReferenceRecord]) {
             allowed.contains(&reference.ref_kind.as_str()),
             "[{name}] ref kind `{}` is not allowed for this phase: {reference:?}",
             reference.ref_kind
+        );
+    }
+}
+
+pub fn assert_allowed_ref_confidence(name: &str, refs: &[ReferenceRecord]) {
+    for reference in refs {
+        assert!(
+            matches!(
+                reference.confidence.as_str(),
+                "exact_local" | "syntax" | "dependency" | "heuristic" | "unresolved"
+            ),
+            "[{name}] ref confidence `{}` is not allowed: {reference:?}",
+            reference.confidence
         );
     }
 }
@@ -291,6 +319,7 @@ pub fn assert_no_dev_index_ref_paths(name: &str, refs: &[ReferenceRecord]) {
 pub fn run_named_ref_integrity_checks(name: &str, refs: &[ReferenceRecord]) {
     assert_required_ref_fields(name, refs);
     assert_allowed_ref_kinds(name, refs);
+    assert_allowed_ref_confidence(name, refs);
     assert_no_duplicate_refs(name, refs);
     assert_no_dev_index_ref_paths(name, refs);
 }
