@@ -166,4 +166,4 @@ A quality cycle is single-use by design: one execution selects at most 10 gaps, 
 
 ## Support Levels
 
-Quality gates and reports should interpret parser findings through the support levels in `src/support.rs` and `docs/PARSER_SUPPORT.md`: `supported`, `experimental`, `blocked`, and `extras-backed`. Supported languages should have passing conformance, license metadata, and real-repo checks where configured. Experimental and blocked entries must not be reported as fully supported, and extras-backed formats must stay distinct from Tree-sitter-backed code-symbol extraction.
+Quality gates and reports should interpret parser findings through the support levels in `src/support.rs`, `docs/PARSER_SUPPORT.md`, and the generated dashboard in `docs/LANGUAGE_SUPPORT.md`: `supported`, `experimental`, `blocked`, and `extras-backed`. Supported languages should have passing conformance, license metadata, and real-repo checks where configured. Experimental and blocked entries must not be reported as fully supported, and extras-backed formats must stay distinct from Tree-sitter-backed code-symbol extraction.

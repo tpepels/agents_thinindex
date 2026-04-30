@@ -1,6 +1,9 @@
-use std::path::Path;
+use std::{env, fs, path::Path};
 
-use thinindex::support::{SupportBackend, SupportLevel, support_level_definitions, support_matrix};
+use thinindex::support::{
+    SupportBackend, SupportLevel, render_language_support_dashboard, support_level_definitions,
+    support_matrix,
+};
 
 #[test]
 fn support_levels_are_exactly_the_documented_policy_set() {
@@ -167,20 +170,28 @@ fn docs_use_support_levels_without_overclaiming_experimental_or_blocked_entries(
     let parser_support = repo_file("docs/PARSER_SUPPORT.md");
     let product_boundary = repo_file("docs/PRODUCT_BOUNDARY.md");
     let quality = repo_file("docs/QUALITY.md");
+    let dashboard = repo_file("docs/LANGUAGE_SUPPORT.md");
 
     for (level, _definition) in support_level_definitions() {
         assert!(
             readme.contains(level)
                 && parser_support.contains(level)
                 && product_boundary.contains(level)
-                && quality.contains(level),
+                && quality.contains(level)
+                && dashboard.contains(level),
             "docs should mention support level `{level}`"
         );
     }
 
+    assert!(
+        readme.contains("docs/LANGUAGE_SUPPORT.md") && quality.contains("docs/LANGUAGE_SUPPORT.md"),
+        "README and quality docs should link the generated language support dashboard"
+    );
+
     for entry in support_matrix() {
         assert_doc_row_matches_entry(&readme, entry);
         assert_doc_row_matches_entry(&parser_support, entry);
+        assert_doc_row_matches_entry(&dashboard, entry);
 
         if matches!(
             entry.support_level,
@@ -189,6 +200,7 @@ fn docs_use_support_levels_without_overclaiming_experimental_or_blocked_entries(
             for line in table_lines_for(&readme, entry.name)
                 .into_iter()
                 .chain(table_lines_for(&parser_support, entry.name))
+                .chain(table_lines_for(&dashboard, entry.name))
             {
                 assert!(
                     !line.contains("| supported |"),
@@ -202,6 +214,7 @@ fn docs_use_support_levels_without_overclaiming_experimental_or_blocked_entries(
             for line in table_lines_for(&readme, entry.name)
                 .into_iter()
                 .chain(table_lines_for(&parser_support, entry.name))
+                .chain(table_lines_for(&dashboard, entry.name))
             {
                 assert!(
                     line.contains("| extras-backed |") && line.contains("| extras |"),
@@ -236,6 +249,101 @@ fn blocked_entries_are_visible_but_have_no_backend_claim() {
                 "{} blocked entry should stay visible with no backend claim: `{line}`",
                 entry.name
             );
+        }
+    }
+}
+
+#[test]
+fn language_support_dashboard_is_generated_from_support_matrix() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let path = root.join("docs").join("LANGUAGE_SUPPORT.md");
+    let expected = render_language_support_dashboard();
+
+    if env::var_os("UPDATE_LANGUAGE_SUPPORT").is_some() {
+        fs::write(&path, &expected).expect("update generated language support dashboard");
+    }
+
+    let actual = fs::read_to_string(&path).unwrap_or_else(|error| {
+        panic!(
+            "failed to read {}; error: {error}; run UPDATE_LANGUAGE_SUPPORT=1 cargo test --test support_levels language_support_dashboard_is_generated_from_support_matrix",
+            path.display(),
+        )
+    });
+
+    assert_eq!(
+        actual, expected,
+        "docs/LANGUAGE_SUPPORT.md is stale; run UPDATE_LANGUAGE_SUPPORT=1 cargo test --test support_levels language_support_dashboard_is_generated_from_support_matrix"
+    );
+}
+
+#[test]
+fn language_support_dashboard_contains_all_claim_safety_sections() {
+    let dashboard = render_language_support_dashboard();
+
+    for section in [
+        "# Language Support Dashboard",
+        "## Summary",
+        "## Support Levels",
+        "## Dashboard",
+        "## Backend Notes",
+        "## Quality Report Linkage",
+        "## Claim Rules",
+    ] {
+        assert!(dashboard.contains(section), "missing section {section}");
+    }
+
+    assert!(
+        dashboard.contains("not semantic/LSP-level analysis")
+            && dashboard.contains("Do not claim `experimental` or `blocked` entries as supported")
+            && dashboard.contains("Do not describe `extras-backed` formats as Tree-sitter-backed")
+            && dashboard.contains("Do not hide blocked languages or formats"),
+        "dashboard should preserve support-claim guardrails"
+    );
+
+    for entry in support_matrix() {
+        let lines = table_lines_for(&dashboard, entry.name);
+        assert!(!lines.is_empty(), "dashboard should include {}", entry.name);
+
+        for line in lines {
+            assert!(
+                line.contains(&format!("| {} |", entry.support_level.as_str()))
+                    && line.contains(&format!("| {} |", entry.backend.as_str())),
+                "dashboard row should include source-of-truth level/backend for {}: {line}",
+                entry.name
+            );
+
+            match entry.support_level {
+                SupportLevel::Experimental => {
+                    assert!(
+                        line.contains("| experimental |") && !line.contains("| supported |"),
+                        "{} must not be promoted in dashboard row {line}",
+                        entry.name
+                    );
+                }
+                SupportLevel::Blocked => {
+                    assert!(
+                        line.contains("| blocked |") && line.contains("| none |"),
+                        "{} blocked row should remain visible with no backend claim: {line}",
+                        entry.name
+                    );
+                }
+                SupportLevel::ExtrasBacked => {
+                    assert!(
+                        line.contains("| extras-backed |")
+                            && line.contains("| extras |")
+                            && !line.contains("| tree_sitter |"),
+                        "{} extras-backed row must not claim Tree-sitter: {line}",
+                        entry.name
+                    );
+                }
+                SupportLevel::Supported => {
+                    assert!(
+                        line.contains("| supported |") && line.contains("| tree_sitter |"),
+                        "{} supported row should be Tree-sitter-backed: {line}",
+                        entry.name
+                    );
+                }
+            }
         }
     }
 }

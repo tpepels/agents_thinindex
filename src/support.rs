@@ -94,6 +94,78 @@ pub fn support_level_definitions() -> &'static [(&'static str, &'static str)] {
     ]
 }
 
+pub fn render_language_support_dashboard() -> String {
+    let mut out = String::new();
+    out.push_str("# Language Support Dashboard\n\n");
+    out.push_str(
+        "Generated from the source-controlled support matrix in `src/support.rs`. Do not edit support rows by hand; update the matrix and regenerate this document through the stale-check test.\n\n",
+    );
+    out.push_str("- last generated: deterministic\n");
+    out.push_str("- source of truth: `src/support.rs::support_matrix()`\n");
+    out.push_str("- quality reports: `.dev_index/quality/QUALITY_REPORT.md`, `.dev_index/quality/QUALITY_REPORT.json`, and `.dev_index/quality/QUALITY_REPORT_DETAILS.jsonl` when local quality workflows run\n");
+    out.push_str("- verification note: conformance uses checked fixtures; real-repo and comparator status are local quality signals and are not semantic/LSP-level analysis\n\n");
+
+    out.push_str("## Summary\n\n");
+    out.push_str("| Level | Count |\n");
+    out.push_str("| --- | ---: |\n");
+    for level in SupportLevel::ALL {
+        out.push_str(&format!(
+            "| {} | {} |\n",
+            level.as_str(),
+            support_entries_by_level(level).len()
+        ));
+    }
+    out.push('\n');
+
+    out.push_str("## Support Levels\n\n");
+    for (level, definition) in support_level_definitions() {
+        out.push_str(&format!("- `{level}`: {definition}.\n"));
+    }
+    out.push('\n');
+
+    out.push_str("## Dashboard\n\n");
+    out.push_str("| Language/format | Extensions | Level | Backend | Record kinds | Known gaps | License status | Conformance status | Real-repo status | Expected-symbol coverage | Comparator status |\n");
+    out.push_str("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n");
+    for entry in sorted_support_entries() {
+        out.push_str(&format!(
+            "| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |\n",
+            entry.name,
+            render_list(entry.extensions),
+            entry.support_level.as_str(),
+            entry.backend.as_str(),
+            render_list_or_none(entry.record_kinds),
+            entry.known_gaps,
+            entry.license_status,
+            conformance_status(entry),
+            real_repo_status(entry),
+            expected_symbol_status(entry),
+            comparator_status(entry),
+        ));
+    }
+    out.push('\n');
+
+    out.push_str("## Backend Notes\n\n");
+    out.push_str("- `tree_sitter` means deterministic syntax extraction through registered Tree-sitter grammars and query specs.\n");
+    out.push_str("- `extras` means project-owned deterministic format landmarks, not Tree-sitter parser support.\n");
+    out.push_str("- `none` means blocked: no parser or extras-backed support is claimed.\n");
+    out.push_str("- thinindex does not claim semantic/LSP-level analysis, type resolution, macro expansion, runtime module resolution, or inherited member resolution.\n\n");
+
+    out.push_str("## Quality Report Linkage\n\n");
+    out.push_str("- Conformance status comes from matrix fixture declarations guarded by parser/support tests.\n");
+    out.push_str("- Real-repo status is checked by `cargo test --test real_repos -- --ignored` when `test_repos/` exists.\n");
+    out.push_str("- Expected-symbol coverage is checked by quality manifests and summarized by quality report exports when configured.\n");
+    out.push_str("- Comparator status is optional local QA data; external comparator tools remain optional, not bundled, and not production index sources.\n\n");
+
+    out.push_str("## Claim Rules\n\n");
+    out.push_str("- Do not claim `experimental` or `blocked` entries as supported.\n");
+    out.push_str("- Do not describe `extras-backed` formats as Tree-sitter-backed.\n");
+    out.push_str("- Do not hide blocked languages or formats.\n");
+    out.push_str("- Do not add support claims without updating the support matrix, conformance fixtures, docs, and notices required by the support level.\n");
+    out.push_str("- Languages and formats not listed here are unsupported.\n");
+
+    out
+}
+
 const SUPPORT_MATRIX: &[SupportEntry] = &[
     tree_sitter_supported(
         "Rust",
@@ -542,5 +614,75 @@ const fn blocked(
         grammar_package: None,
         conformance_fixture_repo: None,
         conformance_fixture_path: None,
+    }
+}
+
+fn sorted_support_entries() -> Vec<&'static SupportEntry> {
+    let mut entries = support_matrix().iter().collect::<Vec<_>>();
+    entries.sort_by_key(|entry| {
+        (
+            support_level_rank(entry.support_level),
+            entry.name.to_ascii_lowercase(),
+        )
+    });
+    entries
+}
+
+fn support_level_rank(level: SupportLevel) -> u8 {
+    match level {
+        SupportLevel::Supported => 0,
+        SupportLevel::Experimental => 1,
+        SupportLevel::ExtrasBacked => 2,
+        SupportLevel::Blocked => 3,
+    }
+}
+
+fn conformance_status(entry: &SupportEntry) -> &'static str {
+    match entry.support_level {
+        SupportLevel::Supported => "fixture declared; normal conformance required",
+        SupportLevel::Experimental => "fixture declared; coverage incomplete",
+        SupportLevel::ExtrasBacked => "fixture declared for extras landmarks",
+        SupportLevel::Blocked => "blocked; no conformance fixture claimed",
+    }
+}
+
+fn real_repo_status(entry: &SupportEntry) -> &'static str {
+    match entry.support_level {
+        SupportLevel::Supported => "checked by ignored real-repo gate when configured",
+        SupportLevel::Experimental => "local real-repo hardening incomplete",
+        SupportLevel::ExtrasBacked => "checked by fixture/real-repo extras coverage when present",
+        SupportLevel::Blocked => "blocked; no real-repo support claim",
+    }
+}
+
+fn expected_symbol_status(entry: &SupportEntry) -> &'static str {
+    match entry.support_level {
+        SupportLevel::Supported | SupportLevel::Experimental => {
+            "manifest expected symbols/patterns checked when configured"
+        }
+        SupportLevel::ExtrasBacked => "extras landmarks checked by fixtures and quality reports",
+        SupportLevel::Blocked => "blocked; no expected-symbol coverage claim",
+    }
+}
+
+fn comparator_status(entry: &SupportEntry) -> &'static str {
+    match entry.support_level {
+        SupportLevel::Supported | SupportLevel::Experimental => {
+            "optional local comparator report when available"
+        }
+        SupportLevel::ExtrasBacked => "not a Tree-sitter comparator claim",
+        SupportLevel::Blocked => "blocked; comparator findings must not promote support",
+    }
+}
+
+fn render_list(values: &[&str]) -> String {
+    values.join(", ")
+}
+
+fn render_list_or_none(values: &[&str]) -> String {
+    if values.is_empty() {
+        "none".to_string()
+    } else {
+        render_list(values)
     }
 }
