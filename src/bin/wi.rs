@@ -6,6 +6,7 @@ use clap::Parser;
 use thinindex::{
     bench::{BenchmarkRunOptions, render_benchmark_report, run_benchmark},
     context::{render_impact_command, render_pack_command, render_refs_command},
+    doctor::{render_doctor_report, run_doctor},
     indexer::{find_repo_root, index_is_fresh},
     search::{SearchOptions, format_result, search},
     stats::{self, UsageEvent},
@@ -31,10 +32,21 @@ fn run() -> Result<()> {
     };
     let root = find_repo_root(&start)?;
 
+    if command == WiCommand::Doctor {
+        print!("{}", render_doctor_report(&run_doctor(&root)));
+        return Ok(());
+    }
+
     match index_is_fresh(&root) {
-        Ok(false) => bail!("index is stale; run `build_index`"),
+        Ok(false) => bail!(
+            "index is stale; run `build_index`\nnext: run `build_index` in {}\nwhy: indexed files changed since the last build\nhelp: run `wi doctor` to inspect setup",
+            root.display()
+        ),
         Ok(true) => {}
-        Err(error) => bail!("{error:#}"),
+        Err(error) => bail!(
+            "{error:#}\nnext: run `build_index` in {}\nhelp: run `wi doctor` to inspect setup",
+            root.display()
+        ),
     }
 
     let used_type = args.kind.is_some();
@@ -46,6 +58,7 @@ fn run() -> Result<()> {
         WiCommand::Refs => args.limit.unwrap_or(20),
         WiCommand::Pack => args.limit.unwrap_or(10),
         WiCommand::Impact => args.limit.unwrap_or(15),
+        WiCommand::Doctor => args.limit.unwrap_or(0),
         WiCommand::Bench => args.limit.unwrap_or(0),
     };
 
@@ -91,6 +104,7 @@ fn run() -> Result<()> {
             }
             output.result_count
         }
+        WiCommand::Doctor => unreachable!("doctor returns before index freshness checks"),
         WiCommand::Bench => {
             let report = run_benchmark(
                 &root,

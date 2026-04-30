@@ -2,6 +2,7 @@ mod common;
 
 use assert_cmd::prelude::*;
 use common::*;
+use thinindex::agent_instructions::REPOSITORY_SEARCH_BLOCK;
 
 fn write_context_fixture(root: &std::path::Path) {
     write_file(
@@ -71,6 +72,15 @@ export function HeaderNavigation() {
   color: var(--paper-bg);
 }
 "#,
+    );
+}
+
+fn write_doctor_ready_files(root: &std::path::Path) {
+    write_file(root, ".gitignore", ".dev_index/\n");
+    write_file(
+        root,
+        "AGENTS.md",
+        &format!("# AGENTS\n\n{REPOSITORY_SEARCH_BLOCK}\n"),
     );
 }
 
@@ -298,7 +308,103 @@ fn wi_help_mentions_context_commands() {
         .stdout(predicates::str::contains("wi refs PromptService"))
         .stdout(predicates::str::contains("wi pack PromptService"))
         .stdout(predicates::str::contains("wi impact PromptService"))
+        .stdout(predicates::str::contains("wi doctor"))
         .stdout(predicates::str::contains("wi bench"));
+}
+
+#[test]
+fn wi_doctor_passes_on_good_fixture_repo() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_doctor_ready_files(root);
+    write_file(root, "src/service.py", "class Service: pass\n");
+    run_build(root);
+
+    let output = run_wi(root, &["doctor"]);
+
+    assert!(output.contains("thinindex doctor"));
+    assert!(
+        output.contains("overall: ok"),
+        "doctor should pass:\n{output}"
+    );
+    assert!(output.contains("[ok] index:"));
+    assert!(output.contains("[ok] schema:"));
+    assert!(output.contains("[ok] freshness: index is fresh"));
+    assert!(output.contains("[ok] AGENTS.md:"));
+    assert!(output.contains("[ok] parser support:"));
+    assert!(output.contains("[ok] license:"));
+}
+
+#[test]
+fn wi_doctor_reports_missing_index() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_doctor_ready_files(root);
+    write_file(root, "src/service.py", "class Service: pass\n");
+
+    let output = run_wi(root, &["doctor"]);
+
+    assert!(output.contains("overall: issues found"));
+    assert!(output.contains("[fail] index: .dev_index/index.sqlite is missing"));
+    assert!(output.contains("next: run `build_index`"));
+}
+
+#[test]
+fn wi_doctor_reports_stale_index() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_doctor_ready_files(root);
+    write_file(root, "src/service.py", "class OldName: pass\n");
+    run_build(root);
+
+    write_file(root, "src/service.py", "class NewName: pass\n");
+
+    let output = run_wi(root, &["doctor"]);
+
+    assert!(output.contains("overall: issues found"));
+    assert!(output.contains("[fail] freshness: index is stale"));
+    assert!(output.contains("next: run `build_index`"));
+}
+
+#[test]
+fn wi_doctor_reports_stale_agent_instruction_blocks() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_file(root, ".gitignore", ".dev_index/\n");
+    write_file(root, "AGENTS.md", "# AGENTS\n\n@WI.md\n");
+    write_file(
+        root,
+        "CLAUDE.md",
+        "See WI.md for repository search/index usage.\n",
+    );
+    write_file(root, "src/service.py", "class Service: pass\n");
+    run_build(root);
+
+    let output = run_wi(root, &["doctor"]);
+
+    assert!(output.contains("[fail] AGENTS.md: AGENTS.md is stale"));
+    assert!(output.contains("[fail] CLAUDE.md: CLAUDE.md is stale"));
+    assert!(output.contains("run `wi-init`"));
+}
+
+#[test]
+fn wi_missing_index_message_is_actionable() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_doctor_ready_files(root);
+    write_file(root, "src/service.py", "class Service: pass\n");
+
+    let output = wi_bin()
+        .current_dir(root)
+        .arg("Service")
+        .output()
+        .expect("run wi without index");
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("index database missing"));
+    assert!(stderr.contains("next: run `build_index`"));
+    assert!(stderr.contains("help: run `wi doctor`"));
 }
 
 #[test]

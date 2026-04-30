@@ -26,6 +26,7 @@ Examples:
   wi refs PromptService
   wi pack PromptService
   wi impact PromptService
+  wi doctor
   wi bench
   wi .headerNavigation -t css_class
   wi -t css_variable -- --paper-bg
@@ -39,7 +40,7 @@ pub struct WiArgs {
     #[arg(
         required = true,
         num_args = 1..,
-        help = "Search term or subcommand, e.g. HeaderNavigation, refs PromptService, pack PromptService, impact PromptService, bench, --css-variable"
+        help = "Search term or subcommand, e.g. HeaderNavigation, refs PromptService, pack PromptService, impact PromptService, doctor, bench, --css-variable"
     )]
     pub terms: Vec<String>,
 
@@ -95,6 +96,7 @@ pub enum WiCommand {
     Refs,
     Pack,
     Impact,
+    Doctor,
     Bench,
 }
 
@@ -105,6 +107,7 @@ impl WiCommand {
             WiCommand::Refs => "refs",
             WiCommand::Pack => "pack",
             WiCommand::Impact => "impact",
+            WiCommand::Doctor => "doctor",
             WiCommand::Bench => "bench",
         }
     }
@@ -116,6 +119,7 @@ impl WiArgs {
             Some("refs") if self.terms.len() > 1 => WiCommand::Refs,
             Some("pack") if self.terms.len() > 1 => WiCommand::Pack,
             Some("impact") if self.terms.len() > 1 => WiCommand::Impact,
+            Some("doctor") if self.terms.len() == 1 => WiCommand::Doctor,
             Some("bench") if self.terms.len() == 1 => WiCommand::Bench,
             _ => WiCommand::Search,
         }
@@ -125,7 +129,7 @@ impl WiArgs {
         match self.command() {
             WiCommand::Search => self.terms.join(" "),
             WiCommand::Refs | WiCommand::Pack | WiCommand::Impact => self.terms[1..].join(" "),
-            WiCommand::Bench => String::new(),
+            WiCommand::Doctor | WiCommand::Bench => String::new(),
         }
     }
 
@@ -135,6 +139,7 @@ impl WiArgs {
             WiCommand::Refs => format!("refs {}", self.query()),
             WiCommand::Pack => format!("pack {}", self.query()),
             WiCommand::Impact => format!("impact {}", self.query()),
+            WiCommand::Doctor => "doctor".to_string(),
             WiCommand::Bench => "bench".to_string(),
         }
     }

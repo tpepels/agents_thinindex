@@ -36,6 +36,7 @@ Install the binaries, then run these commands inside a repository:
 ```bash
 wi-init
 build_index
+wi doctor
 wi --help
 wi <term>
 wi pack <term>
@@ -50,7 +51,7 @@ wi pack build_index
 wi impact build_index
 ```
 
-Run `wi --help` for the current command syntax, filters, examples, and subcommands. Keep that help output as the source of truth for CLI details.
+Run `wi doctor` when setup looks wrong or results are missing/stale. Run `wi --help` for the current command syntax, filters, examples, and subcommands. Keep that help output as the source of truth for CLI details. See [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ## Agent workflow
 
@@ -78,6 +79,7 @@ Installed commands:
 - `wi refs <term>`: shows deterministic references for matching landmarks.
 - `wi pack <term>`: returns a dependency-aware, deduplicated read set for implementation work.
 - `wi impact <term>`: returns dependency-aware related files with concrete reasons and confidence labels.
+- `wi doctor`: checks index, schema, freshness, agent instruction files, ignore rules, parser support, optional quality state, license status, and binary path.
 - `wi bench`: measures build, search, context-command, size, count, latency, and integrity behavior.
 - `wi-stats`: shows local usage stats, hit/miss graphs, and advisory agent workflow audit counts.
 - `wi-init`: prepares a repository for agent use.

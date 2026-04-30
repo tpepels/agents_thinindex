@@ -1,6 +1,8 @@
+pub mod agent_instructions;
 pub mod bench;
 pub mod context;
 pub mod deps;
+pub mod doctor;
 pub mod extras;
 pub mod file_roles;
 pub mod indexer;

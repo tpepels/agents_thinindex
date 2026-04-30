@@ -307,5 +307,6 @@ fn wi_help_mentions_current_subcommands() {
         .stdout(contains("wi refs PromptService"))
         .stdout(contains("wi pack PromptService"))
         .stdout(contains("wi impact PromptService"))
+        .stdout(contains("wi doctor"))
         .stdout(contains("wi bench"));
 }
