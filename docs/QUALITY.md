@@ -99,7 +99,9 @@ Open comparator-only symbols do not fail normal gates. A manual strict triage ch
 
 ## Expected Symbols
 
-`test_repos/MANIFEST.toml` can declare exact expected symbols:
+`test_repos/MANIFEST.toml` is local-only real-repo quality data. Its schema and curation rules are documented in `docs/REAL_REPO_MANIFEST.md`. Active entries must include `name`, `path`, `kind`, `languages`, and `queries`; skipped entries must include `skip_reason`.
+
+It can declare exact expected symbols:
 
 ```toml
 [[repo.expected_symbol]]
@@ -141,6 +143,8 @@ max_malformed_records = 0
 ```
 
 Avoid exact total record counts for real repositories. Prefer expected symbols, expected patterns, expected-absent symbols, and coarse minimum thresholds that reflect supported-language coverage. Failure output should include the repo, language, path, kind, expected name or pattern, and nearby records where helpful.
+
+Choose side repos intentionally: cover supported languages and difficult syntax, avoid random clones, keep third-party repos local under ignored `test_repos/`, and add `ignore_guidance` when generated/vendor-heavy paths need local ignore rules. Remove stale repos from the manifest or mark them skipped with a clear `skip_reason`.
 
 ## Running Gates
 

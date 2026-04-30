@@ -150,7 +150,10 @@ fn benchmark_manifest_parsing_uses_non_skipped_repos() {
 name = "python-app"
 path = "python_app"
 kind = "python-cli"
+languages = ["py"]
 description = "fixture manifest repo"
+notes = "fixture manifest includes all quality metadata fields"
+ignore_guidance = "ignore generated fixtures if they dominate parser output"
 queries = ["PromptService", "config", "PromptService"]
 expected_paths = ["src/"]
 expected_symbols = ["PromptService"]
@@ -184,8 +187,8 @@ max_malformed_records = 0
 [[repo]]
 name = "skipped"
 path = "skipped_app"
-queries = ["ignored"]
 skip = true
+skip_reason = "fixture skip reason"
 "#,
     )
     .expect("write manifest");
@@ -204,6 +207,15 @@ skip = true
     assert_eq!(repos[0].name, "python-app");
     assert_eq!(repos[0].path, repo);
     assert_eq!(repos[0].kind.as_deref(), Some("python-cli"));
+    assert_eq!(repos[0].languages, vec!["py".to_string()]);
+    assert_eq!(
+        repos[0].notes.as_deref(),
+        Some("fixture manifest includes all quality metadata fields")
+    );
+    assert_eq!(
+        repos[0].ignore_guidance.as_deref(),
+        Some("ignore generated fixtures if they dominate parser output")
+    );
     assert_eq!(
         repos[0].queries.as_ref().expect("manifest queries"),
         &vec!["PromptService".to_string(), "config".to_string()]
@@ -250,6 +262,8 @@ fn benchmark_manifest_missing_repo_fails_clearly() {
 [[repo]]
 name = "missing"
 path = "missing_repo"
+kind = "missing-fixture"
+languages = ["rs"]
 queries = ["Missing"]
 "#,
     )
@@ -276,6 +290,8 @@ fn benchmark_manifest_expected_absent_symbol_requires_name() {
 [[repo]]
 name = "python-app"
 path = "python_app"
+kind = "python-cli"
+languages = ["py"]
 queries = ["PromptService"]
 
 [[repo.expected_absent_symbol]]
@@ -294,4 +310,122 @@ kind = "function"
         message.contains("expected_absent_symbol #1 missing required field `name`"),
         "unexpected error: {message}"
     );
+}
+
+#[test]
+fn benchmark_manifest_requires_kind_languages_and_queries_for_active_repos() {
+    let temp = tempfile::tempdir().expect("create tempdir");
+    let root = temp.path();
+    let repo = root.join("python_app");
+    std::fs::create_dir_all(repo.join("src")).expect("create repo");
+    std::fs::write(
+        root.join("MANIFEST.toml"),
+        r#"
+[[repo]]
+name = "python-app"
+path = "python_app"
+languages = ["py"]
+queries = ["PromptService"]
+"#,
+    )
+    .expect("write manifest");
+
+    let error = load_benchmark_repo_set(root).expect_err("missing kind should fail");
+    let message = format!("{error:#}");
+    assert!(
+        message.contains("repo `python-app` missing required field `kind`"),
+        "unexpected error: {message}"
+    );
+
+    std::fs::write(
+        root.join("MANIFEST.toml"),
+        r#"
+[[repo]]
+name = "python-app"
+path = "python_app"
+kind = "python-cli"
+queries = ["PromptService"]
+"#,
+    )
+    .expect("write manifest");
+
+    let error = load_benchmark_repo_set(root).expect_err("missing languages should fail");
+    let message = format!("{error:#}");
+    assert!(
+        message.contains("repo `python-app` missing required field `languages`"),
+        "unexpected error: {message}"
+    );
+}
+
+#[test]
+fn benchmark_manifest_skipped_repo_requires_skip_reason_but_not_existing_path() {
+    let temp = tempfile::tempdir().expect("create tempdir");
+    let root = temp.path();
+    std::fs::write(
+        root.join("MANIFEST.toml"),
+        r#"
+[[repo]]
+name = "skipped"
+path = "not-cloned"
+skip = true
+"#,
+    )
+    .expect("write manifest");
+
+    let error = load_benchmark_repo_set(root).expect_err("skip reason should be required");
+    let message = format!("{error:#}");
+    assert!(
+        message.contains("skipped repo `skipped` missing required field `skip_reason`"),
+        "unexpected error: {message}"
+    );
+
+    std::fs::write(
+        root.join("MANIFEST.toml"),
+        r#"
+[[repo]]
+name = "skipped"
+path = "not-cloned"
+skip = true
+skip_reason = "optional corpus repo not cloned locally"
+"#,
+    )
+    .expect("write manifest");
+
+    let repo_set = load_benchmark_repo_set(root).expect("skipped missing repo should be accepted");
+    assert_eq!(repo_set, BenchmarkRepoSet::Empty);
+}
+
+#[test]
+fn real_repo_manifest_docs_describe_required_schema_and_local_only_policy() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let docs = std::fs::read_to_string(root.join("docs/REAL_REPO_MANIFEST.md"))
+        .expect("read real repo manifest docs");
+    let readme = std::fs::read_to_string(root.join("README.md")).expect("read README");
+    let quality = std::fs::read_to_string(root.join("docs/QUALITY.md")).expect("read quality docs");
+
+    for field in [
+        "name",
+        "path",
+        "kind",
+        "languages",
+        "queries",
+        "expected_paths",
+        "expected_symbols",
+        "expected_symbol_patterns",
+        "expected_absent_symbol",
+        "quality_threshold",
+        "skip_reason",
+        "notes",
+        "ignore_guidance",
+    ] {
+        assert!(
+            docs.contains(field),
+            "manifest docs should describe `{field}`"
+        );
+    }
+
+    assert!(docs.contains("Do not commit third-party repository contents"));
+    assert!(docs.contains("Normal tests use temporary fixture manifests"));
+    assert!(readme.contains("docs/REAL_REPO_MANIFEST.md"));
+    assert!(quality.contains("docs/REAL_REPO_MANIFEST.md"));
 }

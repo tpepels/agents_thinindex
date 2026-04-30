@@ -108,7 +108,8 @@ Normal tests use fixtures and do not depend on local clones. Real-repo validatio
 - No third-party repository contents are committed.
 - `test_repos/MANIFEST.toml` records local benchmark and integrity targets when present.
 - Ignored tests validate indexing, references, context commands, parser coverage, and benchmark behavior against those repos.
-- Manifest entries can define `queries`, `expected_paths`, `expected_symbols`, and `expected_symbol_patterns`. Expected symbols are checked by the ignored real-repo parser hardening test; patterns are Rust regular expressions matched against indexed symbol names.
+- Manifest entries must include `name`, `path`, `kind`, `languages`, and `queries`. See [docs/REAL_REPO_MANIFEST.md](docs/REAL_REPO_MANIFEST.md) for curation rules and the full local-only schema.
+- Manifest entries can define `expected_paths`, `expected_symbols`, and `expected_symbol_patterns`. Expected symbols are checked by the ignored real-repo parser hardening test; patterns are Rust regular expressions matched against indexed symbol names.
 - For more precise coverage checks, use `[[repo.expected_symbol]]` with `language`, `path`, `kind`, and `name`, or `[[repo.expected_symbol_pattern]]` with `language`, `path_glob`, `kind`, `name_regex`, and `min_count`.
 - The real-repo parser report lists supported languages with zero emitted records as weak areas. These usually mean the files contain no query-matched declarations, and they should become fixture cases if important symbols are missed.
 - Parser performance reports include parse time by language, record/ref counts by language, slow files, noisy files, large files, parse errors, unsupported extensions, and expected-symbol coverage.

@@ -98,7 +98,11 @@ pub struct BenchmarkRepo {
     pub name: String,
     pub path: PathBuf,
     pub kind: Option<String>,
+    pub languages: Vec<String>,
     pub description: Option<String>,
+    pub skip_reason: Option<String>,
+    pub notes: Option<String>,
+    pub ignore_guidance: Option<String>,
     pub queries: Option<Vec<String>>,
     pub expected_paths: Vec<String>,
     pub expected_symbols: Vec<String>,
@@ -330,7 +334,11 @@ pub fn load_benchmark_repo_set(test_repos_root: &Path) -> Result<BenchmarkRepoSe
             name,
             path,
             kind: None,
+            languages: Vec::new(),
             description: None,
+            skip_reason: None,
+            notes: None,
+            ignore_guidance: None,
             queries: None,
             expected_paths: Vec::new(),
             expected_symbols: Vec::new(),
@@ -445,7 +453,13 @@ pub fn parse_benchmark_manifest(text: &str, test_repos_root: &Path) -> Result<Ve
                 "name" => builder.name = Some(parse_toml_string(value, line_no)?),
                 "path" => builder.path = Some(parse_toml_string(value, line_no)?),
                 "kind" => builder.kind = Some(parse_toml_string(value, line_no)?),
+                "languages" => builder.languages = Some(parse_toml_string_array(value, line_no)?),
                 "description" => builder.description = Some(parse_toml_string(value, line_no)?),
+                "skip_reason" => builder.skip_reason = Some(parse_toml_string(value, line_no)?),
+                "notes" => builder.notes = Some(parse_toml_string(value, line_no)?),
+                "ignore_guidance" => {
+                    builder.ignore_guidance = Some(parse_toml_string(value, line_no)?)
+                }
                 "queries" => builder.queries = Some(parse_toml_string_array(value, line_no)?),
                 "expected_paths" => {
                     builder.expected_paths = Some(parse_toml_string_array(value, line_no)?)
@@ -586,7 +600,11 @@ struct ManifestRepoBuilder {
     name: Option<String>,
     path: Option<String>,
     kind: Option<String>,
+    languages: Option<Vec<String>>,
     description: Option<String>,
+    skip_reason: Option<String>,
+    notes: Option<String>,
+    ignore_guidance: Option<String>,
     queries: Option<Vec<String>>,
     expected_paths: Option<Vec<String>>,
     expected_symbols: Option<Vec<String>>,
@@ -628,6 +646,16 @@ fn finish_manifest_repo(
     test_repos_root: &Path,
 ) -> Result<Option<BenchmarkRepo>> {
     if builder.skip {
+        let Some(name) = builder.name else {
+            bail!("MANIFEST.toml skipped repo entry missing required field `name`");
+        };
+        if builder
+            .skip_reason
+            .as_deref()
+            .is_none_or(|reason| reason.trim().is_empty())
+        {
+            bail!("MANIFEST.toml skipped repo `{name}` missing required field `skip_reason`");
+        }
         return Ok(None);
     }
 
@@ -637,6 +665,15 @@ fn finish_manifest_repo(
     let Some(raw_path) = builder.path else {
         bail!("MANIFEST.toml repo `{name}` missing required field `path`");
     };
+    let Some(kind) = builder.kind else {
+        bail!("MANIFEST.toml repo `{name}` missing required field `kind`");
+    };
+    let languages = sanitize_manifest_languages(builder.languages.ok_or_else(|| {
+        anyhow::anyhow!("MANIFEST.toml repo `{name}` missing required field `languages`")
+    })?);
+    if languages.is_empty() {
+        bail!("MANIFEST.toml repo `{name}` must define at least one language");
+    }
     let queries = sanitize_queries(builder.queries.ok_or_else(|| {
         anyhow::anyhow!("MANIFEST.toml repo `{name}` missing required field `queries`")
     })?)
@@ -666,8 +703,12 @@ fn finish_manifest_repo(
     Ok(Some(BenchmarkRepo {
         name,
         path,
-        kind: builder.kind,
+        kind: Some(kind),
+        languages,
         description: builder.description,
+        skip_reason: builder.skip_reason,
+        notes: builder.notes,
+        ignore_guidance: builder.ignore_guidance,
         queries: Some(queries),
         expected_paths: builder.expected_paths.unwrap_or_default(),
         expected_symbols: builder.expected_symbols.unwrap_or_default(),
@@ -828,6 +869,20 @@ fn sanitize_queries(queries: Vec<String>) -> Vec<String> {
         let query = query.trim();
         if !query.is_empty() && seen.insert(query.to_string()) {
             cleaned.push(query.to_string());
+        }
+    }
+
+    cleaned
+}
+
+fn sanitize_manifest_languages(languages: Vec<String>) -> Vec<String> {
+    let mut seen = BTreeSet::new();
+    let mut cleaned = Vec::new();
+
+    for language in languages {
+        let language = language.trim().to_ascii_lowercase();
+        if !language.is_empty() && seen.insert(language.clone()) {
+            cleaned.push(language);
         }
     }
 
