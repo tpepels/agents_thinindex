@@ -348,7 +348,10 @@ pub fn assert_required_dependency_fields(name: &str, dependencies: &[DependencyE
 pub fn assert_allowed_dependency_confidence(name: &str, dependencies: &[DependencyEdge]) {
     for dependency in dependencies {
         assert!(
-            matches!(dependency.confidence.as_str(), "resolved" | "unresolved"),
+            matches!(
+                dependency.confidence.as_str(),
+                "resolved" | "unresolved" | "ambiguous"
+            ),
             "[{name}] dependency confidence `{}` is not allowed: {dependency:?}",
             dependency.confidence
         );

@@ -875,7 +875,7 @@ const PHP_QUERY: &str = r#"
 
 const SCALA_QUERY: &str = r#"
 (package_clause name: (package_identifier) @name) @definition.module
-(import_declaration path: (identifier) @name) @definition.import
+(import_declaration path: (_) @name) @definition.import
 (trait_definition name: (identifier) @name) @definition.trait
 (enum_definition name: (identifier) @name) @definition.enum
 (class_definition name: (identifier) @name) @definition.class

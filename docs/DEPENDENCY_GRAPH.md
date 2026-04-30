@@ -19,29 +19,49 @@ Each dependency edge records:
 - compact evidence line
 - extraction source
 
-Resolved edges use `confidence = "resolved"`. Unresolved edges use `confidence = "unresolved"` and keep an explicit reason such as `target_not_found`, `external_package`, `system_include`, or `absolute_path`.
+Resolved edges use `confidence = "resolved"`. Unresolved edges use `confidence = "unresolved"` and keep an explicit reason such as `target_not_found`, `external_package`, `system_include`, or `absolute_path`. Ambiguous local matches use `confidence = "ambiguous"`, leave `target_path` empty, and store `unresolved_reason = "ambiguous_match"` instead of choosing a target silently.
 
-## Supported Ecosystems In This Foundation
+## Resolver Support Matrix
 
-The first dependency graph pass records local relationships for:
+The resolver packs are best-effort and local-only:
 
-- Rust `mod` and local `use crate::` / `use super::` statements
-- Python `import` and `from ... import ...` modules
-- JavaScript/TypeScript relative imports
-- Go imports, including local package suffix matches when files exist
-- Java imports with package-to-path resolution when source files exist
-- C and C++ includes
-- Ruby `require_relative` and local `require`
-- PHP includes/requires from Tree-sitter import records
-- Shell `source` and dot includes
+- Rust: `mod`, `pub mod`, and `use crate::`, `use self::`, `use super::`, plus unresolved external `use` roots.
+- Python: `import` and `from ... import ...` modules, including same-directory, repository-root, and common `src`/`lib`/`app` layouts.
+- JavaScript/TypeScript/JSX/TSX: relative imports and package self-imports from root `package.json` `name`.
+- Go: relative imports, module imports using root `go.mod`, and deterministic local package suffix matches.
+- Java/Kotlin/Scala: dotted imports mapped to common JVM source roots and package path suffixes.
+- C#: `using` directives mapped by namespace path when a unique local `.cs` file exists.
+- C and C++: quoted includes resolved relative to the source file and then by unique local include suffix; known system headers remain unresolved as system includes.
+- Ruby: `require_relative`, relative `require`, and unique repository-root local `require` paths.
+- PHP: include/require imports from Tree-sitter records, resolved relative to the source file or repository root.
+- Shell: `source` and dot includes resolved relative to the source file or repository root; absolute paths remain unresolved.
+- Nix: local `import ./...` and `import ../...` paths are recorded as config-format dependency edges.
 
 Package-manager, compiler, LSP, network, and external environment resolution are intentionally not part of this phase.
 
+## Confidence Levels
+
+- `resolved`: exactly one local file matched the resolver rules.
+- `ambiguous`: more than one local file matched at the same resolver priority, so no target is chosen.
+- `unresolved`: no local target was found, the import is external, the import is a known system include, the path is absolute, or the language is unsupported.
+
+Resolvers use priority tiers where the ecosystem has a practical local precedence. For example, same-directory Python modules are checked before repository-level source roots. Ambiguity is reported only within the first matching priority tier.
+
 ## Unresolved Imports
 
-Unresolved imports are expected and preserved. Examples include standard libraries, package-manager dependencies, system headers, absolute paths, missing files, and syntax that needs a future resolver.
+Unresolved imports are expected and preserved. Examples include standard libraries, package-manager dependencies, system headers, absolute paths, missing files, and syntax that needs a future resolver. External imports are not hidden just because no local target exists.
 
 Do not silently drop unresolved imports just because they cannot be mapped to a local file. The unresolved edge is evidence for future dependency-aware context and impact behavior.
+
+Ambiguous imports are also preserved. They mean thinindex found multiple plausible local files and is intentionally refusing to guess.
+
+## Known Resolver Gaps
+
+- Resolver packs do not invoke package managers or read installed dependency metadata.
+- TypeScript `paths`, Babel aliases, Python virtual environments, Ruby `$LOAD_PATH`, PHP autoloaders, JVM build tool metadata, C/C++ compiler include paths, and Swift package/module metadata are not compiler-complete.
+- Scala wildcard and grouped imports are conservative; grouped imports with braces are not expanded.
+- Nix dependency edges cover local path imports only.
+- C# namespace resolution maps to local paths when practical but does not model assemblies or project references.
 
 ## Boundaries
 

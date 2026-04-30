@@ -44,6 +44,28 @@ fn assert_dependency(
     );
 }
 
+fn assert_dependency_state(
+    dependencies: &[thinindex::model::DependencyEdge],
+    from_path: &str,
+    import_path: &str,
+    target_path: Option<&str>,
+    dependency_kind: &str,
+    confidence: &str,
+    unresolved_reason: Option<&str>,
+) {
+    assert!(
+        dependencies.iter().any(|dependency| {
+            dependency.from_path == from_path
+                && dependency.import_path == import_path
+                && dependency.target_path.as_deref() == target_path
+                && dependency.dependency_kind == dependency_kind
+                && dependency.confidence == confidence
+                && dependency.unresolved_reason.as_deref() == unresolved_reason
+        }),
+        "expected dependency {from_path} {dependency_kind} {import_path:?} -> {target_path:?} confidence={confidence} reason={unresolved_reason:?}, got:\n{dependencies:#?}"
+    );
+}
+
 #[test]
 fn build_creates_index_files() {
     let repo = temp_repo();
@@ -501,6 +523,471 @@ fn dependency_graph_records_representative_ecosystems() {
     );
 
     run_named_dependency_integrity_checks("dependency graph fixture", &dependencies);
+}
+
+#[test]
+fn dependency_resolver_pack_handles_rust_and_python() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "src/lib.rs",
+        "pub mod local_mod;\nuse crate::local_mod::LocalMod;\nuse self::nested::Nested;\nuse serde::Serialize;\n",
+    );
+    write_file(root, "src/local_mod.rs", "pub struct LocalMod;\n");
+    write_file(root, "src/nested.rs", "pub struct Nested;\n");
+    write_file(
+        root,
+        "src/app.py",
+        "from my_pkg.service import build_service\nimport requests\n",
+    );
+    write_file(
+        root,
+        "src/my_pkg/service.py",
+        "def build_service():\n    return 1\n",
+    );
+
+    run_build(root);
+    let dependencies = thinindex::store::load_dependencies(root).expect("load dependencies");
+
+    assert_dependency_state(
+        &dependencies,
+        "src/lib.rs",
+        "local_mod",
+        Some("src/local_mod.rs"),
+        "rust_module",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "src/lib.rs",
+        "crate::local_mod::LocalMod",
+        Some("src/local_mod.rs"),
+        "rust_use",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "src/lib.rs",
+        "self::nested::Nested",
+        Some("src/nested.rs"),
+        "rust_use",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "src/lib.rs",
+        "serde::Serialize",
+        None,
+        "rust_use",
+        "unresolved",
+        Some("external_package"),
+    );
+    assert_dependency_state(
+        &dependencies,
+        "src/app.py",
+        "my_pkg.service",
+        Some("src/my_pkg/service.py"),
+        "python_import",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "src/app.py",
+        "requests",
+        None,
+        "python_import",
+        "unresolved",
+        Some("external_package"),
+    );
+}
+
+#[test]
+fn dependency_resolver_pack_handles_js_ts_go_and_dart() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "package.json", r#"{"name": "@acme/app"}"#);
+    write_file(root, "go.mod", "module example.com/project\n");
+    write_file(root, "pubspec.yaml", "name: demo_app\n");
+    write_file(
+        root,
+        "web/app.ts",
+        "import { Widget } from \"./components\";\nimport { local } from \"@acme/app/web/local\";\nimport React from \"react\";\n",
+    );
+    write_file(
+        root,
+        "web/components/index.ts",
+        "export function Widget() {}\n",
+    );
+    write_file(root, "web/local.ts", "export const local = 1;\n");
+    write_file(
+        root,
+        "go/main.go",
+        "package main\n\nimport \"example.com/project/pkg/helper\"\nimport \"github.com/acme/external\"\n",
+    );
+    write_file(
+        root,
+        "pkg/helper/helper.go",
+        "package helper\nfunc Help() {}\n",
+    );
+    write_file(
+        root,
+        "lib/main.dart",
+        "import 'package:demo_app/src/tool.dart';\nimport 'dart:async';\n",
+    );
+    write_file(root, "lib/src/tool.dart", "class Tool {}\n");
+
+    run_build(root);
+    let dependencies = thinindex::store::load_dependencies(root).expect("load dependencies");
+
+    assert_dependency_state(
+        &dependencies,
+        "web/app.ts",
+        "./components",
+        Some("web/components/index.ts"),
+        "js_import",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "web/app.ts",
+        "@acme/app/web/local",
+        Some("web/local.ts"),
+        "js_import",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "web/app.ts",
+        "react",
+        None,
+        "js_import",
+        "unresolved",
+        Some("external_package"),
+    );
+    assert_dependency_state(
+        &dependencies,
+        "go/main.go",
+        "example.com/project/pkg/helper",
+        Some("pkg/helper/helper.go"),
+        "go_import",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "go/main.go",
+        "github.com/acme/external",
+        None,
+        "go_import",
+        "unresolved",
+        Some("external_package"),
+    );
+    assert_dependency_state(
+        &dependencies,
+        "lib/main.dart",
+        "package:demo_app/src/tool.dart",
+        Some("lib/src/tool.dart"),
+        "dart_import",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "lib/main.dart",
+        "dart:async",
+        None,
+        "dart_import",
+        "unresolved",
+        Some("external_package"),
+    );
+}
+
+#[test]
+fn dependency_resolver_pack_handles_jvm_and_dotnet_imports() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "src/main/java/com/example/App.java",
+        "package com.example;\nimport com.example.lib.Helper;\nimport java.util.List;\nclass App {}\n",
+    );
+    write_file(
+        root,
+        "src/main/java/com/example/lib/Helper.java",
+        "package com.example.lib;\nclass Helper {}\n",
+    );
+    write_file(
+        root,
+        "src/main/kotlin/com/example/KtApp.kt",
+        "package com.example\nimport com.example.kt.KtHelper\nimport kotlin.collections.List\nclass KtApp\n",
+    );
+    write_file(
+        root,
+        "src/main/kotlin/com/example/kt/KtHelper.kt",
+        "package com.example.kt\nclass KtHelper\n",
+    );
+    write_file(
+        root,
+        "src/main/scala/com/example/ScalaApp.scala",
+        "package com.example\nimport com.example.scala.ScalaHelper\nimport scala.collection.mutable\nclass ScalaApp\n",
+    );
+    write_file(
+        root,
+        "src/main/scala/com/example/scala/ScalaHelper.scala",
+        "package com.example.scala\nclass ScalaHelper\n",
+    );
+    write_file(
+        root,
+        "src/Acme/App.cs",
+        "using Acme.Core;\nusing System.Text;\nnamespace Acme { class App {} }\n",
+    );
+    write_file(
+        root,
+        "src/Acme/Core/Helper.cs",
+        "namespace Acme.Core { class Helper {} }\n",
+    );
+
+    run_build(root);
+    let dependencies = thinindex::store::load_dependencies(root).expect("load dependencies");
+
+    assert_dependency_state(
+        &dependencies,
+        "src/main/java/com/example/App.java",
+        "com.example.lib.Helper",
+        Some("src/main/java/com/example/lib/Helper.java"),
+        "java_import",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "src/main/java/com/example/App.java",
+        "java.util.List",
+        None,
+        "java_import",
+        "unresolved",
+        Some("external_package"),
+    );
+    assert_dependency_state(
+        &dependencies,
+        "src/main/kotlin/com/example/KtApp.kt",
+        "com.example.kt.KtHelper",
+        Some("src/main/kotlin/com/example/kt/KtHelper.kt"),
+        "kotlin_import",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "src/main/kotlin/com/example/KtApp.kt",
+        "kotlin.collections.List",
+        None,
+        "kotlin_import",
+        "unresolved",
+        Some("external_package"),
+    );
+    assert_dependency_state(
+        &dependencies,
+        "src/main/scala/com/example/ScalaApp.scala",
+        "com.example.scala.ScalaHelper",
+        Some("src/main/scala/com/example/scala/ScalaHelper.scala"),
+        "scala_import",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "src/main/scala/com/example/ScalaApp.scala",
+        "scala.collection.mutable",
+        None,
+        "scala_import",
+        "unresolved",
+        Some("external_package"),
+    );
+    assert_dependency_state(
+        &dependencies,
+        "src/Acme/App.cs",
+        "Acme.Core",
+        Some("src/Acme/Core/Helper.cs"),
+        "cs_import",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "src/Acme/App.cs",
+        "System.Text",
+        None,
+        "cs_import",
+        "unresolved",
+        Some("external_package"),
+    );
+}
+
+#[test]
+fn dependency_resolver_pack_handles_c_cpp_ruby_php_shell_and_nix() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "c/main.c",
+        "#include \"include/local.h\"\n#include <stdio.h>\n",
+    );
+    write_file(root, "c/include/local.h", "struct Local { int value; };\n");
+    write_file(root, "cpp/main.cpp", "#include \"shared.hpp\"\n");
+    write_file(root, "include/shared.hpp", "class Shared {};\n");
+    write_file(
+        root,
+        "ruby/app.rb",
+        "require \"app/tool\"\nrequire \"json\"\n",
+    );
+    write_file(root, "app/tool.rb", "class Tool\nend\n");
+    write_file(
+        root,
+        "php/app.php",
+        "<?php\ninclude \"lib/tool.php\";\nrequire \"missing.php\";\n",
+    );
+    write_file(root, "php/lib/tool.php", "<?php\nclass Tool {}\n");
+    write_file(
+        root,
+        "scripts/run.sh",
+        "source helpers/lib.sh\n. /etc/profile\n",
+    );
+    write_file(
+        root,
+        "scripts/helpers/lib.sh",
+        "run_helper() { echo ok; }\n",
+    );
+    write_file(
+        root,
+        "default.nix",
+        "{ }:\nlet tool = import ./nix/tool.nix;\nin tool\n",
+    );
+    write_file(root, "nix/tool.nix", "{ name = \"tool\"; }\n");
+
+    run_build(root);
+    let dependencies = thinindex::store::load_dependencies(root).expect("load dependencies");
+
+    assert_dependency_state(
+        &dependencies,
+        "c/main.c",
+        "include/local.h",
+        Some("c/include/local.h"),
+        "c_include",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "c/main.c",
+        "stdio.h",
+        None,
+        "c_include",
+        "unresolved",
+        Some("system_include"),
+    );
+    assert_dependency_state(
+        &dependencies,
+        "cpp/main.cpp",
+        "shared.hpp",
+        Some("include/shared.hpp"),
+        "cpp_include",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "ruby/app.rb",
+        "app/tool",
+        Some("app/tool.rb"),
+        "ruby_require",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "ruby/app.rb",
+        "json",
+        None,
+        "ruby_require",
+        "unresolved",
+        Some("external_package"),
+    );
+    assert_dependency_state(
+        &dependencies,
+        "php/app.php",
+        "lib/tool.php",
+        Some("php/lib/tool.php"),
+        "php_include",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "scripts/run.sh",
+        "helpers/lib.sh",
+        Some("scripts/helpers/lib.sh"),
+        "shell_source",
+        "resolved",
+        None,
+    );
+    assert_dependency_state(
+        &dependencies,
+        "scripts/run.sh",
+        "/etc/profile",
+        None,
+        "shell_source",
+        "unresolved",
+        Some("absolute_path"),
+    );
+    assert_dependency_state(
+        &dependencies,
+        "default.nix",
+        "./nix/tool.nix",
+        Some("nix/tool.nix"),
+        "nix_import",
+        "resolved",
+        None,
+    );
+}
+
+#[test]
+fn dependency_resolver_pack_marks_ambiguous_matches_explicitly() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "go/main.go",
+        "package main\n\nimport \"example.com/project/pkg/helper\"\n",
+    );
+    write_file(root, "apps/one/pkg/helper/helper.go", "package helper\n");
+    write_file(root, "apps/two/pkg/helper/helper.go", "package helper\n");
+
+    run_build(root);
+    let dependencies = thinindex::store::load_dependencies(root).expect("load dependencies");
+
+    assert_dependency_state(
+        &dependencies,
+        "go/main.go",
+        "example.com/project/pkg/helper",
+        None,
+        "go_import",
+        "ambiguous",
+        Some("ambiguous_match"),
+    );
+    run_named_dependency_integrity_checks("ambiguous dependency fixture", &dependencies);
 }
 
 #[test]
