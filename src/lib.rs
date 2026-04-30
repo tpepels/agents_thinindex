@@ -3,6 +3,7 @@ pub mod context;
 pub mod extras;
 pub mod indexer;
 pub mod model;
+pub mod quality;
 pub mod refs;
 pub mod search;
 pub mod stats;
