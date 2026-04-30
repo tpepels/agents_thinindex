@@ -111,6 +111,8 @@ Normal tests use fixtures and do not depend on local clones. Real-repo validatio
 - Manifest entries can define `queries`, `expected_paths`, `expected_symbols`, and `expected_symbol_patterns`. Expected symbols are checked by the ignored real-repo parser hardening test; patterns are Rust regular expressions matched against indexed symbol names.
 - For more precise coverage checks, use `[[repo.expected_symbol]]` with `language`, `path`, `kind`, and `name`, or `[[repo.expected_symbol_pattern]]` with `language`, `path_glob`, `kind`, `name_regex`, and `min_count`.
 - The real-repo parser report lists supported languages with zero emitted records as weak areas. These usually mean the files contain no query-matched declarations, and they should become fixture cases if important symbols are missed.
+- Parser performance reports include parse time by language, record/ref counts by language, slow files, noisy files, large files, parse errors, unsupported extensions, and expected-symbol coverage.
+- Built-in resource guards cap records per file and refs per file/build. Warnings identify unusually slow, large, or noisy files so generated/vendor/minified paths can be ignored deliberately instead of silently slowing indexing.
 
 Example manifest fields:
 
@@ -157,6 +159,8 @@ cargo test --test bench_repos -- --ignored
 
 Use those numbers to evaluate whether thinindex helps a particular repository and workflow. Do not infer broad agent-performance gains from a single benchmark run.
 
+Parser performance expectations are intentionally practical rather than exact: fixture builds should stay fast in normal tests, real-repo timing is reported by ignored tests, and timing regressions should be investigated with local repo context instead of brittle global thresholds.
+
 ## Limitations
 
 thinindex is intentionally conservative:
@@ -169,6 +173,7 @@ thinindex is intentionally conservative:
 - Generated, build, vendor, dependency, and large fixture paths should be ignored.
 - Tree-sitter parser support is deterministic symbol extraction, not semantic or LSP-level analysis.
 - Bundled parser dependencies must stay permissively licensed and audited before commercial release artifacts.
+- Generated, vendor, dependency, lockfile, and minified paths should be ignored when they dominate parser timing or record/ref counts without adding navigation value.
 
 ## Parser Support
 

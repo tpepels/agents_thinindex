@@ -172,3 +172,12 @@ Report:
 - verification commands and results
 - ignored local/real repo test status
 - commit hash
+
+## Phase tracking
+
+- [x] Add parser timing diagnostics and malformed/large fixture regression tests.
+- [x] Add per-file record explosion guard with a normal regression test.
+- [x] Extend real-repo reports with parse time, refs by language, slow/noisy/large files, and deterministic report helpers.
+- [x] Include resource cap metrics in `wi bench` output and update parser performance docs.
+- [x] Run required 12G verification.
+- [x] Commit with `Add parser performance regression gates`.

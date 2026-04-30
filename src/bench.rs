@@ -9,7 +9,9 @@ use anyhow::{Context, Result, bail};
 
 use crate::{
     context::{render_impact_command, render_pack_command, render_refs_command},
+    indexer,
     model::{IndexRecord, ReferenceRecord},
+    refs,
     search::{SearchOptions, search},
     store::{load_manifest, load_records, load_refs, sqlite_path},
 };
@@ -223,6 +225,15 @@ pub fn render_benchmark_report(report: &BenchmarkReport) -> String {
     out.push_str(&format!("- files: {}\n", report.indexed_file_count));
     out.push_str(&format!("- records: {}\n", report.record_count));
     out.push_str(&format!("- refs: {}\n", report.ref_count));
+    out.push_str(&format!(
+        "- parser record cap/file: {}\n",
+        indexer::MAX_RECORDS_PER_FILE
+    ));
+    out.push_str(&format!("- ref cap/file: {}\n", refs::MAX_REFS_PER_FILE));
+    out.push_str(&format!(
+        "- ref cap/build: {}\n",
+        refs::MAX_TOTAL_REFS_PER_BUILD
+    ));
     out.push_str(&format!("- queries: {}\n", report.query_count));
     out.push_str(&format!(
         "- hits: {} misses: {}\n",

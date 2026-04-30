@@ -74,6 +74,8 @@ Formats and languages not listed in the README support matrix are unsupported. T
 
 Real-repo parser coverage is checked with shared integrity rules and optional manifest expected-symbol entries. These targeted checks are preferred over exact total record counts because generated code, comments, and unsupported syntax can change totals without changing navigation quality.
 
+Parser performance gates are local and report-oriented: normal tests cover deterministic fixture regressions, while ignored real-repo tests surface slow files, noisy files, large files, parse errors, and unsupported extensions for local hardening.
+
 Before packaging work proceeds, thinindex also needs:
 
 - `THIRD_PARTY_NOTICES`

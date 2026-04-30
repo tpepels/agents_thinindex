@@ -67,6 +67,7 @@ Real-repo work uses local, ignored repositories:
 - Manifest entries may include `expected_symbols` and `expected_symbol_patterns` so real-repo hardening can check targeted symbol coverage without relying on fragile total record counts.
 - Structured `[[repo.expected_symbol]]` and `[[repo.expected_symbol_pattern]]` entries can also constrain expected records by language, path/path glob, kind, name, regex, and minimum count.
 - Real-repo parser reports include zero-record supported languages as weak areas rather than using fragile total record assertions.
+- Parser performance reports include parse time by language, record/ref counts by language, slow/noisy/large files, parse errors, unsupported extension gaps, and expected-symbol coverage. Generated, vendor, dependency, and minified files should be ignored when they add noise rather than navigation value.
 
 The current ignored checks cover local index behavior, real-repo integrity, and real-repo benchmarks when the local data exists.
 

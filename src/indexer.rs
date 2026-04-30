@@ -21,6 +21,7 @@ use crate::{
 };
 
 const IGNORE_DIRS: &[&str] = &[".git", ".dev_index"];
+pub const MAX_RECORDS_PER_FILE: usize = 50_000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BuildStats {
@@ -97,13 +98,14 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
             let text = fs::read_to_string(&path)
                 .with_context(|| format!("failed to read source file: {}", path.display()))?;
 
-            let mut parser_records = parser
+            let mut file_records = parser
                 .parse_file(&rel, &text)
                 .with_context(|| format!("failed to parse source file: {rel}"))?;
-            records.append(&mut parser_records);
 
             let mut extra_records = index_extras(&rel, &text);
-            records.append(&mut extra_records);
+            file_records.append(&mut extra_records);
+            enforce_record_limit_for_file(&rel, file_records.len())?;
+            records.append(&mut file_records);
 
             manifest.files.insert(rel, meta);
         }
@@ -128,6 +130,16 @@ pub fn build_index(start: &Path) -> Result<BuildStats> {
         records: records.len(),
         reset_message,
     })
+}
+
+fn enforce_record_limit_for_file(rel: &str, record_count: usize) -> Result<()> {
+    if record_count > MAX_RECORDS_PER_FILE {
+        anyhow::bail!(
+            "record explosion guard tripped for {rel}: {record_count} records exceeds per-file cap {MAX_RECORDS_PER_FILE}"
+        );
+    }
+
+    Ok(())
 }
 
 /// Cheap pre-check: compare manifest entries to current file mtimes/sizes
@@ -374,4 +386,19 @@ fn file_meta(path: &Path) -> Result<FileMeta> {
         mtime_ns,
         size: metadata.len(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn record_explosion_guard_rejects_single_file_over_cap() {
+        let error = enforce_record_limit_for_file("src/generated.rs", MAX_RECORDS_PER_FILE + 1)
+            .expect_err("record cap should fail");
+        let message = format!("{error:#}");
+
+        assert!(message.contains("record explosion guard tripped"));
+        assert!(message.contains("src/generated.rs"));
+    }
 }

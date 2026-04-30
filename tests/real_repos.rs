@@ -4,6 +4,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     path::{Path, PathBuf},
+    time::Duration,
 };
 
 use common::{load_index_snapshot_from_sqlite, run_named_index_integrity_checks};
@@ -14,13 +15,19 @@ use thinindex::{
         load_benchmark_repo_set,
     },
     context::{render_impact_command, render_pack_command, render_refs_command},
+    indexer,
     indexer::build_index,
+    refs,
     search::{SearchOptions, search},
     store::load_manifest,
     tree_sitter_extraction::{LanguageRegistry, TREE_SITTER_SOURCE, TreeSitterExtractionEngine},
 };
 
 const EXTRAS_SOURCE: &str = "extras";
+const SLOW_PARSE_WARNING_THRESHOLD: Duration = Duration::from_millis(250);
+const NOISY_RECORD_WARNING_THRESHOLD: usize = 1_000;
+const NOISY_REF_WARNING_THRESHOLD: usize = refs::MAX_REFS_PER_FILE;
+const LARGE_FILE_WARNING_BYTES: u64 = 1_000_000;
 const SUPPORTED_EXTRAS_EXTENSIONS: &[&str] = &[
     ".css",
     ".html",
@@ -100,7 +107,7 @@ fn check_repo(repo: &BenchmarkRepo) -> RepoHardeningReport {
 
     run_named_index_integrity_checks(&repo.name, &snapshot, &expected_paths);
 
-    let coverage = collect_parser_coverage(repo, &snapshot.records);
+    let coverage = collect_parser_coverage(repo, &snapshot.records, &snapshot.refs);
     let zero_record_languages = supported_languages_without_records(&coverage);
 
     let symbol_coverage = check_expected_symbols(repo, &snapshot.records);
@@ -135,10 +142,36 @@ fn check_repo(repo: &BenchmarkRepo) -> RepoHardeningReport {
 struct ParserCoverage {
     files_seen_by_language: BTreeMap<String, usize>,
     records_by_language: BTreeMap<String, usize>,
+    refs_by_language: BTreeMap<String, usize>,
     files_seen_by_extras_format: BTreeMap<String, usize>,
     records_by_extras_format: BTreeMap<String, usize>,
     parse_errors_by_language: BTreeMap<String, usize>,
+    parse_time_by_language: BTreeMap<String, Duration>,
     unsupported_extensions: BTreeMap<String, usize>,
+    slow_files: Vec<FileDurationWarning>,
+    noisy_record_files: Vec<FileCountWarning>,
+    noisy_ref_files: Vec<FileCountWarning>,
+    large_files: Vec<FileSizeWarning>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct FileDurationWarning {
+    path: String,
+    language: String,
+    duration: Duration,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct FileCountWarning {
+    path: String,
+    language: String,
+    count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct FileSizeWarning {
+    path: String,
+    size_bytes: u64,
 }
 
 #[derive(Debug, Default)]
@@ -198,6 +231,14 @@ fn print_parser_coverage_report(report: &RepoHardeningReport) {
         render_counts(&coverage.records_by_language)
     );
     println!(
+        "  refs emitted by language: {}",
+        render_counts(&coverage.refs_by_language)
+    );
+    println!(
+        "  parse time by language: {}",
+        render_duration_counts(&coverage.parse_time_by_language)
+    );
+    println!(
         "  extras-backed files seen: {}",
         render_counts(&coverage.files_seen_by_extras_format)
     );
@@ -218,6 +259,22 @@ fn print_parser_coverage_report(report: &RepoHardeningReport) {
         render_slice(&report.zero_record_languages)
     );
     println!(
+        "  slowest files: {}",
+        render_duration_warnings(&coverage.slow_files)
+    );
+    println!(
+        "  noisiest record files: {}",
+        render_count_warnings(&coverage.noisy_record_files)
+    );
+    println!(
+        "  noisiest ref files: {}",
+        render_count_warnings(&coverage.noisy_ref_files)
+    );
+    println!(
+        "  large files: {}",
+        render_size_warnings(&coverage.large_files)
+    );
+    println!(
         "  expected symbols: checked={} missing={}",
         report.symbol_coverage.symbols_checked,
         report.symbol_coverage.symbols_missing.len()
@@ -236,6 +293,7 @@ fn print_parser_coverage_report(report: &RepoHardeningReport) {
 fn collect_parser_coverage(
     repo: &BenchmarkRepo,
     records: &[thinindex::model::IndexRecord],
+    refs: &[thinindex::model::ReferenceRecord],
 ) -> ParserCoverage {
     let mut coverage = ParserCoverage::default();
     let manifest = load_manifest(&repo.path)
@@ -251,6 +309,14 @@ fn collect_parser_coverage(
             .records_by_language
             .entry(record.lang.clone())
             .or_default() += 1;
+    }
+
+    let records_by_path = counts_by_path(records.iter().map(|record| record.path.as_str()));
+    let refs_by_path = counts_by_path(refs.iter().map(|reference| reference.from_path.as_str()));
+
+    for reference in refs {
+        let language = language_or_format_for_path(&registry, &reference.from_path);
+        *coverage.refs_by_language.entry(language).or_default() += 1;
     }
 
     for record in records
@@ -271,6 +337,16 @@ fn collect_parser_coverage(
                 .or_default() += 1;
 
             let path = repo.path.join(relpath);
+            let size_bytes = fs::metadata(&path)
+                .unwrap_or_else(|error| panic!("failed to stat {}: {error}", path.display()))
+                .len();
+            if size_bytes > LARGE_FILE_WARNING_BYTES {
+                coverage.large_files.push(FileSizeWarning {
+                    path: relpath.clone(),
+                    size_bytes,
+                });
+            }
+
             let text = fs::read_to_string(&path)
                 .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
             let parsed = engine
@@ -278,6 +354,27 @@ fn collect_parser_coverage(
                 .unwrap_or_else(|error| {
                     panic!("failed to parse {relpath} for coverage: {error:#}")
                 });
+            *coverage
+                .parse_time_by_language
+                .entry(adapter.id.to_string())
+                .or_default() += parsed.parse_duration;
+
+            if parsed.parse_duration > SLOW_PARSE_WARNING_THRESHOLD {
+                coverage.slow_files.push(FileDurationWarning {
+                    path: relpath.clone(),
+                    language: adapter.id.to_string(),
+                    duration: parsed.parse_duration,
+                });
+            }
+
+            let record_count = records_by_path.get(relpath.as_str()).copied().unwrap_or(0);
+            if record_count > NOISY_RECORD_WARNING_THRESHOLD {
+                coverage.noisy_record_files.push(FileCountWarning {
+                    path: relpath.clone(),
+                    language: adapter.id.to_string(),
+                    count: record_count,
+                });
+            }
 
             if parsed.had_error {
                 *coverage
@@ -291,6 +388,14 @@ fn collect_parser_coverage(
                     .files_seen_by_extras_format
                     .entry(extension.trim_start_matches('.').to_string())
                     .or_default() += 1;
+                let record_count = records_by_path.get(relpath.as_str()).copied().unwrap_or(0);
+                if record_count > NOISY_RECORD_WARNING_THRESHOLD {
+                    coverage.noisy_record_files.push(FileCountWarning {
+                        path: relpath.clone(),
+                        language: extension.trim_start_matches('.').to_string(),
+                        count: record_count,
+                    });
+                }
             } else {
                 *coverage
                     .unsupported_extensions
@@ -298,9 +403,51 @@ fn collect_parser_coverage(
                     .or_default() += 1;
             }
         }
+
+        let ref_count = refs_by_path.get(relpath.as_str()).copied().unwrap_or(0);
+        if ref_count >= NOISY_REF_WARNING_THRESHOLD {
+            coverage.noisy_ref_files.push(FileCountWarning {
+                path: relpath.clone(),
+                language: language_or_format_for_path(&registry, relpath),
+                count: ref_count,
+            });
+        }
     }
 
     coverage
+        .slow_files
+        .sort_by(|a, b| b.duration.cmp(&a.duration).then(a.path.cmp(&b.path)));
+    coverage
+        .noisy_record_files
+        .sort_by(|a, b| b.count.cmp(&a.count).then(a.path.cmp(&b.path)));
+    coverage
+        .noisy_ref_files
+        .sort_by(|a, b| b.count.cmp(&a.count).then(a.path.cmp(&b.path)));
+    coverage
+        .large_files
+        .sort_by(|a, b| b.size_bytes.cmp(&a.size_bytes).then(a.path.cmp(&b.path)));
+
+    coverage
+}
+
+fn counts_by_path<'a>(paths: impl Iterator<Item = &'a str>) -> BTreeMap<&'a str, usize> {
+    let mut counts = BTreeMap::new();
+
+    for path in paths {
+        *counts.entry(path).or_default() += 1;
+    }
+
+    counts
+}
+
+fn language_or_format_for_path(registry: &LanguageRegistry, relpath: &str) -> String {
+    if let Some(adapter) = registry.adapter_for_path(relpath) {
+        return adapter.id.to_string();
+    }
+
+    extension_gap(relpath)
+        .map(|extension| extension.trim_start_matches('.').to_string())
+        .unwrap_or_else(|| "unknown".to_string())
 }
 
 fn supported_languages_without_records(coverage: &ParserCoverage) -> Vec<String> {
@@ -603,6 +750,18 @@ fn render_counts(counts: &BTreeMap<String, usize>) -> String {
         .join(", ")
 }
 
+fn render_duration_counts(counts: &BTreeMap<String, Duration>) -> String {
+    if counts.is_empty() {
+        return "none".to_string();
+    }
+
+    counts
+        .iter()
+        .map(|(name, duration)| format!("{name}={}", format_duration(*duration)))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 fn render_set(values: &BTreeSet<String>) -> String {
     if values.is_empty() {
         return "none".to_string();
@@ -617,6 +776,60 @@ fn render_slice(values: &[String]) -> String {
     }
 
     values.join(", ")
+}
+
+fn render_duration_warnings(values: &[FileDurationWarning]) -> String {
+    if values.is_empty() {
+        return "none".to_string();
+    }
+
+    values
+        .iter()
+        .take(5)
+        .map(|warning| {
+            format!(
+                "{}:{}:{}",
+                warning.path,
+                warning.language,
+                format_duration(warning.duration)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn render_count_warnings(values: &[FileCountWarning]) -> String {
+    if values.is_empty() {
+        return "none".to_string();
+    }
+
+    values
+        .iter()
+        .take(5)
+        .map(|warning| format!("{}:{}:{}", warning.path, warning.language, warning.count))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn render_size_warnings(values: &[FileSizeWarning]) -> String {
+    if values.is_empty() {
+        return "none".to_string();
+    }
+
+    values
+        .iter()
+        .take(5)
+        .map(|warning| format!("{}:{} bytes", warning.path, warning.size_bytes))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_duration(duration: Duration) -> String {
+    if duration.as_millis() >= 1 {
+        format!("{}ms", duration.as_millis())
+    } else {
+        format!("{}us", duration.as_micros())
+    }
 }
 
 #[test]
@@ -662,6 +875,37 @@ fn expected_symbol_specs_match_records_with_filters() {
     assert!(coverage.symbols_missing.is_empty());
     assert_eq!(coverage.patterns_checked, 1);
     assert!(coverage.patterns_missing.is_empty());
+}
+
+#[test]
+fn parser_report_helpers_are_deterministic() {
+    let mut durations = BTreeMap::new();
+    durations.insert("rs".to_string(), Duration::from_millis(2));
+    durations.insert("py".to_string(), Duration::from_millis(1));
+
+    assert_eq!(render_duration_counts(&durations), "py=1ms, rs=2ms");
+
+    let warnings = vec![
+        FileCountWarning {
+            path: "b.rs".to_string(),
+            language: "rs".to_string(),
+            count: indexer::MAX_RECORDS_PER_FILE,
+        },
+        FileCountWarning {
+            path: "a.rs".to_string(),
+            language: "rs".to_string(),
+            count: NOISY_RECORD_WARNING_THRESHOLD,
+        },
+    ];
+
+    assert_eq!(
+        render_count_warnings(&warnings),
+        format!(
+            "b.rs:rs:{}, a.rs:rs:{}",
+            indexer::MAX_RECORDS_PER_FILE,
+            NOISY_RECORD_WARNING_THRESHOLD
+        )
+    );
 }
 
 fn render_top_gaps(counts: &BTreeMap<String, usize>) -> String {

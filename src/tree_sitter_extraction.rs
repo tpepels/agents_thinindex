@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, path::Path};
+use std::{collections::BTreeMap, path::Path, time::Duration};
 
 use anyhow::{Context, Result};
 use tree_sitter::{Language, Parser, Query, QueryCursor, StreamingIterator};
@@ -115,6 +115,7 @@ pub struct TreeSitterExtractionEngine {
 pub struct ParsedFile {
     pub records: Vec<IndexRecord>,
     pub had_error: bool,
+    pub parse_duration: Duration,
 }
 
 impl TreeSitterExtractionEngine {
@@ -131,9 +132,11 @@ impl TreeSitterExtractionEngine {
             return Ok(ParsedFile {
                 records: Vec::new(),
                 had_error: false,
+                parse_duration: Duration::ZERO,
             });
         };
 
+        let parse_start = std::time::Instant::now();
         let language = (adapter.language)();
         let mut parser = Parser::new();
         parser
@@ -144,6 +147,7 @@ impl TreeSitterExtractionEngine {
             return Ok(ParsedFile {
                 records: Vec::new(),
                 had_error: false,
+                parse_duration: parse_start.elapsed(),
             });
         };
         let had_error = tree.root_node().has_error();
@@ -155,6 +159,7 @@ impl TreeSitterExtractionEngine {
         Ok(ParsedFile {
             records: mapper.records_from_query(rel_path, text, tree.root_node())?,
             had_error,
+            parse_duration: parse_start.elapsed(),
         })
     }
 
@@ -957,5 +962,42 @@ mod tests {
                 "expected Tree-sitter source in {path}, got {records:#?}",
             );
         }
+    }
+
+    #[test]
+    fn malformed_supported_file_reports_diagnostics_without_panicking() {
+        let engine = TreeSitterExtractionEngine::default();
+        let parsed = engine
+            .parse_file_with_diagnostics("src/broken.rs", "pub fn broken( {\n")
+            .expect("parse malformed rust");
+
+        assert!(parsed.had_error);
+        assert!(
+            parsed
+                .records
+                .iter()
+                .all(|record| record.source == TREE_SITTER_SOURCE)
+        );
+    }
+
+    #[test]
+    fn large_reasonable_supported_file_emits_expected_records() {
+        let engine = TreeSitterExtractionEngine::default();
+        let mut text = String::new();
+
+        for index in 0..200 {
+            text.push_str(&format!("pub fn generated_symbol_{index}() {{}}\n"));
+        }
+
+        let records = engine
+            .parse_file("src/generated.rs", &text)
+            .expect("parse large-ish rust file");
+
+        assert_eq!(records.len(), 200);
+        assert!(
+            records.iter().any(|record| {
+                record.name == "generated_symbol_199" && record.kind == "function"
+            })
+        );
     }
 }
