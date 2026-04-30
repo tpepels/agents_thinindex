@@ -405,6 +405,53 @@ fn wi_refs_missing_refs_shows_primary_non_error() {
 }
 
 #[test]
+fn wi_refs_redacts_secret_like_evidence() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_file(root, "src/service.py", "class PromptService: pass\n");
+    write_file(
+        root,
+        "docs/secrets.md",
+        "PromptService password=hunter2 api_key=\"abc123\"\n",
+    );
+    run_build(root);
+
+    let output = run_wi(root, &["refs", "PromptService"]);
+
+    assert!(
+        output.contains("password=[REDACTED]") && output.contains("api_key=[REDACTED]"),
+        "expected redacted secret-like evidence, got:\n{output}"
+    );
+    assert!(
+        !output.contains("hunter2") && !output.contains("abc123"),
+        "refs output must not leak secret-like values, got:\n{output}"
+    );
+}
+
+#[test]
+fn wi_verbose_search_redacts_secret_like_text() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_file(
+        root,
+        "docs/notes.md",
+        "## Deploy\n\nTODO token=super-secret-token\n",
+    );
+    run_build(root);
+
+    let output = run_wi(root, &["token", "-v"]);
+
+    assert!(
+        output.contains("token=[REDACTED]"),
+        "expected verbose search text to redact token, got:\n{output}"
+    );
+    assert!(
+        !output.contains("super-secret-token"),
+        "verbose search must not leak secret-like values, got:\n{output}"
+    );
+}
+
+#[test]
 fn wi_pack_prompt_service_groups_compact_read_set() {
     let repo = temp_repo();
     let root = repo.path();

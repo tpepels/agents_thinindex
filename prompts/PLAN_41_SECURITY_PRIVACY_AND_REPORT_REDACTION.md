@@ -4,6 +4,13 @@ Use superpowers:subagent-driven-development.
 
 Do not implement this until PLAN_40_TECHNICAL_FINAL_AUDIT.md is complete and green.
 
+Progress:
+- [x] Phase 1: inspect reports, context output, release artifact checks, ignore rules, and quality exports
+- [x] Phase 2: add privacy redaction helpers and sensitive-path warnings
+- [x] Phase 3: apply redaction to command/report output and add fixture tests
+- [x] Phase 4: add security/privacy documentation and release guidance
+- [x] Phase 5: run required verification and commit completed Plan 41 work
+
 Goal:
 Harden security/privacy behavior for indexing, reports, quality outputs, and release artifacts.
 

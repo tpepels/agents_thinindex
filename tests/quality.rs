@@ -185,6 +185,65 @@ fn report_includes_comparator_only_and_thinindex_only_symbols() {
 }
 
 #[test]
+fn quality_reports_redact_secret_like_symbols_by_default() {
+    let thinindex = vec![IndexRecord::new(
+        "src/lib.rs",
+        1,
+        1,
+        "rs",
+        "function",
+        "token=thinindex-secret",
+        "fn token_secret() {}",
+        "tree-sitter",
+    )];
+    let comparator = ComparatorRun::completed(
+        "fake-comparator",
+        vec![ComparatorRecord::new(
+            "src/lib.rs",
+            10,
+            None,
+            "function",
+            "api_key=comparator-secret",
+            Some("rs"),
+            "fake-comparator",
+        )],
+    );
+    let report = compare_quality(
+        &thinindex,
+        &comparator,
+        QualityComparisonOptions::new("fixture", "/tmp/fixture").with_expected_symbols(vec![
+            ExpectedSymbol {
+                language: Some("rs".to_string()),
+                path: Some("src/lib.rs".to_string()),
+                kind: Some("function".to_string()),
+                name: "password=missing-secret".to_string(),
+            },
+        ]),
+    );
+
+    let rendered = render_quality_report(&report);
+    let temp = temp_repo();
+    let path = write_quality_report(temp.path(), "fake-comparator", &rendered)
+        .expect("write redacted quality report");
+    let written = std::fs::read_to_string(path).expect("read quality report");
+
+    for output in [&rendered, &written] {
+        assert!(
+            output.contains("token=[REDACTED]")
+                && output.contains("api_key=[REDACTED]")
+                && output.contains("password=[REDACTED]"),
+            "expected redacted quality report, got:\n{output}"
+        );
+        for leaked in ["thinindex-secret", "comparator-secret", "missing-secret"] {
+            assert!(
+                !output.contains(leaked),
+                "quality report leaked secret-like value {leaked}, got:\n{output}"
+            );
+        }
+    }
+}
+
+#[test]
 fn quality_report_export_is_deterministic_and_json_parses() {
     let gate_a = export_gate_report("fixture-a", "alpha_missing", "alpha_comparator");
     let gate_b = export_gate_report("fixture-b", "beta_missing", "beta_comparator");
@@ -298,6 +357,74 @@ fn quality_report_export_keeps_large_detail_data_out_of_summary() {
     assert!(!json.contains("comparator_symbol_29"));
     assert!(!markdown.contains("comparator_symbol_29"));
     assert!(details.contains("comparator_symbol_29"));
+}
+
+#[test]
+fn quality_report_exports_redact_secret_like_details() {
+    let records = vec![IndexRecord::new(
+        "src/lib.rs",
+        1,
+        1,
+        "rs",
+        "function",
+        "present",
+        "fn present() {}",
+        "tree-sitter",
+    )];
+    let gate = evaluate_quality_gate(
+        &records,
+        &[],
+        QualityGateOptions::new("fixture", "/tmp/password=local-secret")
+            .with_expected_symbols(vec![ExpectedSymbol {
+                language: Some("rs".to_string()),
+                path: Some("src/lib.rs".to_string()),
+                kind: Some("function".to_string()),
+                name: "client_secret=missing-secret".to_string(),
+            }])
+            .with_comparator_run(ComparatorRun::completed(
+                "fake-comparator",
+                vec![ComparatorRecord::new(
+                    "src/lib.rs",
+                    10,
+                    None,
+                    "function",
+                    "token=comparator-secret",
+                    Some("rs"),
+                    "fake-comparator",
+                )],
+            )),
+    )
+    .expect("evaluate gate");
+    let export = build_quality_report_export(
+        &[gate],
+        &[],
+        &[],
+        QualityReportExportOptions::default().with_local_paths(),
+    )
+    .expect("build export");
+    let json = render_quality_report_export_json(&export).expect("render json");
+    let markdown = render_quality_report_export_markdown(&export);
+    let details = render_quality_report_export_details_jsonl(&export).expect("render details");
+
+    assert!(
+        json.contains("client_secret=[REDACTED]")
+            && json.contains("token=[REDACTED]")
+            && json.contains("password=[REDACTED]"),
+        "expected redacted quality JSON summary, got:\n{json}"
+    );
+    assert!(
+        details.contains("client_secret=[REDACTED]") && details.contains("token=[REDACTED]"),
+        "expected redacted quality JSONL details, got:\n{details}"
+    );
+
+    for output in [&json, &markdown, &details] {
+        for leaked in ["local-secret", "missing-secret", "comparator-secret"] {
+            assert!(
+                !output.contains(leaked),
+                "quality export leaked secret-like value {leaked}, got:\n{output}"
+            );
+        }
+    }
 }
 
 #[test]

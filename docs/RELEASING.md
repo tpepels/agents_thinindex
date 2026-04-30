@@ -18,6 +18,8 @@ make ci-check
 
 This runs formatting, normal tests, deterministic parser/quality fixture suites, clippy, license audit, and command smoke checks. It intentionally does not run ignored tests and does not require local real repositories or optional comparator commands.
 
+Security/privacy release guidance is documented in `docs/SECURITY_PRIVACY.md`. Release artifacts must not include `.dev_index/`, `.dev_index/quality/`, `test_repos/`, local quality reports, or local benchmark output.
+
 The current parser-quality coherence checkpoint is `docs/QUALITY_SYSTEM_AUDIT.md`. The broader relationship/navigation coherence checkpoint is `docs/TECHNICAL_FINAL_AUDIT.md`.
 
 Run the standard local release check with:
@@ -98,6 +100,7 @@ Each archive contains:
 - `INSTALL.md`
 - `docs/RELEASING.md`
 - `docs/INSTALLERS.md`
+- `docs/SECURITY_PRIVACY.md`
 - `THIRD_PARTY_NOTICES`
 - `scripts/install-archive-unix`
 - `scripts/uninstall-archive-unix`
@@ -108,9 +111,11 @@ Each archive contains:
 The archive is assembled from explicit files only. It does not include:
 
 - `.dev_index/`
+- `.dev_index/quality/`
 - `test_repos/`
 - `target/`
 - `dist/`
+- local quality reports and comparator triage reports
 - the source checkout
 - generated local benchmark outputs
 
@@ -162,10 +167,11 @@ The check verifies that the archive:
 
 - includes `wi`, `build_index`, `wi-init`, and `wi-stats`
 - includes `THIRD_PARTY_NOTICES`
-- includes `README.md`, `INSTALL.md`, `docs/RELEASING.md`, and `docs/INSTALLERS.md`
+- includes `README.md`, `INSTALL.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, and `docs/SECURITY_PRIVACY.md`
 - excludes `.dev_index/`
 - excludes `test_repos/`
 - excludes `target/` and `dist/`
+- excludes local quality reports and comparator triage reports
 - excludes optional external comparator artifacts
 - uses an archive name beginning with `thinindex-`
 

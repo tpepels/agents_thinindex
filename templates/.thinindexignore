@@ -29,3 +29,17 @@ venv/
 *.gz
 *.sqlite
 *.db
+.env
+.env.*
+.envrc
+.netrc
+.npmrc
+.pypirc
+secrets/
+secret/
+credentials/
+private_keys/
+*.pem
+*.key
+*.p12
+*.pfx

@@ -61,6 +61,17 @@ The Markdown and JSON summaries include deterministic mode or a caller-provided 
 
 By default exports omit machine-specific absolute repo paths. Local workflows may opt into paths for local-only reports, but generated quality exports remain isolated under `.dev_index/quality/` and must not be copied into production SQLite `records` or `refs`.
 
+## Redaction
+
+Quality reports run in safe mode by default:
+
+- no full source file dumps;
+- capped samples in Markdown and JSON summaries;
+- no absolute local paths unless a local workflow explicitly opts in;
+- pattern-based redaction for common secret-like values in paths, symbols, details, and report text.
+
+Redaction is a safety net, not a secret scanner. Add sensitive files to `.thinindexignore` before indexing. See `docs/SECURITY_PRIVACY.md`.
+
 Commit source code, fixtures, manifests, and docs that explain quality behavior. Keep `.dev_index/quality/` reports local unless a review explicitly asks for a small excerpt or artifact.
 
 ## Drift Gates

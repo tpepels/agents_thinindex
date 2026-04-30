@@ -255,12 +255,35 @@ fn build_index_stats_reports_scale_metrics_without_large_snapshots() {
         "performance:",
         "large files:",
         "sqlite tuning:",
+        "sensitive path warnings:",
+        "sensitive-looking paths:",
     ] {
         assert!(
             stdout.contains(needle),
             "missing stats field {needle:?}, got:\n{stdout}"
         );
     }
+}
+
+#[test]
+fn build_index_warns_about_sensitive_looking_paths_without_scanning_secrets() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, ".env", "API_KEY=super-secret-value\n");
+    write_file(root, "src/service.py", "class VisibleService: pass\n");
+
+    let output = run_build(root);
+
+    assert!(
+        output.contains("sensitive-looking indexed paths: 1")
+            && output.contains("warning: indexed sensitive-looking path .env"),
+        "expected sensitive path warning, got:\n{output}"
+    );
+    assert!(
+        !output.contains("super-secret-value"),
+        "build warning must not dump secret file contents, got:\n{output}"
+    );
 }
 
 #[test]

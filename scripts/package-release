@@ -115,7 +115,7 @@ rm -rf "$STAGING_ROOT"
 mkdir -p "$PACKAGE_DIR"
 
 # Assemble the archive from explicit files only; never copy .dev_index,
-# test_repos, target build junk, dist artifacts, or the source checkout wholesale.
+# quality reports, test_repos, target build junk, dist artifacts, or the source checkout wholesale.
 for binary in $BINARIES; do
     source_path="$BIN_DIR/$binary$EXE_SUFFIX"
     require_file "$source_path"
@@ -126,6 +126,7 @@ require_file "README.md"
 require_file "THIRD_PARTY_NOTICES"
 require_file "docs/RELEASING.md"
 require_file "docs/INSTALLERS.md"
+require_file "docs/SECURITY_PRIVACY.md"
 require_file "scripts/install-archive-unix"
 require_file "scripts/uninstall-archive-unix"
 require_file "scripts/windows/install.ps1"
@@ -135,6 +136,7 @@ cp "THIRD_PARTY_NOTICES" "$PACKAGE_DIR/THIRD_PARTY_NOTICES"
 mkdir -p "$PACKAGE_DIR/docs"
 cp "docs/RELEASING.md" "$PACKAGE_DIR/docs/RELEASING.md"
 cp "docs/INSTALLERS.md" "$PACKAGE_DIR/docs/INSTALLERS.md"
+cp "docs/SECURITY_PRIVACY.md" "$PACKAGE_DIR/docs/SECURITY_PRIVACY.md"
 mkdir -p "$PACKAGE_DIR/scripts/windows"
 install -m 0755 "scripts/install-archive-unix" "$PACKAGE_DIR/scripts/install-archive-unix"
 install -m 0755 "scripts/uninstall-archive-unix" "$PACKAGE_DIR/scripts/uninstall-archive-unix"

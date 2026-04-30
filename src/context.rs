@@ -8,6 +8,7 @@ use anyhow::Result;
 use crate::{
     file_roles::{FileRole, classify_path, is_operational_role, is_source_role},
     model::{DependencyEdge, IndexRecord, ReferenceRecord},
+    privacy::redact_sensitive_text,
     search::{SearchOptions, SearchResult, search},
     store::{load_dependencies, load_records, load_refs},
 };
@@ -116,7 +117,10 @@ pub fn render_refs_command(
     } else {
         for row in &refs {
             out.push_str(&format!("- {}\n", ref_line(&row.reference)));
-            out.push_str(&format!("  reason: {}\n", row.reference.evidence));
+            out.push_str(&format!(
+                "  reason: {}\n",
+                redact_sensitive_text(&row.reference.evidence)
+            ));
         }
     }
 
@@ -482,14 +486,20 @@ fn primary_line(result: &SearchResult) -> String {
     let record = &result.record;
     format!(
         "{}:{} {} {}",
-        record.path, record.line, record.kind, record.name
+        redact_sensitive_text(&record.path),
+        record.line,
+        redact_sensitive_text(&record.kind),
+        redact_sensitive_text(&record.name)
     )
 }
 
 fn ref_line(reference: &ReferenceRecord) -> String {
     format!(
         "{}:{} {} {}",
-        reference.from_path, reference.from_line, reference.ref_kind, reference.to_name
+        redact_sensitive_text(&reference.from_path),
+        reference.from_line,
+        redact_sensitive_text(&reference.ref_kind),
+        redact_sensitive_text(&reference.to_name)
     )
 }
 
@@ -712,9 +722,15 @@ fn append_pack_rows(out: &mut String, heading: &str, rows: &[PackRow]) {
     for row in rows {
         out.push_str(&format!(
             "- {}:{} {} {}\n",
-            row.path, row.line, row.kind, row.target
+            redact_sensitive_text(&row.path),
+            row.line,
+            redact_sensitive_text(&row.kind),
+            redact_sensitive_text(&row.target)
         ));
-        out.push_str(&format!("  reason: {}\n", row.reason));
+        out.push_str(&format!(
+            "  reason: {}\n",
+            redact_sensitive_text(&row.reason)
+        ));
         out.push_str(&format!("  confidence: {}\n", row.confidence));
     }
 }
@@ -1103,9 +1119,15 @@ fn append_impact_rows(out: &mut String, heading: &str, rows: &[ImpactRow]) {
     for row in rows {
         out.push_str(&format!(
             "- {}:{} {} {}\n",
-            row.path, row.line, row.kind, row.target
+            redact_sensitive_text(&row.path),
+            row.line,
+            redact_sensitive_text(&row.kind),
+            redact_sensitive_text(&row.target)
         ));
-        out.push_str(&format!("  reason: {}\n", row.reason));
+        out.push_str(&format!(
+            "  reason: {}\n",
+            redact_sensitive_text(&row.reason)
+        ));
         out.push_str(&format!("  confidence: {}\n", row.confidence));
     }
 }

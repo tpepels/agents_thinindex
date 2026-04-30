@@ -16,6 +16,7 @@ Run before cutting a thinindex release:
 - `cargo run --bin wi-init -- --version`
 - `cargo run --bin wi-stats -- --version`
 - confirm `THIRD_PARTY_NOTICES` matches the audited dependency set and is included with release artifacts
+- confirm `docs/SECURITY_PRIVACY.md` matches current index, report, and release artifact behavior
 - confirm the documented parser support matrix matches the bundled Tree-sitter grammar dependencies
 - confirm `docs/QUALITY_SYSTEM_AUDIT.md` still matches parser, support, quality, ctags, license, and release behavior
 - confirm `docs/TECHNICAL_FINAL_AUDIT.md` still matches dependency, refs, pack, impact, performance, semantic adapter, and agent integration behavior
@@ -44,7 +45,7 @@ Packaging note:
 - Cross-platform release archives and installers require a passing `cargo deny check licenses` run.
 - Proprietary packaging remains blocked by GPL, AGPL, LGPL-only, MPL-only, EPL, CDDL, unknown, custom, or non-commercial dependency terms unless a future plan records an explicit review exception.
 - Release archives must include all thinindex binaries, `README.md`, `INSTALL.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, helper install/uninstall scripts, and `THIRD_PARTY_NOTICES`.
-- Release archives must not include `.dev_index/`, `test_repos/`, `target/`, `dist/`, source checkout contents, or generated local benchmark outputs.
+- Release archives must not include `.dev_index/`, `.dev_index/quality/`, `test_repos/`, `target/`, `dist/`, source checkout contents, local quality reports, or generated local benchmark outputs.
 - Native package formats, signing, and notarization are later work.
 - Windows Authenticode signing, macOS Developer ID signing/notarization, and Linux package signing are not implemented.
 - GitHub Actions CI runs format, test, deterministic parser/quality fixtures, clippy, license audit, command smoke, package smoke, and archive content checks.

@@ -57,6 +57,7 @@ fn run() -> Result<()> {
     println!("deleted files: {}", stats.deleted_files);
     println!("records: {}", stats.records);
     print_large_file_warnings(&stats.large_files);
+    print_sensitive_path_warnings(&stats.sensitive_paths);
 
     if args.stats {
         print_stats(&stats);
@@ -84,10 +85,25 @@ fn print_large_file_warnings(warnings: &[thinindex::indexer::FileSizeWarning]) {
     }
 }
 
+fn print_sensitive_path_warnings(warnings: &[thinindex::privacy::SensitivePathWarning]) {
+    if warnings.is_empty() {
+        return;
+    }
+
+    println!("sensitive-looking indexed paths: {}", warnings.len());
+    for warning in warnings {
+        println!(
+            "warning: indexed sensitive-looking path {} ({}) - consider .thinindexignore",
+            warning.path, warning.reason
+        );
+    }
+}
+
 fn print_stats(stats: &thinindex::indexer::BuildStats) {
     println!("refs: {}", stats.refs);
     println!("dependencies: {}", stats.dependencies);
     println!("semantic facts: {}", stats.semantic_facts);
+    println!("sensitive path warnings: {}", stats.sensitive_paths.len());
     println!("unchanged files: {}", stats.unchanged_files);
     println!("total file bytes: {}", stats.total_file_bytes);
     println!(
@@ -124,6 +140,15 @@ fn print_stats(stats: &thinindex::indexer::BuildStats) {
                 "  {} {} bytes action={:?} threshold={}",
                 warning.path, warning.size, warning.action, warning.threshold
             );
+        }
+    }
+
+    println!("sensitive-looking paths:");
+    if stats.sensitive_paths.is_empty() {
+        println!("  none");
+    } else {
+        for warning in &stats.sensitive_paths {
+            println!("  {} reason={}", warning.path, warning.reason);
         }
     }
 

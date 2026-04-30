@@ -33,6 +33,7 @@ fn release_package_script_stages_expected_payload() {
         "INSTALL.md",
         "docs/RELEASING.md",
         "docs/INSTALLERS.md",
+        "docs/SECURITY_PRIVACY.md",
         "THIRD_PARTY_NOTICES",
         "scripts/install-archive-unix",
         "scripts/uninstall-archive-unix",
@@ -51,6 +52,7 @@ fn release_package_script_stages_expected_payload() {
     );
     assert!(
         script.contains(".dev_index")
+            && script.contains("quality reports")
             && script.contains("test_repos")
             && script.contains("target build junk")
             && script.contains("source checkout"),
@@ -125,6 +127,10 @@ fn release_docs_describe_archive_install_and_boundaries() {
         assert!(
             contents.contains("THIRD_PARTY_NOTICES"),
             "{name} should state that third-party notices ship with release artifacts"
+        );
+        assert!(
+            contents.contains("SECURITY_PRIVACY") || contents.contains("local reports"),
+            "{name} should document privacy/release report boundaries"
         );
         assert!(
             contents.contains(".dev_index/index.sqlite")

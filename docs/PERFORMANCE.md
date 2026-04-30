@@ -37,6 +37,7 @@ build_index --stats
 The report includes:
 
 - refs, dependency, and semantic fact counts;
+- capped sensitive-looking path warning count;
 - unchanged file count;
 - total discovered file bytes;
 - file-size thresholds;

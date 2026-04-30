@@ -13,6 +13,7 @@ use crate::{
     deps::extract_dependencies,
     extras::index_extras,
     model::{FileMeta, IndexRecord},
+    privacy::{SENSITIVE_PATH_WARNING_LIMIT, SensitivePathWarning, sensitive_path_reason},
     refs::{extract_refs, finalize_refs, refs_from_dependencies},
     semantic::SemanticAdapterRegistry,
     store::{
@@ -75,6 +76,7 @@ pub struct BuildStats {
     pub semantic_facts: usize,
     pub total_file_bytes: u64,
     pub large_files: Vec<FileSizeWarning>,
+    pub sensitive_paths: Vec<SensitivePathWarning>,
     pub timings: BuildTimings,
     /// Populated when an existing index was reset (schema bump or corrupted
     /// manifest). Callers may surface this; library code stays silent.
@@ -119,6 +121,7 @@ pub fn build_index_with_semantic_adapters(
     let mut current_paths = BTreeSet::new();
     let mut total_file_bytes = 0u64;
     let mut large_files = Vec::new();
+    let mut sensitive_paths = Vec::new();
 
     for path in files {
         let rel = relpath(&root, &path)?;
@@ -127,6 +130,13 @@ pub fn build_index_with_semantic_adapters(
 
         total_file_bytes = total_file_bytes.saturating_add(meta.size);
         current_paths.insert(rel.clone());
+
+        if let Some(reason) = sensitive_path_reason(&rel) {
+            sensitive_paths.push(SensitivePathWarning {
+                path: rel.clone(),
+                reason,
+            });
+        }
 
         if meta.size >= LARGE_FILE_WARNING_BYTES {
             large_files.push(FileSizeWarning {
@@ -161,6 +171,8 @@ pub fn build_index_with_semantic_adapters(
         )
     });
     large_files.truncate(MAX_SIZE_WARNINGS);
+    sensitive_paths.sort_by(|a, b| a.path.cmp(&b.path).then(a.reason.cmp(b.reason)));
+    sensitive_paths.truncate(SENSITIVE_PATH_WARNING_LIMIT);
 
     let deleted_paths: Vec<String> = manifest
         .files
@@ -274,6 +286,7 @@ pub fn build_index_with_semantic_adapters(
         semantic_facts: semantic_facts.len(),
         total_file_bytes,
         large_files,
+        sensitive_paths,
         timings: BuildTimings {
             discover: discover_elapsed,
             change_detection: change_elapsed,

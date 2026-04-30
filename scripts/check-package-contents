@@ -68,10 +68,13 @@ require_entry '/README\.md$' "README.md"
 require_entry '/INSTALL\.md$' "INSTALL.md"
 require_entry '/docs/RELEASING\.md$' "docs/RELEASING.md"
 require_entry '/docs/INSTALLERS\.md$' "docs/INSTALLERS.md"
+require_entry '/docs/SECURITY_PRIVACY\.md$' "docs/SECURITY_PRIVACY.md"
 
 reject_entry '(^|/)\.dev_index(/|$)' ".dev_index"
 reject_entry '(^|/)test_repos(/|$)' "test_repos"
 reject_entry '(^|/)target(/|$)' "target build directory"
 reject_entry '(^|/)dist(/|$)' "dist build directory"
+reject_entry '(^|/)QUALITY_REPORT(\.md|\.json|_DETAILS\.jsonl)?$' "local quality report"
+reject_entry '(^|/)COMPARATOR_TRIAGE\.md$' "local comparator triage report"
 
 echo "package content ok: $ARCHIVE"

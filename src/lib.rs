@@ -5,6 +5,7 @@ pub mod extras;
 pub mod file_roles;
 pub mod indexer;
 pub mod model;
+pub mod privacy;
 pub mod quality;
 pub mod refs;
 pub mod search;

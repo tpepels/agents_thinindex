@@ -2,7 +2,7 @@ use std::path::Path;
 
 use anyhow::Result;
 
-use crate::{model::IndexRecord, store::load_records};
+use crate::{model::IndexRecord, privacy::redact_sensitive_text, store::load_records};
 
 #[derive(Debug, Clone, Default)]
 pub struct SearchOptions {
@@ -271,22 +271,22 @@ fn camel_case_match(value: &str, query: &str) -> bool {
 
 pub fn format_result(result: &SearchResult, verbose: bool) -> String {
     let record = &result.record;
+    let path = redact_sensitive_text(&record.path);
+    let kind = redact_sensitive_text(&record.kind);
+    let name = redact_sensitive_text(&record.name);
 
     if verbose {
         format!(
             "{}:{}:{}\n  kind: {}\n  lang: {}\n  source: {}\n  text: {}",
-            record.path,
+            path,
             record.line,
             record.col,
-            record.kind,
+            kind,
             record.lang,
             record.source,
-            record.text
+            redact_sensitive_text(&record.text)
         )
     } else {
-        format!(
-            "{}:{} {} {}",
-            record.path, record.line, record.kind, record.name
-        )
+        format!("{}:{} {} {}", path, record.line, kind, name)
     }
 }

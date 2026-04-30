@@ -8,6 +8,7 @@ use anyhow::{Context, Result};
 use serde::Serialize;
 
 use crate::{
+    privacy::redact_sensitive_text,
     quality::{
         cycle::{GapSeverity, GapStatus, QualityCyclePlan, QualityGapReport},
         gate::QualityGateReport,
@@ -259,8 +260,8 @@ pub fn render_quality_report_export_markdown(export: &QualityReportExport) -> St
     } else {
         for repo in &summary.repos {
             out.push_str(&format!(
-                "- {}: languages={} records={} refs={} expected_missing={} comparator_only={} thinindex_only={} unsupported_extensions={}\n",
-                repo.name,
+            "- {}: languages={} records={} refs={} expected_missing={} comparator_only={} thinindex_only={} unsupported_extensions={}\n",
+                redact_sensitive_text(&repo.name),
                 render_strings(&repo.languages_checked),
                 render_counts(&repo.records_by_language),
                 render_counts(&repo.refs_by_language),
@@ -292,7 +293,7 @@ pub fn render_quality_report_export_markdown(export: &QualityReportExport) -> St
     for repo in &summary.repos {
         out.push_str(&format!(
             "- {}: symbols {}/{} missing, patterns {}/{} failing, absent {}/{} found\n",
-            repo.name,
+            redact_sensitive_text(&repo.name),
             repo.expected.symbols_missing,
             repo.expected.symbols_checked,
             repo.expected.patterns_failing,
@@ -307,9 +308,13 @@ pub fn render_quality_report_export_markdown(export: &QualityReportExport) -> St
     for repo in &summary.repos {
         out.push_str(&format!(
             "- {}: status={} comparator={} comparator-only={} thinindex-only={}\n",
-            repo.name,
+            redact_sensitive_text(&repo.name),
             repo.comparator.status,
-            repo.comparator.name.as_deref().unwrap_or("none"),
+            repo.comparator
+                .name
+                .as_deref()
+                .map(redact_sensitive_text)
+                .unwrap_or_else(|| "none".to_string()),
             repo.comparator.comparator_only,
             repo.comparator.thinindex_only,
         ));
@@ -323,8 +328,8 @@ pub fn render_quality_report_export_markdown(export: &QualityReportExport) -> St
             any_parser_errors = true;
             out.push_str(&format!(
                 "- {}: {}\n",
-                repo.name,
-                repo.parser_errors.join("; ")
+                redact_sensitive_text(&repo.name),
+                redact_sensitive_text(&repo.parser_errors.join("; "))
             ));
         }
     }
@@ -337,7 +342,7 @@ pub fn render_quality_report_export_markdown(export: &QualityReportExport) -> St
     for repo in &summary.repos {
         out.push_str(&format!(
             "- {}: {}\n",
-            repo.name,
+            redact_sensitive_text(&repo.name),
             render_counts(&repo.unsupported_extensions)
         ));
     }
@@ -353,7 +358,7 @@ pub fn render_quality_report_export_markdown(export: &QualityReportExport) -> St
         for gaps in &summary.gap_summaries {
             out.push_str(&format!(
                 "- {}: total={} status={} severity={} evidence={} open_sample={}\n",
-                gaps.repo,
+                redact_sensitive_text(&gaps.repo),
                 gaps.total,
                 render_counts(&gaps.by_status),
                 render_counts(&gaps.by_severity),
@@ -371,7 +376,7 @@ pub fn render_quality_report_export_markdown(export: &QualityReportExport) -> St
         for plan in &summary.cycle_plans {
             out.push_str(&format!(
                 "- {}: max_gaps={} selected={} deferred={} selected_ids={} deferred_ids={}\n",
-                plan.cycle_id,
+                redact_sensitive_text(&plan.cycle_id),
                 plan.max_gaps,
                 plan.selected_gaps,
                 plan.deferred_gaps,
@@ -441,10 +446,10 @@ fn repo_summary(
     options: &QualityReportExportOptions,
 ) -> RepoQualitySummary {
     RepoQualitySummary {
-        name: report.repo_name.clone(),
+        name: redact_sensitive_text(&report.repo_name),
         path: options
             .include_local_paths
-            .then(|| report.repo_path.clone()),
+            .then(|| redact_sensitive_text(&report.repo_path)),
         languages_checked: sorted_strings(report.languages_checked.clone()),
         records_by_language: named_counts_from_pairs(&report.records_by_language),
         refs_by_language: named_counts_from_pairs(&report.refs_by_language),
@@ -501,7 +506,7 @@ fn comparator_summary(
         } else {
             "completed".to_string()
         },
-        name: Some(comparator.comparator_name.clone()),
+        name: Some(redact_sensitive_text(&comparator.comparator_name)),
         thinindex_only: comparator.thinindex_only.len(),
         thinindex_only_sample: sample_thinindex_symbols(
             &comparator.thinindex_only,
@@ -547,15 +552,17 @@ fn gap_summary(report: &QualityGapReport, max_summary_items: usize) -> GapSummar
         *by_severity
             .entry(gap_severity(gap.severity).to_string())
             .or_default() += 1;
-        *by_evidence.entry(gap.evidence_source.clone()).or_default() += 1;
+        *by_evidence
+            .entry(redact_sensitive_text(&gap.evidence_source))
+            .or_default() += 1;
         if gap.status == GapStatus::Open {
-            open.push(gap.id.clone());
+            open.push(redact_sensitive_text(&gap.id));
         }
     }
     open.sort();
 
     GapSummary {
-        repo: report.repo_name.clone(),
+        repo: redact_sensitive_text(&report.repo_name),
         total: report.gaps.len(),
         by_status: named_counts_from_map(by_status),
         by_severity: named_counts_from_map(by_severity),
@@ -568,12 +575,16 @@ fn cycle_plan_summary(plan: &QualityCyclePlan) -> CyclePlanSummary {
     let selected_gap_ids = plan
         .selected_gaps
         .iter()
-        .map(|gap| gap.id.clone())
+        .map(|gap| redact_sensitive_text(&gap.id))
         .collect::<Vec<_>>();
-    let deferred_gap_ids = plan.deferred_gap_ids.clone();
+    let deferred_gap_ids = plan
+        .deferred_gap_ids
+        .iter()
+        .map(|id| redact_sensitive_text(id))
+        .collect::<Vec<_>>();
 
     CyclePlanSummary {
-        cycle_id: plan.cycle_id.clone(),
+        cycle_id: redact_sensitive_text(&plan.cycle_id),
         max_gaps: plan.max_gaps,
         selected_gaps: selected_gap_ids.len(),
         selected_gap_ids,
@@ -585,39 +596,39 @@ fn cycle_plan_summary(plan: &QualityCyclePlan) -> CyclePlanSummary {
 fn append_gate_details(details: &mut Vec<QualityReportDetailRecord>, report: &QualityGateReport) {
     for symbol in &report.expected_symbols_missing {
         details.push(QualityReportDetailRecord {
-            repo: report.repo_name.clone(),
+            repo: redact_sensitive_text(&report.repo_name),
             detail_kind: "expected_symbol_missing".to_string(),
             path: None,
             line: None,
             language: None,
             symbol_kind: None,
-            name: Some(symbol.clone()),
+            name: Some(redact_sensitive_text(symbol)),
             detail: None,
         });
     }
 
     for pattern in &report.expected_patterns_failing {
         details.push(QualityReportDetailRecord {
-            repo: report.repo_name.clone(),
+            repo: redact_sensitive_text(&report.repo_name),
             detail_kind: "expected_pattern_failing".to_string(),
             path: None,
             line: None,
             language: None,
             symbol_kind: None,
             name: None,
-            detail: Some(pattern.clone()),
+            detail: Some(redact_sensitive_text(pattern)),
         });
     }
 
     for symbol in &report.expected_absent_symbols_found {
         details.push(QualityReportDetailRecord {
-            repo: report.repo_name.clone(),
+            repo: redact_sensitive_text(&report.repo_name),
             detail_kind: "expected_absent_symbol_found".to_string(),
             path: None,
             line: None,
             language: None,
             symbol_kind: None,
-            name: Some(symbol.clone()),
+            name: Some(redact_sensitive_text(symbol)),
             detail: None,
         });
     }
@@ -625,14 +636,14 @@ fn append_gate_details(details: &mut Vec<QualityReportDetailRecord>, report: &Qu
     if let Some(comparator) = &report.comparator_report {
         for symbol in &comparator.comparator_only {
             details.push(detail_from_comparator_symbol(
-                &report.repo_name,
+                &redact_sensitive_text(&report.repo_name),
                 "comparator_only",
                 symbol,
             ));
         }
         for symbol in &comparator.thinindex_only {
             details.push(detail_from_thinindex_symbol(
-                &report.repo_name,
+                &redact_sensitive_text(&report.repo_name),
                 "thinindex_only",
                 symbol,
             ));
@@ -643,16 +654,16 @@ fn append_gate_details(details: &mut Vec<QualityReportDetailRecord>, report: &Qu
 fn append_gap_details(details: &mut Vec<QualityReportDetailRecord>, report: &QualityGapReport) {
     for gap in &report.gaps {
         details.push(QualityReportDetailRecord {
-            repo: report.repo_name.clone(),
+            repo: redact_sensitive_text(&report.repo_name),
             detail_kind: "gap".to_string(),
-            path: gap.path.clone(),
+            path: gap.path.as_deref().map(redact_sensitive_text),
             line: None,
-            language: Some(gap.language.clone()),
-            symbol_kind: gap.kind.clone(),
-            name: gap.symbol.clone(),
+            language: Some(redact_sensitive_text(&gap.language)),
+            symbol_kind: gap.kind.as_deref().map(redact_sensitive_text),
+            name: gap.symbol.as_deref().map(redact_sensitive_text),
             detail: Some(format!(
                 "{} status={} severity={}",
-                gap.id,
+                redact_sensitive_text(&gap.id),
                 gap_status(gap.status),
                 gap_severity(gap.severity)
             )),
@@ -666,13 +677,13 @@ fn detail_from_comparator_symbol(
     symbol: &ComparatorOnlySymbol,
 ) -> QualityReportDetailRecord {
     QualityReportDetailRecord {
-        repo: repo.to_string(),
+        repo: redact_sensitive_text(repo),
         detail_kind: detail_kind.to_string(),
-        path: Some(symbol.path.clone()),
+        path: Some(redact_sensitive_text(&symbol.path)),
         line: Some(symbol.line),
-        language: Some(symbol.language.clone()),
-        symbol_kind: Some(symbol.kind.clone()),
-        name: Some(symbol.name.clone()),
+        language: Some(redact_sensitive_text(&symbol.language)),
+        symbol_kind: Some(redact_sensitive_text(&symbol.kind)),
+        name: Some(redact_sensitive_text(&symbol.name)),
         detail: None,
     }
 }
@@ -683,13 +694,13 @@ fn detail_from_thinindex_symbol(
     symbol: &ThinindexOnlySymbol,
 ) -> QualityReportDetailRecord {
     QualityReportDetailRecord {
-        repo: repo.to_string(),
+        repo: redact_sensitive_text(repo),
         detail_kind: detail_kind.to_string(),
-        path: Some(symbol.path.clone()),
+        path: Some(redact_sensitive_text(&symbol.path)),
         line: Some(symbol.line),
-        language: Some(symbol.language.clone()),
-        symbol_kind: Some(symbol.kind.clone()),
-        name: Some(symbol.name.clone()),
+        language: Some(redact_sensitive_text(&symbol.language)),
+        symbol_kind: Some(redact_sensitive_text(&symbol.kind)),
+        name: Some(redact_sensitive_text(&symbol.name)),
         detail: None,
     }
 }
@@ -709,7 +720,10 @@ fn parser_errors(report: &QualityGateReport) -> Vec<String> {
 }
 
 fn sample_strings(values: &[String], max_summary_items: usize) -> Vec<String> {
-    let mut values = values.to_vec();
+    let mut values = values
+        .iter()
+        .map(|value| redact_sensitive_text(value))
+        .collect::<Vec<_>>();
     values.sort();
     values.into_iter().take(max_summary_items).collect()
 }
@@ -735,11 +749,11 @@ fn sample_thinindex_symbols(
 impl From<&ComparatorOnlySymbol> for SymbolSummary {
     fn from(symbol: &ComparatorOnlySymbol) -> Self {
         Self {
-            path: symbol.path.clone(),
+            path: redact_sensitive_text(&symbol.path),
             line: symbol.line,
-            language: symbol.language.clone(),
-            kind: symbol.kind.clone(),
-            name: symbol.name.clone(),
+            language: redact_sensitive_text(&symbol.language),
+            kind: redact_sensitive_text(&symbol.kind),
+            name: redact_sensitive_text(&symbol.name),
         }
     }
 }
@@ -747,11 +761,11 @@ impl From<&ComparatorOnlySymbol> for SymbolSummary {
 impl From<&ThinindexOnlySymbol> for SymbolSummary {
     fn from(symbol: &ThinindexOnlySymbol) -> Self {
         Self {
-            path: symbol.path.clone(),
+            path: redact_sensitive_text(&symbol.path),
             line: symbol.line,
-            language: symbol.language.clone(),
-            kind: symbol.kind.clone(),
-            name: symbol.name.clone(),
+            language: redact_sensitive_text(&symbol.language),
+            kind: redact_sensitive_text(&symbol.kind),
+            name: redact_sensitive_text(&symbol.name),
         }
     }
 }
@@ -779,7 +793,7 @@ fn render_counts(counts: &[NamedCount]) -> String {
 
     counts
         .iter()
-        .map(|count| format!("{}={}", count.name, count.count))
+        .map(|count| format!("{}={}", redact_sensitive_text(&count.name), count.count))
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -788,7 +802,11 @@ fn render_strings(values: &[String]) -> String {
     if values.is_empty() {
         "none".to_string()
     } else {
-        values.join(", ")
+        values
+            .iter()
+            .map(|value| redact_sensitive_text(value))
+            .collect::<Vec<_>>()
+            .join(", ")
     }
 }
 

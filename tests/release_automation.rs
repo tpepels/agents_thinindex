@@ -106,7 +106,7 @@ fn package_content_check_rejects_missing_notices() {
 
 #[test]
 fn package_content_check_rejects_forbidden_artifacts() {
-    for forbidden in ["dev-index", "test-repos"] {
+    for forbidden in ["dev-index", "test-repos", "quality-report"] {
         let archive = make_archive(&[forbidden]);
 
         Command::new(repo_root().join("scripts/check-package-contents"))
@@ -133,6 +133,7 @@ fn make_archive(options: &[&str]) -> PathBuf {
     fs::write(package.join("INSTALL.md"), "install").expect("write install");
     fs::write(package.join("docs/RELEASING.md"), "releasing").expect("write releasing");
     fs::write(package.join("docs/INSTALLERS.md"), "installers").expect("write installers");
+    fs::write(package.join("docs/SECURITY_PRIVACY.md"), "privacy").expect("write privacy");
 
     if !options.contains(&"missing-notices") {
         fs::write(package.join("THIRD_PARTY_NOTICES"), "notices").expect("write notices");
@@ -146,6 +147,10 @@ fn make_archive(options: &[&str]) -> PathBuf {
     if options.contains(&"test-repos") {
         fs::create_dir_all(package.join("test_repos")).expect("create test_repos");
         fs::write(package.join("test_repos/README.md"), "repo").expect("write test repo");
+    }
+
+    if options.contains(&"quality-report") {
+        fs::write(package.join("QUALITY_REPORT.md"), "local report").expect("write report");
     }
 
     let archive = root.join("thinindex-9.9.9-test-target.tar.gz");

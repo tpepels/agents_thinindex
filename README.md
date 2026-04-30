@@ -4,6 +4,8 @@ thinindex is a local agent-navigation layer for coding repositories. It builds a
 
 No daemon. No embeddings. No vector database. No source upload. The SQLite engine is bundled into the Rust binaries, so users do not need a system SQLite package.
 
+Privacy note: `.dev_index/` is local and disposable, but it can contain project paths, symbols, references, and compact evidence strings. Add secrets and sensitive paths to `.thinindexignore` before indexing. See [docs/SECURITY_PRIVACY.md](docs/SECURITY_PRIVACY.md).
+
 ## What thinindex is
 
 thinindex indexes named repository landmarks: functions, classes, methods, CSS selectors, HTML ids/classes, Markdown headings, TODO/FIXME markers, and related deterministic references. The `wi` command returns compact file:line results from that index.
@@ -323,7 +325,7 @@ Release archives are built with:
 scripts/package-release
 ```
 
-Archives include all four binaries, `README.md`, `INSTALL.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, helper install/uninstall scripts, and `THIRD_PARTY_NOTICES`. They do not include `.dev_index/index.sqlite`, `test_repos/`, build output junk, or source checkout contents. Native installers/package formats, signing, and notarization are later release-hardening work. See [docs/RELEASING.md](docs/RELEASING.md) and [docs/INSTALLERS.md](docs/INSTALLERS.md).
+Archives include all four binaries, `README.md`, `INSTALL.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, helper install/uninstall scripts, and `THIRD_PARTY_NOTICES`. They do not include `.dev_index/index.sqlite`, `.dev_index/quality/`, `test_repos/`, build output junk, local reports, or source checkout contents. Native installers/package formats, signing, and notarization are later release-hardening work. See [docs/RELEASING.md](docs/RELEASING.md), [docs/INSTALLERS.md](docs/INSTALLERS.md), and [docs/SECURITY_PRIVACY.md](docs/SECURITY_PRIVACY.md).
 
 Local release gates can be run with:
 
@@ -366,6 +368,7 @@ cargo run --bin wi-stats
 Generated and local files:
 
 - `.dev_index/` is ignored and disposable.
+- `.dev_index/quality/` and `test_repos/` are local-only and must not be committed.
 - `.thinindexignore` is repo-local configuration for thinindex-only ignores.
 - `AGENTS.md` is the canonical repository instruction surface created by `wi-init`.
 - Existing `CLAUDE.md` files are normalized when present; `wi-init` does not create one.

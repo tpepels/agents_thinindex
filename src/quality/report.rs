@@ -9,6 +9,7 @@ use anyhow::{Context, Result, bail};
 use crate::{
     bench::ExpectedSymbol,
     model::IndexRecord,
+    privacy::redact_sensitive_text,
     quality::{
         comparator::{ComparatorRecord, ComparatorRun, ComparatorStatus},
         manifest::quality_report_dir,
@@ -312,9 +313,18 @@ pub fn compare_quality(
 
 pub fn render_quality_report(report: &QualityReport) -> String {
     let mut out = String::new();
-    out.push_str(&format!("Repo: {}\n", report.repo_name));
-    out.push_str(&format!("- path: {}\n", report.repo_path));
-    out.push_str(&format!("- comparator: {}\n", report.comparator_name));
+    out.push_str(&format!(
+        "Repo: {}\n",
+        redact_sensitive_text(&report.repo_name)
+    ));
+    out.push_str(&format!(
+        "- path: {}\n",
+        redact_sensitive_text(&report.repo_path)
+    ));
+    out.push_str(&format!(
+        "- comparator: {}\n",
+        redact_sensitive_text(&report.comparator_name)
+    ));
 
     if report.skipped {
         out.push_str(&format!(
@@ -322,7 +332,8 @@ pub fn render_quality_report(report: &QualityReport) -> String {
             report
                 .skip_reason
                 .as_deref()
-                .unwrap_or("comparator skipped")
+                .map(redact_sensitive_text)
+                .unwrap_or_else(|| "comparator skipped".to_string())
         ));
     } else {
         out.push_str("- skipped: no\n");
@@ -345,7 +356,7 @@ pub fn render_quality_report(report: &QualityReport) -> String {
         for metric in &report.metrics {
             out.push_str(&format!(
                 "- {}: thinindex={} comparator={} matched={} thinindex-only={} comparator-only={} expected-pass={} expected-fail={} unknown-kinds={} duplicates={} malformed={} unsupported-exts={}\n",
-                metric.language,
+                redact_sensitive_text(&metric.language),
                 metric.thinindex_record_count,
                 metric.comparator_record_count,
                 metric.matched_symbol_count,
@@ -368,7 +379,11 @@ pub fn render_quality_report(report: &QualityReport) -> String {
         for symbol in &report.thinindex_only {
             out.push_str(&format!(
                 "- {}:{} {} {} ({})\n",
-                symbol.path, symbol.line, symbol.kind, symbol.name, symbol.language
+                redact_sensitive_text(&symbol.path),
+                symbol.line,
+                redact_sensitive_text(&symbol.kind),
+                redact_sensitive_text(&symbol.name),
+                redact_sensitive_text(&symbol.language)
             ));
         }
     }
@@ -380,7 +395,11 @@ pub fn render_quality_report(report: &QualityReport) -> String {
         for symbol in &report.comparator_only {
             out.push_str(&format!(
                 "- {}:{} {} {} ({})\n",
-                symbol.path, symbol.line, symbol.kind, symbol.name, symbol.language
+                redact_sensitive_text(&symbol.path),
+                symbol.line,
+                redact_sensitive_text(&symbol.kind),
+                redact_sensitive_text(&symbol.name),
+                redact_sensitive_text(&symbol.language)
             ));
         }
     }
@@ -388,21 +407,21 @@ pub fn render_quality_report(report: &QualityReport) -> String {
     if !report.expected_symbols_missing.is_empty() {
         out.push_str("\nMissing expected symbols:\n");
         for symbol in &report.expected_symbols_missing {
-            out.push_str(&format!("- {symbol}\n"));
+            out.push_str(&format!("- {}\n", redact_sensitive_text(symbol)));
         }
     }
 
     if !report.unknown_comparator_kinds.is_empty() {
         out.push_str("\nUnknown comparator kinds:\n");
         for kind in &report.unknown_comparator_kinds {
-            out.push_str(&format!("- {kind}\n"));
+            out.push_str(&format!("- {}\n", redact_sensitive_text(kind)));
         }
     }
 
     if !report.unsupported_extensions.is_empty() {
         out.push_str("\nUnsupported extensions:\n");
         for extension in &report.unsupported_extensions {
-            out.push_str(&format!("- {extension}\n"));
+            out.push_str(&format!("- {}\n", redact_sensitive_text(extension)));
         }
     }
 
@@ -423,7 +442,7 @@ pub fn write_quality_report(
     })?;
     let file_name = sanitize_report_name(comparator_name);
     let report_path = report_dir.join(format!("{file_name}.txt"));
-    fs::write(&report_path, contents).with_context(|| {
+    fs::write(&report_path, redact_sensitive_text(contents)).with_context(|| {
         format!(
             "failed to write isolated quality report {}",
             report_path.display()
