@@ -130,3 +130,13 @@ Report:
 - verification commands and results
 - ignored local/real repo test status
 - commit hash
+
+## Phase tracking
+
+- [x] Replace ad hoc language-pack assertions with a shared data-driven parser conformance harness.
+- [x] Cover expected symbols, record kinds, extensions, absent comment/string symbols, line/col, stable source, and `wi` searchability.
+- [x] Add parser diagnostics plumbing for parse-error visibility without changing CLI output.
+- [x] Extend ignored real-repo validation with parser coverage reporting.
+- [x] Update support matrix, parser gap docs, release docs, and notices audit tests.
+- [x] Run required 11C verification.
+- [x] Commit with `Harden Tree-sitter parser conformance and docs`.

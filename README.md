@@ -107,7 +107,7 @@ Normal tests use fixtures and do not depend on local clones. Real-repo validatio
 - Clone third-party repositories there manually when needed.
 - No third-party repository contents are committed.
 - `test_repos/MANIFEST.toml` records local benchmark and integrity targets when present.
-- Ignored tests validate indexing, references, context commands, and benchmark behavior against those repos.
+- Ignored tests validate indexing, references, context commands, parser coverage, and benchmark behavior against those repos.
 
 Run real-repo checks with:
 
@@ -151,12 +151,12 @@ Tree-sitter-backed code-symbol extraction is currently enabled for this represen
 | Language | Extensions | Backing grammar | Expected record kinds |
 | --- | --- | --- | --- |
 | Rust | `.rs` | `tree-sitter-rust` | function, struct, enum, trait, type, module, constant, variable |
-| Python | `.py` | `tree-sitter-python` | function, method, class, variable |
-| JavaScript | `.js` | `tree-sitter-javascript` | function, method, class, variable, export |
-| JSX | `.jsx` | `tree-sitter-javascript` | function, method, class, variable, export |
-| TypeScript | `.ts` | `tree-sitter-typescript` | function, method, class, interface, type, variable, export |
-| TSX | `.tsx` | `tree-sitter-typescript` | function, method, class, interface, type, variable, export |
-| Java | `.java` | `tree-sitter-java` | method, class, enum, interface, type, variable |
+| Python | `.py` | `tree-sitter-python` | function, method, class, variable, import |
+| JavaScript | `.js` | `tree-sitter-javascript` | function, method, class, variable, import, export |
+| JSX | `.jsx` | `tree-sitter-javascript` | function, method, class, variable, import, export |
+| TypeScript | `.ts` | `tree-sitter-typescript` | function, method, class, interface, type, variable, import, export |
+| TSX | `.tsx` | `tree-sitter-typescript` | function, method, class, interface, type, variable, import, export |
+| Java | `.java` | `tree-sitter-java` | method, class, enum, interface, type, variable, import |
 | Go | `.go` | `tree-sitter-go` | function, method, struct, interface, type, module, variable, constant, import |
 | C | `.c`, `.h` | `tree-sitter-c` | function, struct, enum, type, variable, import |
 | C++ | `.cc`, `.cpp`, `.cxx`, `.hh`, `.hpp`, `.hxx` | `tree-sitter-cpp` | function, method, class, struct, enum, type, module, variable, import |
@@ -167,6 +167,8 @@ Tree-sitter-backed code-symbol extraction is currently enabled for this represen
 HTML, CSS, Markdown headings, and TODO/FIXME landmarks are extras-backed deterministic extraction, not Tree-sitter code-symbol parsing.
 
 Unsupported or deferred languages are not silently parsed through line scanning. They need a permissively licensed Tree-sitter grammar, an extension mapping, a query spec, a conformance fixture, a notice entry, and support-matrix documentation before they are claimed as supported.
+
+Known extraction gaps: Rust `use` records, Ruby `require` targets, Shell sourced files, dynamic PHP includes, macro-expanded C/C++, template instantiation, inherited members, and LSP-level type resolution are not claimed as parser-backed symbol extraction.
 
 ## Free/local and future Pro
 

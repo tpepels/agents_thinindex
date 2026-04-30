@@ -14,6 +14,8 @@ type GoRenderable interface {
 	Render() string
 }
 
+type GoID string
+
 func NewGoWidget(
 	name string,
 ) GoWidget {

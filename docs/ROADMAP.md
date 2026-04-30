@@ -105,7 +105,7 @@ Future paid work is documented in [PRODUCT_BOUNDARY.md](PRODUCT_BOUNDARY.md). Ca
 
 Future product work may include:
 
-- richer native parsing
+- richer Tree-sitter parser coverage
 - broader language support
 - better diagnostics for stale or missing indexes
 - cross-platform archives and installers after the parser blocker is removed

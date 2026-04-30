@@ -105,14 +105,27 @@ pub struct TreeSitterExtractionEngine {
     registry: LanguageRegistry,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsedFile {
+    pub records: Vec<IndexRecord>,
+    pub had_error: bool,
+}
+
 impl TreeSitterExtractionEngine {
     pub fn new(registry: LanguageRegistry) -> Self {
         Self { registry }
     }
 
     pub fn parse_file(&self, rel_path: &str, text: &str) -> Result<Vec<IndexRecord>> {
+        Ok(self.parse_file_with_diagnostics(rel_path, text)?.records)
+    }
+
+    pub fn parse_file_with_diagnostics(&self, rel_path: &str, text: &str) -> Result<ParsedFile> {
         let Some(adapter) = self.registry.adapter_for_path(rel_path) else {
-            return Ok(Vec::new());
+            return Ok(ParsedFile {
+                records: Vec::new(),
+                had_error: false,
+            });
         };
 
         let language = (adapter.language)();
@@ -122,14 +135,21 @@ impl TreeSitterExtractionEngine {
             .with_context(|| format!("failed to load {} grammar", adapter.display_name))?;
 
         let Some(tree) = parser.parse(text, None) else {
-            return Ok(Vec::new());
+            return Ok(ParsedFile {
+                records: Vec::new(),
+                had_error: false,
+            });
         };
+        let had_error = tree.root_node().has_error();
 
         let query = Query::new(&language, adapter.query_pack.source)
             .with_context(|| format!("failed to compile {} query pack", adapter.display_name))?;
         let mapper = CaptureMapper::new(adapter, &query);
 
-        mapper.records_from_query(rel_path, text, tree.root_node())
+        Ok(ParsedFile {
+            records: mapper.records_from_query(rel_path, text, tree.root_node())?,
+            had_error,
+        })
     }
 
     pub fn licenses(&self) -> Vec<LicenseEntry> {
@@ -489,6 +509,8 @@ const PYTHON_QUERY: &str = r#"
 (class_definition name: (identifier) @name) @definition.class
 (function_definition name: (identifier) @name) @definition.function
 (assignment left: (identifier) @name) @definition.variable
+(import_statement name: (dotted_name) @name) @definition.import
+(import_from_statement module_name: (dotted_name) @name) @definition.import
 "#;
 
 const JAVASCRIPT_QUERY: &str = r#"
@@ -500,6 +522,7 @@ const JAVASCRIPT_QUERY: &str = r#"
 (variable_declaration (variable_declarator name: (identifier) @name value: [(arrow_function) (function_expression)])) @definition.function
 (lexical_declaration (variable_declarator name: (identifier) @name value: [(number) (string)])) @definition.variable
 (variable_declaration (variable_declarator name: (identifier) @name value: [(number) (string)])) @definition.variable
+(import_statement source: (string) @name) @definition.import
 (export_statement (export_clause (export_specifier name: (identifier) @name))) @definition.export
 "#;
 
@@ -512,6 +535,7 @@ const TYPESCRIPT_QUERY: &str = r#"
 (type_alias_declaration name: (type_identifier) @name) @definition.type
 (lexical_declaration (variable_declarator name: (identifier) @name value: [(arrow_function) (function_expression)])) @definition.function
 (lexical_declaration (variable_declarator name: (identifier) @name value: [(number) (string)])) @definition.variable
+(import_statement source: (string) @name) @definition.import
 (export_statement (export_clause (export_specifier name: (identifier) @name))) @definition.export
 "#;
 
@@ -523,6 +547,8 @@ const JAVA_QUERY: &str = r#"
 (method_declaration name: (identifier) @name) @definition.method
 (constructor_declaration name: (identifier) @name) @definition.constructor
 (field_declaration declarator: (variable_declarator name: (identifier) @name)) @definition.variable
+(import_declaration (identifier) @name) @definition.import
+(import_declaration (scoped_identifier) @name) @definition.import
 "#;
 
 const GO_QUERY: &str = r#"
@@ -589,10 +615,10 @@ const PHP_QUERY: &str = r#"
 (method_declaration name: (name) @name) @definition.method
 (property_declaration (property_element (variable_name (name) @name))) @definition.variable
 (const_declaration (const_element (name) @name)) @definition.constant
-(include_expression (string) @name) @definition.import
-(include_once_expression (string) @name) @definition.import
-(require_expression (string) @name) @definition.import
-(require_once_expression (string) @name) @definition.import
+(include_expression (_) @name) @definition.import
+(include_once_expression (_) @name) @definition.import
+(require_expression (_) @name) @definition.import
+(require_once_expression (_) @name) @definition.import
 "#;
 
 #[cfg(test)]

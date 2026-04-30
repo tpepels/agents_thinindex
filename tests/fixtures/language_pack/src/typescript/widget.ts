@@ -6,6 +6,8 @@ export interface TypeScriptRenderable {
 
 type TypeScriptMode = "compact" | "full";
 
+const TS_LIMIT = 4;
+
 class TypeScriptWidget implements TypeScriptRenderable {
   render() {
     return "function TypeScriptStringFake() {}";

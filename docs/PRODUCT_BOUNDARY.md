@@ -42,7 +42,7 @@ Possible future Pro value should be treated as candidates, not implemented gates
 - exported agent-readiness reports
 - advanced reference graph quality features
 - signed installers and a managed update channel after parser/licensing blockers are removed
-- release-quality native parser backend if it materially improves bundled parser quality
+- release-quality Tree-sitter parser coverage if it materially improves bundled parser quality
 
 These are roadmap candidates. They are not active feature gates in the current tool.
 
@@ -112,5 +112,5 @@ Charging for a Pro edition requires evidence such as:
 - Which advanced context workflows are valuable enough to pay for?
 - Which benchmark reports are useful to supervising developers?
 - What evidence proves fewer irrelevant reads in real agent tasks?
-- Which native parser backend gives enough quality without licensing risk?
+- Which Tree-sitter grammar and query coverage gives enough quality without licensing risk?
 - What packaging channel is appropriate after parser and license audits are complete?
