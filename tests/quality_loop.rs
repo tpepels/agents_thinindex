@@ -11,11 +11,12 @@ use thinindex::{
         ComparatorRecord, ComparatorRun, CyclePlanOptions, GapSeverity, GapStatus,
         QualityComparator, QualityCycleStopCondition, QualityCycleVerification, QualityGap,
         QualityGapReport, QualityGateOptions, SuggestedFixType, UniversalCtagsComparator,
-        assert_quality_gate_passes, evaluate_quality_gate, finalize_quality_cycle,
-        gaps_from_gate_report, generate_cycle_plan, group_gaps, load_quality_repo_set,
-        render_quality_cycle_final_report, render_quality_cycle_plan, render_quality_gap_report,
-        render_triage_report, run_single_quality_cycle, triage_report_from_quality_report,
-        write_quality_cycle_final_report, write_quality_cycle_run, write_triage_report,
+        assert_quality_gate_passes, build_quality_report_export, evaluate_quality_gate,
+        finalize_quality_cycle, gaps_from_gate_report, generate_cycle_plan, group_gaps,
+        load_quality_repo_set, render_quality_cycle_final_report, render_quality_cycle_plan,
+        render_quality_gap_report, render_triage_report, run_single_quality_cycle,
+        triage_report_from_quality_report, write_quality_cycle_final_report,
+        write_quality_cycle_run, write_quality_report_export, write_triage_report,
     },
     store::load_records,
 };
@@ -726,6 +727,13 @@ fn full_quality_loop_writes_gap_report_and_bounded_plan_for_test_repos() -> Resu
 
         let run = run_single_quality_cycle(&gate, CyclePlanOptions::default());
         let paths = write_quality_cycle_run(&repo.path, &run)?;
+        let export = build_quality_report_export(
+            std::slice::from_ref(&gate),
+            std::slice::from_ref(&run.gap_report),
+            std::slice::from_ref(&run.plan),
+            Default::default(),
+        )?;
+        let export_paths = write_quality_report_export(&repo.path, &export)?;
         let final_report = finalize_quality_cycle(
             &run.plan,
             &run.gap_report.gaps,
@@ -749,6 +757,9 @@ fn full_quality_loop_writes_gap_report_and_bounded_plan_for_test_repos() -> Resu
         assert!(paths.gap_report_path.exists());
         assert!(paths.cycle_plan_path.exists());
         assert!(final_path.exists());
+        assert!(export_paths.markdown_path.exists());
+        assert!(export_paths.json_path.exists());
+        assert!(export_paths.details_jsonl_path.exists());
         assert!(triage_path.is_none_or(|path| path.exists()));
         assert!(run.plan.selected_gaps.len() <= thinindex::quality::DEFAULT_MAX_GAPS_PER_CYCLE);
         assert_eq!(run.cycles_executed, 1);

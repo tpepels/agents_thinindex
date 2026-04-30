@@ -116,7 +116,15 @@ fn audit_command_and_packaging_blockers_are_documented() {
 fn third_party_notices_cover_runtime_parsers_and_sqlite() {
     let notices = repo_file("THIRD_PARTY_NOTICES");
 
-    for runtime in ["anyhow", "clap", "ignore", "regex", "rusqlite", "serde"] {
+    for runtime in [
+        "anyhow",
+        "clap",
+        "ignore",
+        "regex",
+        "rusqlite",
+        "serde",
+        "serde_json",
+    ] {
         assert_notice_entry(&notices, runtime, "License expression:", "Accepted reason:");
     }
 

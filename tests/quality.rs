@@ -5,11 +5,15 @@ use thinindex::{
     bench::ExpectedSymbol,
     model::IndexRecord,
     quality::{
-        ComparatorRecord, ComparatorRun, ComparatorStatus, QualityComparator,
-        QualityComparisonOptions, UniversalCtagsComparator, assert_no_forbidden_index_sources,
-        compare_quality, parse_ctags_json_record, render_quality_report, write_quality_report,
+        ComparatorRecord, ComparatorRun, ComparatorStatus, CyclePlanOptions, QualityComparator,
+        QualityComparisonOptions, QualityGateOptions, QualityReportExportOptions,
+        UniversalCtagsComparator, assert_no_forbidden_index_sources, build_quality_report_export,
+        compare_quality, evaluate_quality_gate, gaps_from_gate_report, generate_cycle_plan,
+        parse_ctags_json_record, render_quality_report, render_quality_report_export_details_jsonl,
+        render_quality_report_export_json, render_quality_report_export_markdown,
+        write_quality_report, write_quality_report_export,
     },
-    store::load_records,
+    store::{load_records, load_refs},
 };
 
 use common::{load_index_snapshot_from_sqlite, run_build, temp_repo, write_file};
@@ -181,6 +185,182 @@ fn report_includes_comparator_only_and_thinindex_only_symbols() {
 }
 
 #[test]
+fn quality_report_export_is_deterministic_and_json_parses() {
+    let gate_a = export_gate_report("fixture-a", "alpha_missing", "alpha_comparator");
+    let gate_b = export_gate_report("fixture-b", "beta_missing", "beta_comparator");
+    let gaps_a = gaps_from_gate_report(&gate_a);
+    let plan_a = generate_cycle_plan(&gaps_a, CyclePlanOptions::default());
+
+    let first = build_quality_report_export(
+        &[gate_b.clone(), gate_a.clone()],
+        std::slice::from_ref(&gaps_a),
+        std::slice::from_ref(&plan_a),
+        QualityReportExportOptions::default(),
+    )
+    .expect("build first export");
+    let second = build_quality_report_export(
+        &[gate_a, gate_b],
+        &[gaps_a],
+        &[plan_a],
+        QualityReportExportOptions::default(),
+    )
+    .expect("build second export");
+
+    let first_markdown = render_quality_report_export_markdown(&first);
+    let second_markdown = render_quality_report_export_markdown(&second);
+    let first_json = render_quality_report_export_json(&first).expect("render first json");
+    let second_json = render_quality_report_export_json(&second).expect("render second json");
+    let first_details =
+        render_quality_report_export_details_jsonl(&first).expect("render first details");
+    let second_details =
+        render_quality_report_export_details_jsonl(&second).expect("render second details");
+    let parsed: serde_json::Value = serde_json::from_str(&first_json).expect("json parses");
+
+    assert_eq!(first_markdown, second_markdown);
+    assert_eq!(first_json, second_json);
+    assert_eq!(first_details, second_details);
+    assert_eq!(parsed["generated_at"], "deterministic");
+    assert_eq!(parsed["repos"][0]["name"], "fixture-a");
+    assert!(parsed["repos"][0].get("path").is_none());
+}
+
+#[test]
+fn quality_report_export_markdown_contains_required_sections() {
+    let gate = export_gate_report("fixture", "missing_symbol", "comparator_symbol");
+    let gaps = gaps_from_gate_report(&gate);
+    let plan = generate_cycle_plan(&gaps, CyclePlanOptions::default());
+    let export = build_quality_report_export(&[gate], &[gaps], &[plan], Default::default())
+        .expect("build export");
+    let markdown = render_quality_report_export_markdown(&export);
+
+    for section in [
+        "# Quality Report",
+        "## Repos",
+        "## Language Support Matrix",
+        "## Expected Symbols",
+        "## Comparator Symbols",
+        "## Parser Errors",
+        "## Unsupported Extensions",
+        "## Slow Or Noisy Files",
+        "## Gap Summary",
+        "## Cycle Plan Summary",
+        "detail file: QUALITY_REPORT_DETAILS.jsonl",
+    ] {
+        assert!(markdown.contains(section), "missing section {section}");
+    }
+}
+
+#[test]
+fn quality_report_export_keeps_large_detail_data_out_of_summary() {
+    let records = vec![IndexRecord::new(
+        "src/lib.rs",
+        1,
+        1,
+        "rs",
+        "function",
+        "present",
+        "fn present() {}",
+        "tree-sitter",
+    )];
+    let comparator_symbols = (0..30)
+        .map(|index| {
+            ComparatorRecord::new(
+                "src/lib.rs",
+                index + 10,
+                None,
+                "function",
+                format!("comparator_symbol_{index:02}"),
+                Some("rs"),
+                "fake-comparator",
+            )
+        })
+        .collect();
+    let gate = evaluate_quality_gate(
+        &records,
+        &[],
+        QualityGateOptions::new("fixture", "/tmp/fixture").with_comparator_run(
+            ComparatorRun::completed("fake-comparator", comparator_symbols),
+        ),
+    )
+    .expect("evaluate gate");
+    let export = build_quality_report_export(
+        &[gate],
+        &[],
+        &[],
+        QualityReportExportOptions::default().with_max_summary_items(3),
+    )
+    .expect("build export");
+    let json = render_quality_report_export_json(&export).expect("render json");
+    let markdown = render_quality_report_export_markdown(&export);
+    let details = render_quality_report_export_details_jsonl(&export).expect("render details");
+
+    assert!(json.contains("comparator_symbol_00"));
+    assert!(!json.contains("comparator_symbol_29"));
+    assert!(!markdown.contains("comparator_symbol_29"));
+    assert!(details.contains("comparator_symbol_29"));
+}
+
+#[test]
+fn quality_report_export_is_isolated_from_production_database() {
+    let temp = temp_repo();
+    write_file(temp.path(), "src/lib.rs", "pub fn indexed_symbol() {}\n");
+    run_build(temp.path());
+    let before_records = load_records(temp.path()).expect("load records before export");
+    let before_refs = load_refs(temp.path()).expect("load refs before export");
+    let gate = evaluate_quality_gate(
+        &before_records,
+        &before_refs,
+        QualityGateOptions::new("fixture", temp.path().display().to_string()).with_comparator_run(
+            ComparatorRun::completed(
+                "fake-comparator",
+                vec![ComparatorRecord::new(
+                    "src/lib.rs",
+                    1,
+                    None,
+                    "function",
+                    "indexed_symbol",
+                    Some("rs"),
+                    "fake-comparator",
+                )],
+            ),
+        ),
+    )
+    .expect("evaluate gate");
+    let gaps = gaps_from_gate_report(&gate);
+    let plan = generate_cycle_plan(&gaps, CyclePlanOptions::default());
+    let export = build_quality_report_export(&[gate], &[gaps], &[plan], Default::default())
+        .expect("build export");
+    let paths = write_quality_report_export(temp.path(), &export).expect("write export");
+
+    assert!(
+        paths
+            .markdown_path
+            .ends_with(".dev_index/quality/QUALITY_REPORT.md")
+    );
+    assert!(
+        paths
+            .json_path
+            .ends_with(".dev_index/quality/QUALITY_REPORT.json")
+    );
+    assert!(
+        paths
+            .details_jsonl_path
+            .ends_with(".dev_index/quality/QUALITY_REPORT_DETAILS.jsonl")
+    );
+    assert!(paths.markdown_path.exists());
+    assert!(paths.json_path.exists());
+    assert!(paths.details_jsonl_path.exists());
+    assert_eq!(
+        before_records,
+        load_records(temp.path()).expect("load records after export")
+    );
+    assert_eq!(
+        before_refs,
+        load_refs(temp.path()).expect("load refs after export")
+    );
+}
+
+#[test]
 fn missing_optional_comparator_skips_cleanly() {
     let comparator = UniversalCtagsComparator::new("definitely-no-such-thinindex-ctags-command");
     let temp = temp_repo();
@@ -304,4 +484,46 @@ fn malformed_thinindex_records_fail_quality_checks() {
         )
         .is_err()
     );
+}
+
+fn export_gate_report(
+    repo_name: &str,
+    missing_symbol: &str,
+    comparator_symbol: &str,
+) -> thinindex::quality::QualityGateReport {
+    let records = vec![IndexRecord::new(
+        "src/lib.rs",
+        1,
+        1,
+        "rs",
+        "function",
+        "present",
+        "fn present() {}",
+        "tree-sitter",
+    )];
+
+    evaluate_quality_gate(
+        &records,
+        &[],
+        QualityGateOptions::new(repo_name, "/tmp/fixture")
+            .with_expected_symbols(vec![ExpectedSymbol {
+                language: Some("rs".to_string()),
+                path: Some("src/lib.rs".to_string()),
+                kind: Some("function".to_string()),
+                name: missing_symbol.to_string(),
+            }])
+            .with_comparator_run(ComparatorRun::completed(
+                "fake-comparator",
+                vec![ComparatorRecord::new(
+                    "src/lib.rs",
+                    10,
+                    None,
+                    "function",
+                    comparator_symbol,
+                    Some("rs"),
+                    "fake-comparator",
+                )],
+            )),
+    )
+    .expect("evaluate export gate")
 }

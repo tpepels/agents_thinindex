@@ -1,6 +1,7 @@
 pub mod comparator;
 pub mod ctags_gate;
 pub mod cycle;
+pub mod export;
 pub mod gate;
 pub mod manifest;
 pub mod report;
@@ -23,6 +24,16 @@ pub use cycle::{
     render_quality_cycle_plan, render_quality_gap_report, run_single_quality_cycle,
     write_quality_cycle_final_report, write_quality_cycle_plan, write_quality_cycle_run,
     write_quality_gap_report,
+};
+pub use export::{
+    ComparatorQualitySummary, CyclePlanSummary, DEFAULT_SUMMARY_DETAIL_LIMIT,
+    ExpectedQualitySummary, GapSummary, LanguageSupportSummary, NamedCount,
+    QUALITY_EXPORT_DETAILS_JSONL_FILE, QUALITY_EXPORT_JSON_FILE, QUALITY_EXPORT_MARKDOWN_FILE,
+    QualityReportDetailRecord, QualityReportExport, QualityReportExportOptions,
+    QualityReportExportPaths, QualityReportExportSummary, RepoQualitySummary, SymbolSummary,
+    build_quality_report_export, render_quality_report_export_details_jsonl,
+    render_quality_report_export_json, render_quality_report_export_markdown,
+    write_quality_report_export,
 };
 pub use gate::{
     QualityGateOptions, QualityGateReport, ThresholdFailure, assert_quality_gate_passes,

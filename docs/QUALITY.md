@@ -47,6 +47,20 @@ Quality reports are compact text files with:
 
 These reports are intended for parser-quality triage and must not be imported into production indexes.
 
+## Report Exports
+
+The quality plugin can also export stable agent-readable summaries under `.dev_index/quality/`:
+
+- `QUALITY_REPORT.md`: compact Markdown summary for humans and agents
+- `QUALITY_REPORT.json`: deterministic JSON summary with the same counts and samples
+- `QUALITY_REPORT_DETAILS.jsonl`: line-delimited detail records for larger symbol/gap lists
+
+The Markdown and JSON summaries include deterministic mode or a caller-provided timestamp, repo names, the language support matrix, records and refs by language, expected-symbol/pattern/absent checks, comparator-only and thinindex-only counts, parser error counts, unsupported extensions, gap summaries, and cycle-plan summaries when available. Summaries intentionally cap samples so agents do not need to inspect large raw comparator output. Full comparator/gap details go in `QUALITY_REPORT_DETAILS.jsonl`.
+
+By default exports omit machine-specific absolute repo paths. Local workflows may opt into paths for local-only reports, but generated quality exports remain isolated under `.dev_index/quality/` and must not be copied into production SQLite `records` or `refs`.
+
+Commit source code, fixtures, manifests, and docs that explain quality behavior. Keep `.dev_index/quality/` reports local unless a review explicitly asks for a small excerpt or artifact.
+
 ## Drift Gates
 
 Quality drift gates evaluate checked-in fixture repositories in normal tests and real repositories under `test_repos/` in ignored tests. They stay in the quality module and read SQLite `records` and `refs`; they do not write comparator data back to production tables.

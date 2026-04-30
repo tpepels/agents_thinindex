@@ -695,6 +695,7 @@ dependencies = [
  "regex",
  "rusqlite",
  "serde",
+ "serde_json",
  "tempfile",
  "tree-sitter",
  "tree-sitter-bash",

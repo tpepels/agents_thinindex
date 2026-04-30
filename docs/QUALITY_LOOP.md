@@ -41,6 +41,9 @@ The loop writes:
 - `.dev_index/quality/COMPARATOR_TRIAGE.md`
 - `.dev_index/quality/QUALITY_CYCLE_01_PLAN.md`
 - `.dev_index/quality/QUALITY_CYCLE_01_REPORT.md`
+- `.dev_index/quality/QUALITY_REPORT.md`
+- `.dev_index/quality/QUALITY_REPORT.json`
+- `.dev_index/quality/QUALITY_REPORT_DETAILS.jsonl`
 
 Gaps are grouped by language, syntax construct, severity, and evidence source. Every gap includes:
 
@@ -124,4 +127,6 @@ The ignored quality-loop test is the documented runner workflow for local real r
 cargo test --test quality_loop -- --ignored
 ```
 
-It rebuilds each configured repo under `test_repos/`, runs the normal gate plus optional comparator data, writes the gap report, writes one bounded plan, writes comparator triage when available, writes the final report, and stops. If `test_repos/` is missing or empty, the workflow prints a skip message.
+It rebuilds each configured repo under `test_repos/`, runs the normal gate plus optional comparator data, writes the gap report, writes one bounded plan, writes comparator triage when available, writes Markdown/JSON/JSONL quality exports, writes the final report, and stops. If `test_repos/` is missing or empty, the workflow prints a skip message.
+
+Read `QUALITY_REPORT.md` first. Use `QUALITY_REPORT.json` for deterministic machine checks and `QUALITY_REPORT_DETAILS.jsonl` only when the compact summary points to a detail list worth inspecting.

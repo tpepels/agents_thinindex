@@ -56,6 +56,13 @@ serde
 - Accepted reason: manifest and metadata parsing; permissive dual-license expression.
 - Notice/source text: referenced from the crate package and upstream repository.
 
+serde_json
+- Package: serde_json
+- Upstream: https://github.com/serde-rs/json
+- License expression: MIT OR Apache-2.0
+- Accepted reason: deterministic quality report JSON export; permissive dual-license expression.
+- Notice/source text: referenced from the crate package and upstream repository.
+
 Tree-sitter core
 - Package: tree-sitter
 - Upstream: https://github.com/tree-sitter/tree-sitter
