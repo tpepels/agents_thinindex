@@ -12,8 +12,9 @@ use thinindex::{
         QualityComparator, QualityGap, QualityGapReport, QualityGateOptions, SuggestedFixType,
         UniversalCtagsComparator, assert_quality_gate_passes, evaluate_quality_gate,
         gaps_from_gate_report, generate_cycle_plan, group_gaps, load_quality_repo_set,
-        render_quality_cycle_plan, render_quality_gap_report, write_quality_cycle_plan,
-        write_quality_gap_report,
+        render_quality_cycle_plan, render_quality_gap_report, render_triage_report,
+        triage_report_from_quality_report, write_quality_cycle_plan, write_quality_gap_report,
+        write_triage_report,
     },
     store::load_records,
 };
@@ -270,6 +271,143 @@ fn quality_loop_output_ordering_is_deterministic() {
 }
 
 #[test]
+fn comparator_triage_model_groups_and_renders_promotion_actions() {
+    let gate = evaluate_quality_gate(
+        &[record(
+            "src/lib.rs",
+            1,
+            1,
+            "rs",
+            "function",
+            "thinindex_only",
+        )],
+        &[],
+        QualityGateOptions::new("fixture", "/tmp/fixture").with_comparator_run(
+            ComparatorRun::completed(
+                "fake-comparator",
+                vec![
+                    ComparatorRecord::new(
+                        "src/a.rs",
+                        10,
+                        None,
+                        "function",
+                        "alpha",
+                        Some("rs"),
+                        "fake-comparator",
+                    ),
+                    ComparatorRecord::new(
+                        "src/a.rs",
+                        12,
+                        None,
+                        "function",
+                        "beta",
+                        Some("rs"),
+                        "fake-comparator",
+                    ),
+                ],
+            ),
+        ),
+    )
+    .expect("evaluate gate");
+    let quality = gate.comparator_report.as_ref().expect("quality report");
+    let triage = triage_report_from_quality_report(quality);
+    let rendered = render_triage_report(&triage);
+
+    assert_eq!(triage.items.len(), 3);
+    assert_eq!(triage.items[0].id, "TRIAGE-0001");
+    assert_eq!(triage.items[0].state.as_str(), "open");
+    assert!(rendered.contains("- accepted_expected_symbol"));
+    assert!(rendered.contains("- fixture_needed"));
+    assert!(rendered.contains("- comparator_false_positive"));
+    assert!(rendered.contains("- unsupported_syntax"));
+    assert!(rendered.contains("- low_value_noise"));
+    assert!(rendered.contains("- fixed"));
+    assert!(rendered.contains(
+        "language=rs kind=function path=src/a.rs count=2 items=TRIAGE-0001, TRIAGE-0002"
+    ));
+    assert!(rendered.contains("promotion: triage before promoting"));
+}
+
+#[test]
+fn comparator_triage_state_transitions_are_explicit() {
+    let gate = evaluate_quality_gate(
+        &[],
+        &[],
+        QualityGateOptions::new("fixture", "/tmp/fixture").with_comparator_run(
+            ComparatorRun::completed(
+                "fake-comparator",
+                vec![ComparatorRecord::new(
+                    "src/lib.rs",
+                    10,
+                    None,
+                    "function",
+                    "from_comparator",
+                    Some("rs"),
+                    "fake-comparator",
+                )],
+            ),
+        ),
+    )
+    .expect("evaluate gate");
+    let triage = triage_report_from_quality_report(gate.comparator_report.as_ref().unwrap());
+    let accepted =
+        triage.items[0].transition_to(thinindex::quality::TriageState::AcceptedExpectedSymbol);
+    let fixture = triage.items[0].transition_to(thinindex::quality::TriageState::FixtureNeeded);
+    let unsupported =
+        triage.items[0].transition_to(thinindex::quality::TriageState::UnsupportedSyntax);
+
+    assert_eq!(accepted.state.as_str(), "accepted_expected_symbol");
+    assert_eq!(
+        accepted.promotion_action(),
+        "add [[repo.expected_symbol]] or [[repo.expected_symbol_pattern]]"
+    );
+    assert_eq!(fixture.state.as_str(), "fixture_needed");
+    assert_eq!(
+        fixture.promotion_action(),
+        "add or extend a parser conformance fixture"
+    );
+    assert_eq!(unsupported.state.as_str(), "unsupported_syntax");
+    assert_eq!(
+        unsupported.promotion_action(),
+        "document unsupported syntax or support-level gap"
+    );
+    assert!(thinindex::quality::TriageState::from_name("low_value_noise").is_ok());
+    assert!(thinindex::quality::TriageState::from_name("false_positive").is_err());
+}
+
+#[test]
+fn open_triage_does_not_fail_gate_but_can_fail_strict_mode() {
+    let gate = evaluate_quality_gate(
+        &[],
+        &[],
+        QualityGateOptions::new("fixture", "/tmp/fixture").with_comparator_run(
+            ComparatorRun::completed(
+                "fake-comparator",
+                vec![ComparatorRecord::new(
+                    "src/lib.rs",
+                    10,
+                    None,
+                    "function",
+                    "from_comparator",
+                    Some("rs"),
+                    "fake-comparator",
+                )],
+            ),
+        ),
+    )
+    .expect("evaluate gate");
+    assert_quality_gate_passes(&gate).expect("open comparator-only symbols are triage data");
+
+    let triage = triage_report_from_quality_report(gate.comparator_report.as_ref().unwrap());
+    let error = thinindex::quality::assert_triage_has_no_open_items(&triage)
+        .expect_err("manual strict triage should fail open items");
+    let message = format!("{error:#}");
+
+    assert!(message.contains("strict comparator triage failed for fixture"));
+    assert!(message.contains("from_comparator"));
+}
+
+#[test]
 fn quality_loop_reports_do_not_pollute_production_database() {
     let temp = temp_repo();
     write_file(temp.path(), "src/lib.rs", "pub fn loop_symbol() {}\n");
@@ -295,6 +433,42 @@ fn quality_loop_reports_do_not_pollute_production_database() {
     assert_eq!(
         before,
         load_records(temp.path()).expect("load records after reports")
+    );
+}
+
+#[test]
+fn comparator_triage_report_is_isolated_from_production_database() {
+    let temp = temp_repo();
+    write_file(temp.path(), "src/lib.rs", "pub fn indexed_symbol() {}\n");
+    run_build(temp.path());
+    let before = load_records(temp.path()).expect("load records before triage report");
+    let gate = evaluate_quality_gate(
+        &before,
+        &[],
+        QualityGateOptions::new("fixture", temp.path().display().to_string()).with_comparator_run(
+            ComparatorRun::completed(
+                "fake-comparator",
+                vec![ComparatorRecord::new(
+                    "src/lib.rs",
+                    8,
+                    None,
+                    "function",
+                    "from_comparator",
+                    Some("rs"),
+                    "fake-comparator",
+                )],
+            ),
+        ),
+    )
+    .expect("evaluate gate");
+    let triage = triage_report_from_quality_report(gate.comparator_report.as_ref().unwrap());
+    let report_path = write_triage_report(temp.path(), &triage).expect("write triage report");
+
+    assert!(report_path.ends_with(".dev_index/quality/COMPARATOR_TRIAGE.md"));
+    assert!(report_path.exists());
+    assert_eq!(
+        before,
+        load_records(temp.path()).expect("load records after triage report")
     );
 }
 
@@ -332,11 +506,20 @@ fn full_quality_loop_writes_gap_report_and_bounded_plan_for_test_repos() -> Resu
         let plan = generate_cycle_plan(&gaps, CyclePlanOptions::default());
         let gaps_path = write_quality_gap_report(&repo.path, &gaps)?;
         let plan_path = write_quality_cycle_plan(&repo.path, &plan)?;
+        let triage_path = if let Some(comparator_report) = &gate.comparator_report {
+            Some(write_triage_report(
+                &repo.path,
+                &triage_report_from_quality_report(comparator_report),
+            )?)
+        } else {
+            None
+        };
         println!("{}", render_quality_gap_report(&gaps));
         println!("{}", render_quality_cycle_plan(&plan));
 
         assert!(gaps_path.exists());
         assert!(plan_path.exists());
+        assert!(triage_path.is_none_or(|path| path.exists()));
         assert!(plan.selected_gaps.len() <= thinindex::quality::DEFAULT_MAX_GAPS_PER_CYCLE);
     }
 

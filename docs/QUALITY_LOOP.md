@@ -36,6 +36,7 @@ Universal Ctags remains optional, external, not bundled, not required, and not u
 The loop writes:
 
 - `.dev_index/quality/QUALITY_GAPS.md`
+- `.dev_index/quality/COMPARATOR_TRIAGE.md`
 - `.dev_index/quality/QUALITY_CYCLE_01_PLAN.md`
 
 Gaps are grouped by language, syntax construct, severity, and evidence source. Every gap includes:
@@ -51,6 +52,8 @@ Gaps are grouped by language, syntax construct, severity, and evidence source. E
 - fixture added: yes/no
 - manifest added: yes/no
 
+Comparator triage groups comparator-only and thinindex-only symbols by language, kind, and path. Use exactly these states: `open`, `accepted_expected_symbol`, `fixture_needed`, `comparator_false_positive`, `unsupported_syntax`, `low_value_noise`, and `fixed`.
+
 Cycle plans are bounded to one pass and at most 10 gaps by default. Prefer supported-language missing symbols and failing expected patterns over comparator-only noise.
 
 ## Act
@@ -62,7 +65,7 @@ For the selected batch:
 3. Add a conformance fixture for each fixed parser miss where practical.
 4. Add a manifest expected symbol for important real-repo misses where practical.
 5. Rerun normal and applicable ignored quality gates.
-6. Mark remaining comparator-only findings as open, unsupported, or false-positive.
+6. Mark remaining comparator-only findings with one of the explicit triage states.
 7. Stop after this cycle and commit the bounded fix batch.
 
 Do not automatically start a second cycle in the same execution.
@@ -71,10 +74,11 @@ Do not automatically start a second cycle in the same execution.
 
 Comparator-only symbols are not ground truth. Triage each one as:
 
-- expected-symbol addition
-- fixture or conformance addition
-- accepted comparator false positive
-- documented unsupported syntax
+- `accepted_expected_symbol`: add or update a manifest expected symbol or expected symbol pattern
+- `fixture_needed`: add or extend parser conformance before changing manifests
+- `comparator_false_positive`: record as external comparator noise
+- `unsupported_syntax`: document an unsupported parser gap
+- `low_value_noise`: leave unpromoted
 
 Do not add a parser rule solely because an optional comparator produced a symbol.
 

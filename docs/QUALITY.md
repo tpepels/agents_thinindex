@@ -65,6 +65,24 @@ The normal deterministic gate uses tiny fixtures only. It fails on:
 
 Comparator-only symbols are triage data. They should be classified as expected-symbol additions, fixture/conformance additions, accepted comparator false positives, or documented unsupported syntax. They do not automatically fail deterministic gates.
 
+## Comparator Triage
+
+Comparator-only and thinindex-only symbols use an explicit local triage workflow before they become quality gates. Triage reports are written only under `.dev_index/quality/COMPARATOR_TRIAGE.md`; they are never written into production SQLite `records` or `refs`.
+
+Triage states are:
+
+- `open`
+- `accepted_expected_symbol`
+- `fixture_needed`
+- `comparator_false_positive`
+- `unsupported_syntax`
+- `low_value_noise`
+- `fixed`
+
+The report groups comparator-only symbols by language, kind, and path, then lists each item with a promotion action. Use `accepted_expected_symbol` when a comparator-only symbol should become a `[[repo.expected_symbol]]` or `[[repo.expected_symbol_pattern]]`. Use `fixture_needed` when parser conformance should be expanded before changing a manifest. Use `unsupported_syntax` for documented parser gaps, `comparator_false_positive` for external-tool noise, and `low_value_noise` for findings that should stay unpromoted.
+
+Open comparator-only symbols do not fail normal gates. A manual strict triage check may fail while any item remains `open`, but that strict mode must be explicitly requested by the quality workflow.
+
 ## Expected Symbols
 
 `test_repos/MANIFEST.toml` can declare exact expected symbols:
@@ -128,7 +146,7 @@ If `test_repos/` is missing or empty, the ignored gate prints a clear skip messa
 
 ## Continuous Improvement Loop
 
-The Check -> Plan -> Act quality loop is documented in `docs/QUALITY_LOOP.md`. It turns gate and comparator evidence into local `.dev_index/quality/QUALITY_GAPS.md` and `.dev_index/quality/QUALITY_CYCLE_01_PLAN.md` files for one bounded fix cycle.
+The Check -> Plan -> Act quality loop is documented in `docs/QUALITY_LOOP.md`. It turns gate and comparator evidence into local `.dev_index/quality/QUALITY_GAPS.md`, `.dev_index/quality/COMPARATOR_TRIAGE.md`, and `.dev_index/quality/QUALITY_CYCLE_01_PLAN.md` files for one bounded fix cycle.
 
 ## Support Levels
 
