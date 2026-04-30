@@ -114,3 +114,7 @@ cargo test --test quality_gates -- --ignored
 ```
 
 If `test_repos/` is missing or empty, the ignored gate prints a clear skip message. If a local optional Universal Ctags command is unavailable, the comparator report is skipped; Universal Ctags remains optional, external, not bundled, not required, and not used by `build_index`.
+
+## Continuous Improvement Loop
+
+The Check -> Plan -> Act quality loop is documented in `docs/QUALITY_LOOP.md`. It turns gate and comparator evidence into local `.dev_index/quality/QUALITY_GAPS.md` and `.dev_index/quality/QUALITY_CYCLE_01_PLAN.md` files for one bounded fix cycle.

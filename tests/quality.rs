@@ -373,7 +373,7 @@ fn scan_ctags_mentions(path: &std::path::Path, root: &std::path::Path) {
 fn allowed_ctags_reference(relpath: &str, line: &str) -> bool {
     if relpath.starts_with("src/quality/")
         || relpath.starts_with("tests/quality")
-        || relpath == "docs/QUALITY.md"
+        || relpath.starts_with("docs/QUALITY")
     {
         return true;
     }
