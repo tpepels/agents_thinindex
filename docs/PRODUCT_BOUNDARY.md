@@ -66,6 +66,8 @@ Universal Ctags has been removed from the active parser path. It is not bundled,
 
 Tree-sitter parser dependencies and grammar dependencies must be permissively licensed and audited before release packaging.
 
+The current Tree-sitter-backed representative language pack covers Rust, Python, JavaScript, JSX, TypeScript, TSX, Java, Go, C, C++, Shell, Ruby, and PHP. Additional language support must be added through the same registry, grammar, query, fixture, and notice path rather than a second parser architecture.
+
 Before packaging work proceeds, thinindex also needs:
 
 - `THIRD_PARTY_NOTICES`

@@ -22,7 +22,7 @@ Current storage is `.dev_index/index.sqlite`. The entire `.dev_index/` directory
 
 Current instruction surfaces are `AGENTS.md` and, when already present, `CLAUDE.md`. `wi-init` creates or normalizes the canonical `## Repository search` block and does not create a separate instruction file.
 
-Indexing uses the Tree-sitter extraction framework and project-owned extras. No external parser command is required for the shipped local workflow.
+Indexing uses the Tree-sitter extraction framework and project-owned extras. No external parser command is required for the shipped local workflow. Current Tree-sitter-backed code-symbol support covers Rust, Python, JavaScript, JSX, TypeScript, TSX, Java, Go, C, C++, Shell, Ruby, and PHP through the shared registry/query/conformance path.
 
 ## Product direction
 
@@ -90,6 +90,8 @@ Before proprietary Windows/macOS/Linux packages are viable, thinindex needs:
 - release artifacts that pass archive and installer smoke tests
 
 Tree-sitter parser improvements should be introduced as product infrastructure, not as search-semantics changes by themselves.
+
+Current parser support is limited to the documented support matrix. Additional languages must bring a permissively licensed grammar, registry entry, extension mapping, query spec, conformance fixture, and notice entry before they are claimed as supported.
 
 ## Product boundary
 

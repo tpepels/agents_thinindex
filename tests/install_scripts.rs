@@ -191,8 +191,22 @@ fn docs_state_tree_sitter_is_bundled_and_ctags_removed() {
             && third_party.contains("tree-sitter-python")
             && third_party.contains("tree-sitter-javascript")
             && third_party.contains("tree-sitter-typescript")
+            && third_party.contains("tree-sitter-java")
+            && third_party.contains("tree-sitter-go")
+            && third_party.contains("tree-sitter-c")
+            && third_party.contains("tree-sitter-cpp")
+            && third_party.contains("tree-sitter-bash")
+            && third_party.contains("tree-sitter-ruby")
+            && third_party.contains("tree-sitter-php")
             && third_party.contains("License: MIT"),
         "THIRD_PARTY_NOTICES should list Tree-sitter parser dependencies"
+    );
+    assert!(
+        readme.contains("| Java | `.java` | `tree-sitter-java` |")
+            && readme.contains("| Go | `.go` | `tree-sitter-go` |")
+            && readme.contains("| PHP | `.php` | `tree-sitter-php` |")
+            && readme.contains("Unsupported or deferred languages are not silently parsed"),
+        "README should document the representative parser support matrix"
     );
 }
 

@@ -86,8 +86,16 @@ impl Default for LanguageRegistry {
             rust_adapter(),
             python_adapter(),
             javascript_adapter(),
+            jsx_adapter(),
             typescript_adapter(),
             tsx_adapter(),
+            java_adapter(),
+            go_adapter(),
+            c_adapter(),
+            cpp_adapter(),
+            shell_adapter(),
+            ruby_adapter(),
+            php_adapter(),
         ])
     }
 }
@@ -240,6 +248,8 @@ fn normalize_capture_kind(kind: &str) -> &str {
     match kind {
         "field" => "variable",
         "macro" => "function",
+        "namespace" => "module",
+        "constructor" => "method",
         other => other,
     }
 }
@@ -282,7 +292,25 @@ fn javascript_adapter() -> GrammarAdapter {
     GrammarAdapter {
         id: "js",
         display_name: "JavaScript",
-        extensions: &["js", "jsx"],
+        extensions: &["js"],
+        language: || tree_sitter_javascript::LANGUAGE.into(),
+        query_pack: QueryPack {
+            source: JAVASCRIPT_QUERY,
+        },
+        license: LicenseEntry {
+            package: "tree-sitter-javascript",
+            upstream: "https://github.com/tree-sitter/tree-sitter-javascript",
+            license: "MIT",
+            accepted_reason: "JavaScript and JSX grammar for bundled Tree-sitter extraction",
+        },
+    }
+}
+
+fn jsx_adapter() -> GrammarAdapter {
+    GrammarAdapter {
+        id: "jsx",
+        display_name: "JSX",
+        extensions: &["jsx"],
         language: || tree_sitter_javascript::LANGUAGE.into(),
         query_pack: QueryPack {
             source: JAVASCRIPT_QUERY,
@@ -332,6 +360,120 @@ fn tsx_adapter() -> GrammarAdapter {
     }
 }
 
+fn java_adapter() -> GrammarAdapter {
+    GrammarAdapter {
+        id: "java",
+        display_name: "Java",
+        extensions: &["java"],
+        language: || tree_sitter_java::LANGUAGE.into(),
+        query_pack: QueryPack { source: JAVA_QUERY },
+        license: LicenseEntry {
+            package: "tree-sitter-java",
+            upstream: "https://github.com/tree-sitter/tree-sitter-java",
+            license: "MIT",
+            accepted_reason: "Java grammar for bundled Tree-sitter extraction",
+        },
+    }
+}
+
+fn go_adapter() -> GrammarAdapter {
+    GrammarAdapter {
+        id: "go",
+        display_name: "Go",
+        extensions: &["go"],
+        language: || tree_sitter_go::LANGUAGE.into(),
+        query_pack: QueryPack { source: GO_QUERY },
+        license: LicenseEntry {
+            package: "tree-sitter-go",
+            upstream: "https://github.com/tree-sitter/tree-sitter-go",
+            license: "MIT",
+            accepted_reason: "Go grammar for bundled Tree-sitter extraction",
+        },
+    }
+}
+
+fn c_adapter() -> GrammarAdapter {
+    GrammarAdapter {
+        id: "c",
+        display_name: "C",
+        extensions: &["c", "h"],
+        language: || tree_sitter_c::LANGUAGE.into(),
+        query_pack: QueryPack { source: C_QUERY },
+        license: LicenseEntry {
+            package: "tree-sitter-c",
+            upstream: "https://github.com/tree-sitter/tree-sitter-c",
+            license: "MIT",
+            accepted_reason: "C grammar for bundled Tree-sitter extraction",
+        },
+    }
+}
+
+fn cpp_adapter() -> GrammarAdapter {
+    GrammarAdapter {
+        id: "cpp",
+        display_name: "C++",
+        extensions: &["cc", "cpp", "cxx", "hh", "hpp", "hxx"],
+        language: || tree_sitter_cpp::LANGUAGE.into(),
+        query_pack: QueryPack { source: CPP_QUERY },
+        license: LicenseEntry {
+            package: "tree-sitter-cpp",
+            upstream: "https://github.com/tree-sitter/tree-sitter-cpp",
+            license: "MIT",
+            accepted_reason: "C++ grammar for bundled Tree-sitter extraction",
+        },
+    }
+}
+
+fn shell_adapter() -> GrammarAdapter {
+    GrammarAdapter {
+        id: "sh",
+        display_name: "Shell",
+        extensions: &["bash", "sh"],
+        language: || tree_sitter_bash::LANGUAGE.into(),
+        query_pack: QueryPack {
+            source: SHELL_QUERY,
+        },
+        license: LicenseEntry {
+            package: "tree-sitter-bash",
+            upstream: "https://github.com/tree-sitter/tree-sitter-bash",
+            license: "MIT",
+            accepted_reason: "Bash/Shell grammar for bundled Tree-sitter extraction",
+        },
+    }
+}
+
+fn ruby_adapter() -> GrammarAdapter {
+    GrammarAdapter {
+        id: "rb",
+        display_name: "Ruby",
+        extensions: &["rb"],
+        language: || tree_sitter_ruby::LANGUAGE.into(),
+        query_pack: QueryPack { source: RUBY_QUERY },
+        license: LicenseEntry {
+            package: "tree-sitter-ruby",
+            upstream: "https://github.com/tree-sitter/tree-sitter-ruby",
+            license: "MIT",
+            accepted_reason: "Ruby grammar for bundled Tree-sitter extraction",
+        },
+    }
+}
+
+fn php_adapter() -> GrammarAdapter {
+    GrammarAdapter {
+        id: "php",
+        display_name: "PHP",
+        extensions: &["php"],
+        language: || tree_sitter_php::LANGUAGE_PHP.into(),
+        query_pack: QueryPack { source: PHP_QUERY },
+        license: LicenseEntry {
+            package: "tree-sitter-php",
+            upstream: "https://github.com/tree-sitter/tree-sitter-php",
+            license: "MIT",
+            accepted_reason: "PHP grammar for bundled Tree-sitter extraction",
+        },
+    }
+}
+
 const RUST_QUERY: &str = r#"
 (function_item name: (identifier) @name) @definition.function
 (struct_item name: (type_identifier) @name) @definition.struct
@@ -356,9 +498,9 @@ const JAVASCRIPT_QUERY: &str = r#"
 (method_definition name: (property_identifier) @name) @definition.method
 (lexical_declaration (variable_declarator name: (identifier) @name value: [(arrow_function) (function_expression)])) @definition.function
 (variable_declaration (variable_declarator name: (identifier) @name value: [(arrow_function) (function_expression)])) @definition.function
-(lexical_declaration (variable_declarator name: (identifier) @name)) @definition.variable
-(export_statement declaration: (function_declaration name: (identifier) @name)) @definition.export
-(export_statement declaration: (class_declaration name: (identifier) @name)) @definition.export
+(lexical_declaration (variable_declarator name: (identifier) @name value: [(number) (string)])) @definition.variable
+(variable_declaration (variable_declarator name: (identifier) @name value: [(number) (string)])) @definition.variable
+(export_statement (export_clause (export_specifier name: (identifier) @name))) @definition.export
 "#;
 
 const TYPESCRIPT_QUERY: &str = r#"
@@ -369,11 +511,88 @@ const TYPESCRIPT_QUERY: &str = r#"
 (interface_declaration name: (type_identifier) @name) @definition.interface
 (type_alias_declaration name: (type_identifier) @name) @definition.type
 (lexical_declaration (variable_declarator name: (identifier) @name value: [(arrow_function) (function_expression)])) @definition.function
-(lexical_declaration (variable_declarator name: (identifier) @name)) @definition.variable
-(export_statement declaration: (function_declaration name: (identifier) @name)) @definition.export
-(export_statement declaration: (class_declaration name: (_) @name)) @definition.export
-(export_statement declaration: (interface_declaration name: (type_identifier) @name)) @definition.export
-(export_statement declaration: (type_alias_declaration name: (type_identifier) @name)) @definition.export
+(lexical_declaration (variable_declarator name: (identifier) @name value: [(number) (string)])) @definition.variable
+(export_statement (export_clause (export_specifier name: (identifier) @name))) @definition.export
+"#;
+
+const JAVA_QUERY: &str = r#"
+(class_declaration name: (identifier) @name) @definition.class
+(interface_declaration name: (identifier) @name) @definition.interface
+(enum_declaration name: (identifier) @name) @definition.enum
+(record_declaration name: (identifier) @name) @definition.type
+(method_declaration name: (identifier) @name) @definition.method
+(constructor_declaration name: (identifier) @name) @definition.constructor
+(field_declaration declarator: (variable_declarator name: (identifier) @name)) @definition.variable
+"#;
+
+const GO_QUERY: &str = r#"
+(package_clause (package_identifier) @name) @definition.module
+(function_declaration name: (identifier) @name) @definition.function
+(method_declaration name: (field_identifier) @name) @definition.method
+(type_declaration (type_spec name: (type_identifier) @name type: (struct_type))) @definition.struct
+(type_declaration (type_spec name: (type_identifier) @name type: (interface_type))) @definition.interface
+(type_declaration (type_spec name: (type_identifier) @name)) @definition.type
+(const_declaration (const_spec name: (identifier) @name)) @definition.constant
+(var_declaration (var_spec name: (identifier) @name)) @definition.variable
+(import_declaration (import_spec path: (interpreted_string_literal) @name)) @definition.import
+"#;
+
+const C_QUERY: &str = r#"
+(preproc_include path: (_) @name) @definition.import
+(function_definition declarator: (function_declarator declarator: (identifier) @name)) @definition.function
+(function_declarator declarator: (identifier) @name) @definition.function
+(struct_specifier name: (type_identifier) @name body: (_)) @definition.struct
+(union_specifier name: (type_identifier) @name body: (_)) @definition.type
+(enum_specifier name: (type_identifier) @name body: (_)) @definition.enum
+(type_definition declarator: (type_identifier) @name) @definition.type
+(declaration declarator: (init_declarator declarator: (identifier) @name)) @definition.variable
+"#;
+
+const CPP_QUERY: &str = r#"
+(preproc_include path: (_) @name) @definition.import
+(namespace_definition name: (namespace_identifier) @name) @definition.module
+(function_definition declarator: (function_declarator declarator: (identifier) @name)) @definition.function
+(function_definition declarator: (function_declarator declarator: (field_identifier) @name)) @definition.method
+(function_declarator declarator: (identifier) @name) @definition.function
+(function_declarator declarator: (field_identifier) @name) @definition.method
+(function_declarator declarator: (qualified_identifier name: (identifier) @name)) @definition.method
+(class_specifier name: (type_identifier) @name) @definition.class
+(struct_specifier name: (type_identifier) @name body: (_)) @definition.struct
+(union_specifier name: (type_identifier) @name body: (_)) @definition.type
+(enum_specifier name: (type_identifier) @name body: (_)) @definition.enum
+(type_definition declarator: (type_identifier) @name) @definition.type
+(declaration declarator: (init_declarator declarator: (identifier) @name)) @definition.variable
+"#;
+
+const SHELL_QUERY: &str = r#"
+(function_definition name: (word) @name) @definition.function
+(variable_assignment name: (variable_name) @name) @definition.variable
+"#;
+
+const RUBY_QUERY: &str = r#"
+(class name: (constant) @name) @definition.class
+(class name: (scope_resolution name: (_) @name)) @definition.class
+(module name: (constant) @name) @definition.module
+(module name: (scope_resolution name: (_) @name)) @definition.module
+(method name: (_) @name) @definition.method
+(singleton_method name: (_) @name) @definition.method
+(assignment left: (constant) @name) @definition.constant
+"#;
+
+const PHP_QUERY: &str = r#"
+(namespace_definition name: (namespace_name) @name) @definition.module
+(interface_declaration name: (name) @name) @definition.interface
+(trait_declaration name: (name) @name) @definition.trait
+(class_declaration name: (name) @name) @definition.class
+(enum_declaration name: (name) @name) @definition.enum
+(function_definition name: (name) @name) @definition.function
+(method_declaration name: (name) @name) @definition.method
+(property_declaration (property_element (variable_name (name) @name))) @definition.variable
+(const_declaration (const_element (name) @name)) @definition.constant
+(include_expression (string) @name) @definition.import
+(include_once_expression (string) @name) @definition.import
+(require_expression (string) @name) @definition.import
+(require_once_expression (string) @name) @definition.import
 "#;
 
 #[cfg(test)]
@@ -410,5 +629,79 @@ mod tests {
             .expect("parse unsupported");
 
         assert!(records.is_empty());
+    }
+
+    #[test]
+    fn representative_language_queries_compile_and_emit_records() {
+        let engine = TreeSitterExtractionEngine::default();
+        let cases = [
+            ("src/sample.rs", "pub fn rust_sample() {}\n", "rust_sample"),
+            (
+                "src/sample.py",
+                "class PythonSample:\n    pass\n",
+                "PythonSample",
+            ),
+            (
+                "src/sample.js",
+                "export function javascriptSample() {}\n",
+                "javascriptSample",
+            ),
+            (
+                "src/sample.jsx",
+                "export function JsxSample() { return <main />; }\n",
+                "JsxSample",
+            ),
+            (
+                "src/sample.ts",
+                "export interface TypeScriptSample {}\n",
+                "TypeScriptSample",
+            ),
+            (
+                "src/sample.tsx",
+                "export function TsxSample() { return <main />; }\n",
+                "TsxSample",
+            ),
+            (
+                "src/Sample.java",
+                "class JavaSample { void render() {} }\n",
+                "JavaSample",
+            ),
+            (
+                "src/sample.go",
+                "package sample\nfunc GoSample() {}\n",
+                "GoSample",
+            ),
+            (
+                "src/sample.c",
+                "int c_sample(void) { return 1; }\n",
+                "c_sample",
+            ),
+            (
+                "src/sample.cpp",
+                "class CppSample { public: void render() {} };\n",
+                "CppSample",
+            ),
+            (
+                "src/sample.sh",
+                "shell_sample() { echo ok; }\n",
+                "shell_sample",
+            ),
+            ("src/sample.rb", "class RubySample\nend\n", "RubySample"),
+            ("src/sample.php", "<?php\nclass PhpSample {}\n", "PhpSample"),
+        ];
+
+        for (path, text, expected) in cases {
+            let records = engine.parse_file(path, text).expect("parse fixture");
+            assert!(
+                records.iter().any(|record| record.name == expected),
+                "expected {expected} in {path}, got {records:#?}",
+            );
+            assert!(
+                records
+                    .iter()
+                    .all(|record| record.source == TREE_SITTER_SOURCE),
+                "expected Tree-sitter source in {path}, got {records:#?}",
+            );
+        }
     }
 }

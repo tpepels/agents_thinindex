@@ -4,6 +4,7 @@ use std::fs;
 
 use common::*;
 use rusqlite::Connection;
+use thinindex::tree_sitter_extraction::TREE_SITTER_SOURCE;
 
 fn sqlite_table_exists(root: &std::path::Path, table: &str) -> bool {
     let conn = Connection::open(root.join(".dev_index/index.sqlite")).expect("open sqlite index");
@@ -338,6 +339,216 @@ def test_prompt_service():
     assert_ref_exists(&refs, "html_usage", ".headerNavigation");
     assert_ref_exists(&refs, "html_usage", "data-testid");
     assert_ref_exists(&refs, "test_reference", "PromptService");
+}
+
+#[derive(Debug)]
+struct ExpectedTreeSitterRecord {
+    language: &'static str,
+    path: &'static str,
+    kind: &'static str,
+    name: &'static str,
+    line: usize,
+    col: usize,
+}
+
+fn assert_tree_sitter_record(
+    records: &[thinindex::model::IndexRecord],
+    expected: &ExpectedTreeSitterRecord,
+) {
+    assert!(
+        records.iter().any(|record| {
+            record.path == expected.path
+                && record.lang == expected.language
+                && record.kind == expected.kind
+                && record.name == expected.name
+                && record.line == expected.line
+                && record.col == expected.col
+                && record.source == TREE_SITTER_SOURCE
+        }),
+        "expected Tree-sitter record {expected:?}, got:\n{records:#?}",
+    );
+}
+
+#[test]
+fn representative_language_pack_indexes_shared_tree_sitter_fixtures() {
+    let repo = fixture_repo("language_pack");
+    let root = repo.path();
+
+    run_build(root);
+
+    let snapshot = load_index_snapshot_from_sqlite(root);
+    run_named_index_integrity_checks(
+        "representative language pack fixture",
+        &snapshot,
+        &[
+            "src/rust/widget.rs",
+            "src/python/widget.py",
+            "src/javascript/widget.js",
+            "src/javascript/widget.jsx",
+            "src/typescript/widget.ts",
+            "src/typescript/widget.tsx",
+            "src/java/JavaWidget.java",
+            "src/go/widget.go",
+            "src/c/widget.c",
+            "src/cpp/widget.cpp",
+            "src/shell/widget.sh",
+            "src/ruby/widget.rb",
+            "src/php/widget.php",
+        ],
+    );
+
+    let expected = [
+        ExpectedTreeSitterRecord {
+            language: "rs",
+            path: "src/rust/widget.rs",
+            kind: "struct",
+            name: "RustWidget",
+            line: 5,
+            col: 12,
+        },
+        ExpectedTreeSitterRecord {
+            language: "py",
+            path: "src/python/widget.py",
+            kind: "class",
+            name: "PythonWidget",
+            line: 6,
+            col: 7,
+        },
+        ExpectedTreeSitterRecord {
+            language: "js",
+            path: "src/javascript/widget.js",
+            kind: "class",
+            name: "JavaScriptWidget",
+            line: 5,
+            col: 7,
+        },
+        ExpectedTreeSitterRecord {
+            language: "jsx",
+            path: "src/javascript/widget.jsx",
+            kind: "function",
+            name: "JsxPanel",
+            line: 3,
+            col: 10,
+        },
+        ExpectedTreeSitterRecord {
+            language: "ts",
+            path: "src/typescript/widget.ts",
+            kind: "interface",
+            name: "TypeScriptRenderable",
+            line: 3,
+            col: 18,
+        },
+        ExpectedTreeSitterRecord {
+            language: "tsx",
+            path: "src/typescript/widget.tsx",
+            kind: "function",
+            name: "TsxPanel",
+            line: 3,
+            col: 10,
+        },
+        ExpectedTreeSitterRecord {
+            language: "java",
+            path: "src/java/JavaWidget.java",
+            kind: "class",
+            name: "JavaWidget",
+            line: 5,
+            col: 7,
+        },
+        ExpectedTreeSitterRecord {
+            language: "go",
+            path: "src/go/widget.go",
+            kind: "function",
+            name: "NewGoWidget",
+            line: 17,
+            col: 6,
+        },
+        ExpectedTreeSitterRecord {
+            language: "c",
+            path: "src/c/widget.c",
+            kind: "function",
+            name: "build_c_widget",
+            line: 13,
+            col: 5,
+        },
+        ExpectedTreeSitterRecord {
+            language: "cpp",
+            path: "src/cpp/widget.cpp",
+            kind: "class",
+            name: "CppWidget",
+            line: 7,
+            col: 7,
+        },
+        ExpectedTreeSitterRecord {
+            language: "sh",
+            path: "src/shell/widget.sh",
+            kind: "function",
+            name: "build_shell_widget",
+            line: 5,
+            col: 1,
+        },
+        ExpectedTreeSitterRecord {
+            language: "rb",
+            path: "src/ruby/widget.rb",
+            kind: "class",
+            name: "RubyWidget",
+            line: 6,
+            col: 9,
+        },
+        ExpectedTreeSitterRecord {
+            language: "php",
+            path: "src/php/widget.php",
+            kind: "class",
+            name: "PhpWidget",
+            line: 22,
+            col: 7,
+        },
+    ];
+
+    for expected_record in expected {
+        assert_tree_sitter_record(&snapshot.records, &expected_record);
+    }
+
+    for absent in [
+        "RustStringFake",
+        "PythonCommentFake",
+        "PythonStringFake",
+        "JavaScriptStringFake",
+        "TypeScriptStringFake",
+        "JavaStringFake",
+        "GoStringFake",
+        "CStringFake",
+        "CppStringFake",
+        "RubyStringFake",
+        "PhpStringFake",
+    ] {
+        assert!(
+            !snapshot.records.iter().any(|record| record.name == absent),
+            "comment/string symbol {absent} should not be indexed:\n{:#?}",
+            snapshot.records,
+        );
+    }
+
+    for term in [
+        "RustWidget",
+        "PythonWidget",
+        "JavaScriptWidget",
+        "JsxPanel",
+        "TypeScriptRenderable",
+        "TsxPanel",
+        "JavaWidget",
+        "NewGoWidget",
+        "build_c_widget",
+        "CppWidget",
+        "build_shell_widget",
+        "RubyWidget",
+        "PhpWidget",
+    ] {
+        let output = run_wi(root, &[term]);
+        assert!(
+            output.contains(term),
+            "wi should find representative symbol {term}, got:\n{output}",
+        );
+    }
 }
 
 #[test]

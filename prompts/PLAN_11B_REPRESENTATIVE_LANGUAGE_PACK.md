@@ -117,3 +117,13 @@ Report:
 - verification commands and results
 - ignored local/real repo test status
 - commit hash
+
+## Phase tracking
+
+- [x] Add permissively licensed Tree-sitter grammar dependencies for the representative pack.
+- [x] Register each supported language through the shared registry, extension map, adapter, and query-spec path.
+- [x] Add representative fixtures for Rust, Python, JavaScript, JSX, TypeScript, TSX, Java, Go, C, C++, Shell, Ruby, and PHP.
+- [x] Add shared fixture assertions for source, record kinds, line/col, duplicate absence, comment/string absence, and `wi` searchability.
+- [x] Update parser support docs and third-party notices.
+- [x] Run required 11B verification.
+- [x] Commit with `Add representative Tree-sitter language pack`.

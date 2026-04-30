@@ -144,6 +144,30 @@ thinindex is intentionally conservative:
 - Tree-sitter parser support is deterministic symbol extraction, not semantic or LSP-level analysis.
 - Bundled parser dependencies must stay permissively licensed and audited before commercial release artifacts.
 
+## Parser Support
+
+Tree-sitter-backed code-symbol extraction is currently enabled for this representative language pack:
+
+| Language | Extensions | Backing grammar | Expected record kinds |
+| --- | --- | --- | --- |
+| Rust | `.rs` | `tree-sitter-rust` | function, struct, enum, trait, type, module, constant, variable |
+| Python | `.py` | `tree-sitter-python` | function, method, class, variable |
+| JavaScript | `.js` | `tree-sitter-javascript` | function, method, class, variable, export |
+| JSX | `.jsx` | `tree-sitter-javascript` | function, method, class, variable, export |
+| TypeScript | `.ts` | `tree-sitter-typescript` | function, method, class, interface, type, variable, export |
+| TSX | `.tsx` | `tree-sitter-typescript` | function, method, class, interface, type, variable, export |
+| Java | `.java` | `tree-sitter-java` | method, class, enum, interface, type, variable |
+| Go | `.go` | `tree-sitter-go` | function, method, struct, interface, type, module, variable, constant, import |
+| C | `.c`, `.h` | `tree-sitter-c` | function, struct, enum, type, variable, import |
+| C++ | `.cc`, `.cpp`, `.cxx`, `.hh`, `.hpp`, `.hxx` | `tree-sitter-cpp` | function, method, class, struct, enum, type, module, variable, import |
+| Shell | `.sh`, `.bash` | `tree-sitter-bash` | function, variable |
+| Ruby | `.rb` | `tree-sitter-ruby` | method, class, module, constant |
+| PHP | `.php` | `tree-sitter-php` | function, method, class, interface, trait, enum, module, variable, constant, import |
+
+HTML, CSS, Markdown headings, and TODO/FIXME landmarks are extras-backed deterministic extraction, not Tree-sitter code-symbol parsing.
+
+Unsupported or deferred languages are not silently parsed through line scanning. They need a permissively licensed Tree-sitter grammar, an extension mapping, a query spec, a conformance fixture, a notice entry, and support-matrix documentation before they are claimed as supported.
+
 ## Free/local and future Pro
 
 thinindex is currently a local/free tool. There is no license enforcement, payment flow, account login, cloud sync, telemetry, remote indexing, or feature lockout.
