@@ -175,6 +175,7 @@ fn docs_only_mention_ctags_as_removed_or_not_used() {
         "README.md",
         "docs/LICENSE_AUDIT.md",
         "docs/PRODUCT_BOUNDARY.md",
+        "docs/RELEASING.md",
         "docs/ROADMAP.md",
         "docs/RELEASE_CHECKLIST.md",
         "THIRD_PARTY_NOTICES",

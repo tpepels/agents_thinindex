@@ -1,4 +1,5 @@
 target
+dist/
 
 # thinindex
 .dev_index/

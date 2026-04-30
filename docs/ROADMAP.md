@@ -71,6 +71,8 @@ Real-repo work uses local, ignored repositories:
 
 The current ignored checks cover local index behavior, real-repo integrity, and real-repo benchmarks when the local data exists.
 
+Release archive packaging is available through `scripts/package-release` for the current platform. The script stages all thinindex binaries plus release notices and documentation, then writes a `.tar.gz` or `.zip` archive and SHA256 checksum under `dist/`. Native installers, signing, notarization, and CI publishing remain future release-hardening work.
+
 ## Near-term work
 
 Near-term work should focus on hardening the current agent-navigation surface:

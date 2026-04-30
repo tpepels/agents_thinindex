@@ -304,6 +304,14 @@ Only permissively licensed parser dependencies are allowed. Proprietary Windows/
 
 `THIRD_PARTY_NOTICES` records direct runtime dependencies, bundled SQLite status, Tree-sitter grammar notices, and generated parser source status. It is part of release artifacts. See [docs/LICENSE_AUDIT.md](docs/LICENSE_AUDIT.md) for the policy and audit process.
 
+Release archives are built with:
+
+```bash
+scripts/package-release
+```
+
+Archives include all four binaries, `README.md`, `INSTALL.md`, `docs/RELEASING.md`, and `THIRD_PARTY_NOTICES`. They do not include `.dev_index/index.sqlite`, `test_repos/`, build output junk, or source checkout contents. Native installers, signing, and notarization are later release-hardening work. See [docs/RELEASING.md](docs/RELEASING.md).
+
 ## Development
 
 Build and test:

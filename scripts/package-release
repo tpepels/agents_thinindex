@@ -1,0 +1,193 @@
+#!/usr/bin/env sh
+set -eu
+
+BINARIES="wi build_index wi-init wi-stats"
+OUT_DIR="dist"
+TARGET=""
+VERSION=""
+DRY_RUN=0
+
+usage() {
+    cat <<'USAGE'
+Usage: scripts/package-release [--target <triple>] [--version <version>] [--out-dir <dir>] [--dry-run]
+
+Builds thinindex release binaries, stages a minimal archive payload, and writes
+the archive plus a SHA256 checksum under dist/ by default.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --target)
+            [ "$#" -ge 2 ] || { echo "error: --target requires a value" >&2; exit 2; }
+            TARGET="$2"
+            shift 2
+            ;;
+        --version)
+            [ "$#" -ge 2 ] || { echo "error: --version requires a value" >&2; exit 2; }
+            VERSION="$2"
+            shift 2
+            ;;
+        --out-dir)
+            [ "$#" -ge 2 ] || { echo "error: --out-dir requires a value" >&2; exit 2; }
+            OUT_DIR="$2"
+            shift 2
+            ;;
+        --dry-run)
+            DRY_RUN=1
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "error: unknown argument: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+require_file() {
+    if [ ! -f "$1" ]; then
+        echo "error: required file missing: $1" >&2
+        exit 1
+    fi
+}
+
+if [ -z "$VERSION" ]; then
+    VERSION="$(cargo metadata --format-version 1 --no-deps \
+        | sed -n 's/.*"version":"\([^"]*\)".*/\1/p' \
+        | head -n 1)"
+fi
+
+if [ -z "$VERSION" ]; then
+    echo "error: failed to determine Cargo package version" >&2
+    exit 1
+fi
+
+if [ -z "$TARGET" ]; then
+    TARGET="$(rustc -vV | sed -n 's/^host: //p')"
+fi
+
+if [ -z "$TARGET" ]; then
+    echo "error: failed to determine Rust host target" >&2
+    exit 1
+fi
+
+case "$TARGET" in
+    *windows*|*msvc*|*mingw*)
+        EXE_SUFFIX=".exe"
+        ARCHIVE_EXT="zip"
+        ;;
+    *)
+        EXE_SUFFIX=""
+        ARCHIVE_EXT="tar.gz"
+        ;;
+esac
+
+PACKAGE_NAME="thinindex-$VERSION-$TARGET"
+ARCHIVE_NAME="$PACKAGE_NAME.$ARCHIVE_EXT"
+OUT_DIR="$(mkdir -p "$OUT_DIR" && cd "$OUT_DIR" && pwd)"
+STAGING_ROOT="$OUT_DIR/.staging"
+PACKAGE_DIR="$STAGING_ROOT/$PACKAGE_NAME"
+ARCHIVE_PATH="$OUT_DIR/$ARCHIVE_NAME"
+CHECKSUM_PATH="$ARCHIVE_PATH.sha256"
+
+if [ "$DRY_RUN" -eq 1 ]; then
+    echo "target: $TARGET"
+    echo "version: $VERSION"
+    echo "archive: $ARCHIVE_PATH"
+    echo "checksum: $CHECKSUM_PATH"
+    exit 0
+fi
+
+if [ "$TARGET" = "$(rustc -vV | sed -n 's/^host: //p')" ]; then
+    cargo build --release
+    BIN_DIR="target/release"
+else
+    cargo build --release --target "$TARGET"
+    BIN_DIR="target/$TARGET/release"
+fi
+
+rm -rf "$STAGING_ROOT"
+mkdir -p "$PACKAGE_DIR"
+
+# Assemble the archive from explicit files only; never copy .dev_index,
+# test_repos, target build junk, dist artifacts, or the source checkout wholesale.
+for binary in $BINARIES; do
+    source_path="$BIN_DIR/$binary$EXE_SUFFIX"
+    require_file "$source_path"
+    cp "$source_path" "$PACKAGE_DIR/$binary$EXE_SUFFIX"
+done
+
+require_file "README.md"
+require_file "THIRD_PARTY_NOTICES"
+require_file "docs/RELEASING.md"
+cp "README.md" "$PACKAGE_DIR/README.md"
+cp "THIRD_PARTY_NOTICES" "$PACKAGE_DIR/THIRD_PARTY_NOTICES"
+mkdir -p "$PACKAGE_DIR/docs"
+cp "docs/RELEASING.md" "$PACKAGE_DIR/docs/RELEASING.md"
+
+if [ -f "LICENSE" ]; then
+    cp "LICENSE" "$PACKAGE_DIR/LICENSE"
+fi
+
+cat > "$PACKAGE_DIR/INSTALL.md" <<'INSTALL'
+# thinindex archive install notes
+
+Copy the binaries in this archive to a directory on your PATH.
+
+On Unix-like systems, make them executable if needed:
+
+```bash
+chmod +x wi build_index wi-init wi-stats
+```
+
+Then run:
+
+```bash
+wi --help
+build_index
+wi <term>
+```
+
+The repo-local index is generated as `.dev_index/index.sqlite` in each repository
+where `build_index` runs. It is not included in this release archive.
+
+`THIRD_PARTY_NOTICES` is included with this archive. Native installers, signing,
+and notarization are not part of this archive format.
+INSTALL
+
+rm -f "$ARCHIVE_PATH" "$CHECKSUM_PATH"
+
+case "$ARCHIVE_EXT" in
+    tar.gz)
+        (cd "$STAGING_ROOT" && tar -czf "$ARCHIVE_PATH" "$PACKAGE_NAME")
+        ;;
+    zip)
+        if ! command -v zip >/dev/null 2>&1; then
+            echo "error: zip is required to create Windows archives" >&2
+            exit 1
+        fi
+        (cd "$STAGING_ROOT" && zip -qr "$ARCHIVE_PATH" "$PACKAGE_NAME")
+        ;;
+    *)
+        echo "error: unsupported archive extension: $ARCHIVE_EXT" >&2
+        exit 1
+        ;;
+esac
+
+if command -v sha256sum >/dev/null 2>&1; then
+    (cd "$OUT_DIR" && sha256sum "$ARCHIVE_NAME" > "$ARCHIVE_NAME.sha256")
+elif command -v shasum >/dev/null 2>&1; then
+    (cd "$OUT_DIR" && shasum -a 256 "$ARCHIVE_NAME" > "$ARCHIVE_NAME.sha256")
+else
+    echo "warning: no sha256sum or shasum found; checksum not written" >&2
+fi
+
+echo "artifact: $ARCHIVE_PATH"
+if [ -f "$CHECKSUM_PATH" ]; then
+    echo "checksum: $CHECKSUM_PATH"
+fi

@@ -15,6 +15,8 @@ Run before cutting a thinindex release:
 - `cargo run --bin wi-stats -- --version`
 - confirm `THIRD_PARTY_NOTICES` matches the audited dependency set and is included with release artifacts
 - confirm the documented parser support matrix matches the bundled Tree-sitter grammar dependencies
+- `scripts/package-release`
+- inspect/list the generated archive contents
 - install smoke with a temp `BIN_DIR`
 - uninstall smoke with the same temp `BIN_DIR`
 
@@ -34,4 +36,7 @@ Packaging note:
 - Tree-sitter parser and grammar dependencies are bundled and must remain permissively licensed.
 - Cross-platform release archives and installers require a passing `cargo deny check licenses` run.
 - Proprietary packaging remains blocked by GPL, AGPL, LGPL-only, MPL-only, EPL, CDDL, unknown, custom, or non-commercial dependency terms unless a future plan records an explicit review exception.
+- Release archives must include all thinindex binaries, `README.md`, `INSTALL.md`, `docs/RELEASING.md`, and `THIRD_PARTY_NOTICES`.
+- Release archives must not include `.dev_index/`, `test_repos/`, `target/`, `dist/`, source checkout contents, or generated local benchmark outputs.
+- Native installers, signing, and notarization are later work.
 - Smoke-test generated artifacts on each target platform before publishing.

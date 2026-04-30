@@ -1,4 +1,4 @@
-# PLAN_13_CROSS_PLATFORM_RELEASE_ARCHIVES.md
+# PLAN_14_CROSS_PLATFORM_RELEASE_ARCHIVES.md
 
 Use superpowers:subagent-driven-development.
 
@@ -195,3 +195,15 @@ Report:
 - whether ignored real-repo test ran, skipped, or failed
 - remaining packaging caveats
 - commit hash
+
+## Implementation tracking
+
+- [x] Confirm PLAN_00 through PLAN_13 are complete and green.
+- [x] Add current-platform release archive script with future target structure.
+- [x] Include all binaries, `README.md`, `INSTALL.md`, `THIRD_PARTY_NOTICES`, and optional `LICENSE`.
+- [x] Exclude repo-local caches, `test_repos/`, build junk, source checkout contents, and benchmark outputs by explicit staging.
+- [x] Generate SHA256 checksum sidecars.
+- [x] Update release docs and checklist.
+- [x] Add packaging tests/checks.
+- [x] Run required verification and archive smoke.
+- [x] Commit with `Add cross-platform release archives`.
