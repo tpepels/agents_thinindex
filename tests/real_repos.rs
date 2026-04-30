@@ -11,8 +11,8 @@ use common::{load_index_snapshot_from_sqlite, run_named_index_integrity_checks};
 use regex::Regex;
 use thinindex::{
     bench::{
-        BenchmarkRepo, BenchmarkRepoSet, ExpectedSymbol, ExpectedSymbolPattern,
-        load_benchmark_repo_set,
+        BenchmarkRepo, BenchmarkRepoSet, ExpectedAbsentSymbol, ExpectedSymbol,
+        ExpectedSymbolPattern, load_benchmark_repo_set,
     },
     context::{render_impact_command, render_pack_command, render_refs_command},
     indexer,
@@ -112,11 +112,14 @@ fn check_repo(repo: &BenchmarkRepo) -> RepoHardeningReport {
 
     let symbol_coverage = check_expected_symbols(repo, &snapshot.records);
     assert!(
-        symbol_coverage.symbols_missing.is_empty() && symbol_coverage.patterns_missing.is_empty(),
-        "expected symbols/patterns missing for {}: symbols={:?} patterns={:?}",
+        symbol_coverage.symbols_missing.is_empty()
+            && symbol_coverage.patterns_missing.is_empty()
+            && symbol_coverage.absent_symbols_found.is_empty(),
+        "expected symbol manifest failures for {}: symbols={:?} patterns={:?} absent={:?}",
         repo.name,
         symbol_coverage.symbols_missing,
         symbol_coverage.patterns_missing,
+        symbol_coverage.absent_symbols_found,
     );
 
     let query_smoke = run_manifest_query_smokes(repo);
@@ -180,6 +183,8 @@ struct SymbolCoverage {
     symbols_missing: Vec<String>,
     patterns_checked: usize,
     patterns_missing: Vec<String>,
+    absent_symbols_checked: usize,
+    absent_symbols_found: Vec<String>,
 }
 
 #[derive(Debug, Default)]
@@ -211,6 +216,8 @@ struct AggregateCoverage {
     expected_symbols_missing: usize,
     expected_symbol_patterns_checked: usize,
     expected_symbol_patterns_missing: usize,
+    expected_absent_symbols_checked: usize,
+    expected_absent_symbols_found: usize,
     zero_record_languages: BTreeSet<String>,
 }
 
@@ -283,6 +290,11 @@ fn print_parser_coverage_report(report: &RepoHardeningReport) {
         "  expected symbol patterns: checked={} missing={}",
         report.symbol_coverage.patterns_checked,
         report.symbol_coverage.patterns_missing.len()
+    );
+    println!(
+        "  expected absent symbols: checked={} found={}",
+        report.symbol_coverage.absent_symbols_checked,
+        report.symbol_coverage.absent_symbols_found.len()
     );
     println!(
         "  manifest query smoke: checked={} misses={}",
@@ -476,7 +488,9 @@ fn check_expected_symbols(
         coverage.symbols_checked += 1;
 
         if !records.iter().any(|record| record.name == *expected) {
-            coverage.symbols_missing.push(expected.clone());
+            coverage
+                .symbols_missing
+                .push(format!("repo={} name={expected}", repo.name));
         }
     }
 
@@ -488,8 +502,13 @@ fn check_expected_symbols(
             .any(|record| record_matches_expected_symbol(record, expected))
         {
             coverage.symbols_missing.push(format!(
-                "language={:?} path={:?} kind={:?} name={}",
-                expected.language, expected.path, expected.kind, expected.name
+                "repo={} language={:?} path={:?} kind={:?} name={} nearby={}",
+                repo.name,
+                expected.language,
+                expected.path,
+                expected.kind,
+                expected.name,
+                render_nearby_records(records, expected)
             ));
         }
     }
@@ -504,7 +523,10 @@ fn check_expected_symbols(
         });
 
         if !records.iter().any(|record| regex.is_match(&record.name)) {
-            coverage.patterns_missing.push(format!("pattern:{pattern}"));
+            coverage.patterns_missing.push(format!(
+                "repo={} name_regex={pattern} min_count=1 actual=0",
+                repo.name
+            ));
         }
     }
 
@@ -523,22 +545,66 @@ fn check_expected_symbols(
 
         if count < pattern.min_count {
             coverage.patterns_missing.push(format!(
-                "language={:?} path_glob={:?} kind={:?} name_regex={} min_count={} actual={count}",
+                "repo={} language={:?} path_glob={:?} kind={:?} name_regex={} min_count={} actual={count} nearby={}",
+                repo.name,
                 pattern.language,
                 pattern.path_glob,
                 pattern.kind,
                 pattern.name_regex,
-                pattern.min_count
+                pattern.min_count,
+                render_pattern_candidates(records, pattern)
             ));
         }
     }
 
+    for expected in &repo.expected_absent_symbol_specs {
+        coverage.absent_symbols_checked += 1;
+        let matches = records
+            .iter()
+            .filter(|record| record_matches_expected_absent_symbol(record, expected))
+            .collect::<Vec<_>>();
+
+        if !matches.is_empty() {
+            coverage.absent_symbols_found.push(format!(
+                "repo={} language={:?} path={:?} kind={:?} name={} matches={}",
+                repo.name,
+                expected.language,
+                expected.path,
+                expected.kind,
+                expected.name,
+                render_records(matches.into_iter())
+            ));
+        }
+    }
+
+    coverage.symbols_missing.sort();
+    coverage.patterns_missing.sort();
+    coverage.absent_symbols_found.sort();
     coverage
 }
 
 fn record_matches_expected_symbol(
     record: &thinindex::model::IndexRecord,
     expected: &ExpectedSymbol,
+) -> bool {
+    record.name == expected.name
+        && expected
+            .language
+            .as_ref()
+            .is_none_or(|language| record.lang == *language)
+        && expected
+            .path
+            .as_ref()
+            .is_none_or(|path| record.path == *path)
+        && expected
+            .kind
+            .as_ref()
+            .is_none_or(|kind| record.kind == *kind)
+}
+
+fn record_matches_expected_absent_symbol(
+    record: &thinindex::model::IndexRecord,
+    expected: &ExpectedAbsentSymbol,
 ) -> bool {
     record.name == expected.name
         && expected
@@ -573,6 +639,88 @@ fn record_matches_expected_symbol_pattern(
             .as_ref()
             .is_none_or(|path_glob| glob_matches(path_glob, &record.path))
         && name_regex.is_match(&record.name)
+}
+
+fn render_nearby_records(
+    records: &[thinindex::model::IndexRecord],
+    expected: &ExpectedSymbol,
+) -> String {
+    let mut candidates = records
+        .iter()
+        .filter(|record| {
+            expected
+                .path
+                .as_ref()
+                .is_some_and(|path| record.path == *path)
+                || expected
+                    .language
+                    .as_ref()
+                    .is_some_and(|language| record.lang == *language)
+                || expected
+                    .kind
+                    .as_ref()
+                    .is_some_and(|kind| record.kind == *kind)
+        })
+        .collect::<Vec<_>>();
+
+    if candidates.is_empty() {
+        candidates = records.iter().take(3).collect();
+    }
+
+    render_records(candidates.into_iter())
+}
+
+fn render_pattern_candidates(
+    records: &[thinindex::model::IndexRecord],
+    pattern: &ExpectedSymbolPattern,
+) -> String {
+    let candidates = records
+        .iter()
+        .filter(|record| {
+            pattern
+                .language
+                .as_ref()
+                .is_none_or(|language| record.lang == *language)
+                && pattern
+                    .kind
+                    .as_ref()
+                    .is_none_or(|kind| record.kind == *kind)
+                && pattern
+                    .path_glob
+                    .as_ref()
+                    .is_none_or(|path_glob| glob_matches(path_glob, &record.path))
+        })
+        .collect::<Vec<_>>();
+
+    render_records(candidates.into_iter())
+}
+
+fn render_records<'a>(records: impl Iterator<Item = &'a thinindex::model::IndexRecord>) -> String {
+    let mut records = records.collect::<Vec<_>>();
+    records.sort_by(|left, right| {
+        left.path
+            .cmp(&right.path)
+            .then(left.line.cmp(&right.line))
+            .then(left.col.cmp(&right.col))
+            .then(left.kind.cmp(&right.kind))
+            .then(left.name.cmp(&right.name))
+    });
+    let rendered = records
+        .into_iter()
+        .take(3)
+        .map(|record| {
+            format!(
+                "{}:{}:{} {} {} ({})",
+                record.path, record.line, record.col, record.kind, record.name, record.lang
+            )
+        })
+        .collect::<Vec<_>>();
+
+    if rendered.is_empty() {
+        "none".to_string()
+    } else {
+        rendered.join("; ")
+    }
 }
 
 fn glob_matches(pattern: &str, value: &str) -> bool {
@@ -698,6 +846,8 @@ impl AggregateCoverage {
         self.expected_symbols_missing += report.symbol_coverage.symbols_missing.len();
         self.expected_symbol_patterns_checked += report.symbol_coverage.patterns_checked;
         self.expected_symbol_patterns_missing += report.symbol_coverage.patterns_missing.len();
+        self.expected_absent_symbols_checked += report.symbol_coverage.absent_symbols_checked;
+        self.expected_absent_symbols_found += report.symbol_coverage.absent_symbols_found.len();
     }
 }
 
@@ -727,6 +877,10 @@ fn print_aggregate_coverage_report(aggregate: &AggregateCoverage) {
     println!(
         "  expected symbol patterns: checked={} missing={}",
         aggregate.expected_symbol_patterns_checked, aggregate.expected_symbol_patterns_missing
+    );
+    println!(
+        "  expected absent symbols: checked={} found={}",
+        aggregate.expected_absent_symbols_checked, aggregate.expected_absent_symbols_found
     );
 }
 
@@ -856,6 +1010,12 @@ fn expected_symbol_specs_match_records_with_filters() {
             name_regex: "^build_.*".to_string(),
             min_count: 1,
         }],
+        expected_absent_symbol_specs: vec![ExpectedAbsentSymbol {
+            language: Some("rs".to_string()),
+            path: Some("src/indexer.rs".to_string()),
+            kind: Some("function".to_string()),
+            name: "NotARealBuildIndexCommentSymbol".to_string(),
+        }],
         quality_thresholds: Vec::new(),
         from_manifest: false,
     };
@@ -876,6 +1036,8 @@ fn expected_symbol_specs_match_records_with_filters() {
     assert!(coverage.symbols_missing.is_empty());
     assert_eq!(coverage.patterns_checked, 1);
     assert!(coverage.patterns_missing.is_empty());
+    assert_eq!(coverage.absent_symbols_checked, 1);
+    assert!(coverage.absent_symbols_found.is_empty());
 }
 
 #[test]

@@ -203,6 +203,20 @@ pub fn gaps_from_gate_report(report: &QualityGateReport) -> QualityGapReport {
         });
     }
 
+    for found in &report.expected_absent_symbols_found {
+        builder.push(GapInput {
+            path: path_from_detail(found),
+            language: language_from_detail(found),
+            symbol: Some(found.clone()),
+            kind: kind_from_detail(found),
+            pattern: None,
+            evidence_source: "expected-absent-symbol".to_string(),
+            severity: GapSeverity::High,
+            suggested_fix: SuggestedFixType::ParserQuery,
+            detail: format!("Expected-absent symbol found: {found}"),
+        });
+    }
+
     for failure in &report.threshold_failures {
         builder.push(GapInput {
             path: None,
@@ -648,12 +662,13 @@ fn evidence_rank(source: &str) -> u8 {
     match source {
         "expected-symbol" => 0,
         "expected-symbol-pattern" => 1,
-        "integrity" => 2,
-        "quality-threshold" => 3,
-        "comparator-only" => 4,
-        "thinindex-only" => 5,
-        "unsupported-extension" => 6,
-        _ => 7,
+        "expected-absent-symbol" => 2,
+        "integrity" => 3,
+        "quality-threshold" => 4,
+        "comparator-only" => 5,
+        "thinindex-only" => 6,
+        "unsupported-extension" => 7,
+        _ => 8,
     }
 }
 

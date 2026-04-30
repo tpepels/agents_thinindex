@@ -4,7 +4,7 @@ use std::{fs, path::Path};
 
 use anyhow::Result;
 use thinindex::{
-    bench::{BenchmarkRepoSet, ExpectedSymbol},
+    bench::{BenchmarkRepoSet, ExpectedAbsentSymbol, ExpectedSymbol},
     indexer::build_index,
     model::IndexRecord,
     quality::{
@@ -45,6 +45,12 @@ fn quality_gap_model_collects_actionable_evidence() {
                 kind: Some("function".to_string()),
                 name: "missing_symbol".to_string(),
             }])
+            .with_expected_absent_symbols(vec![ExpectedAbsentSymbol {
+                language: Some("rs".to_string()),
+                path: Some("src/lib.rs".to_string()),
+                kind: Some("function".to_string()),
+                name: "present".to_string(),
+            }])
             .with_comparator_run(comparator),
     )
     .expect("evaluate gate");
@@ -58,6 +64,14 @@ fn quality_gap_model_collects_actionable_evidence() {
                 .symbol
                 .as_deref()
                 .is_some_and(|symbol| symbol.contains("missing_symbol"))
+            && gap.severity == GapSeverity::High
+    }));
+    assert!(report.gaps.iter().any(|gap| {
+        gap.evidence_source == "expected-absent-symbol"
+            && gap
+                .symbol
+                .as_deref()
+                .is_some_and(|symbol| symbol.contains("present"))
             && gap.severity == GapSeverity::High
     }));
     assert!(

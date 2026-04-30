@@ -69,6 +69,14 @@ pub struct ExpectedSymbol {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExpectedAbsentSymbol {
+    pub language: Option<String>,
+    pub path: Option<String>,
+    pub kind: Option<String>,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExpectedSymbolPattern {
     pub language: Option<String>,
     pub path_glob: Option<String>,
@@ -97,6 +105,7 @@ pub struct BenchmarkRepo {
     pub expected_symbol_patterns: Vec<String>,
     pub expected_symbol_specs: Vec<ExpectedSymbol>,
     pub expected_symbol_pattern_specs: Vec<ExpectedSymbolPattern>,
+    pub expected_absent_symbol_specs: Vec<ExpectedAbsentSymbol>,
     pub quality_thresholds: Vec<QualityThreshold>,
     pub from_manifest: bool,
 }
@@ -328,6 +337,7 @@ pub fn load_benchmark_repo_set(test_repos_root: &Path) -> Result<BenchmarkRepoSe
             expected_symbol_patterns: Vec::new(),
             expected_symbol_specs: Vec::new(),
             expected_symbol_pattern_specs: Vec::new(),
+            expected_absent_symbol_specs: Vec::new(),
             quality_thresholds: Vec::new(),
             from_manifest: false,
         });
@@ -391,6 +401,21 @@ pub fn parse_benchmark_manifest(text: &str, test_repos_root: &Path) -> Result<Ve
                 .push(ExpectedSymbolPatternBuilder::default());
             section = ManifestSection::ExpectedSymbolPattern(
                 builder.expected_symbol_pattern_specs.len() - 1,
+            );
+            continue;
+        }
+
+        if line == "[[repo.expected_absent_symbol]]" {
+            let Some(builder) = current.as_mut() else {
+                bail!(
+                    "MANIFEST.toml line {line_no}: expected [[repo]] before expected absent symbols"
+                );
+            };
+            builder
+                .expected_absent_symbol_specs
+                .push(ExpectedSymbolBuilder::default());
+            section = ManifestSection::ExpectedAbsentSymbol(
+                builder.expected_absent_symbol_specs.len() - 1,
             );
             continue;
         }
@@ -469,6 +494,23 @@ pub fn parse_benchmark_manifest(text: &str, test_repos_root: &Path) -> Result<Ve
                     }
                 }
             }
+            ManifestSection::ExpectedAbsentSymbol(symbol_index) => {
+                let Some(symbol) = builder.expected_absent_symbol_specs.get_mut(symbol_index)
+                else {
+                    bail!("MANIFEST.toml line {line_no}: expected absent symbol section missing");
+                };
+                match key {
+                    "language" => symbol.language = Some(parse_toml_string(value, line_no)?),
+                    "path" => symbol.path = Some(parse_toml_string(value, line_no)?),
+                    "kind" => symbol.kind = Some(parse_toml_string(value, line_no)?),
+                    "name" => symbol.name = Some(parse_toml_string(value, line_no)?),
+                    other => {
+                        bail!(
+                            "MANIFEST.toml line {line_no}: unknown expected_absent_symbol field `{other}`"
+                        )
+                    }
+                }
+            }
             ManifestSection::QualityThreshold(threshold_index) => {
                 let Some(threshold) = builder.quality_thresholds.get_mut(threshold_index) else {
                     bail!("MANIFEST.toml line {line_no}: quality threshold section missing");
@@ -535,6 +577,7 @@ enum ManifestSection {
     Repo,
     ExpectedSymbol(usize),
     ExpectedSymbolPattern(usize),
+    ExpectedAbsentSymbol(usize),
     QualityThreshold(usize),
 }
 
@@ -550,6 +593,7 @@ struct ManifestRepoBuilder {
     expected_symbol_patterns: Option<Vec<String>>,
     expected_symbol_specs: Vec<ExpectedSymbolBuilder>,
     expected_symbol_pattern_specs: Vec<ExpectedSymbolPatternBuilder>,
+    expected_absent_symbol_specs: Vec<ExpectedSymbolBuilder>,
     quality_thresholds: Vec<QualityThresholdBuilder>,
     skip: bool,
 }
@@ -615,6 +659,8 @@ fn finish_manifest_repo(
     let expected_symbol_specs = finish_expected_symbol_specs(&name, builder.expected_symbol_specs)?;
     let expected_symbol_pattern_specs =
         finish_expected_symbol_pattern_specs(&name, builder.expected_symbol_pattern_specs)?;
+    let expected_absent_symbol_specs =
+        finish_expected_absent_symbol_specs(&name, builder.expected_absent_symbol_specs)?;
     let quality_thresholds = finish_quality_thresholds(&name, builder.quality_thresholds)?;
 
     Ok(Some(BenchmarkRepo {
@@ -628,6 +674,7 @@ fn finish_manifest_repo(
         expected_symbol_patterns: builder.expected_symbol_patterns.unwrap_or_default(),
         expected_symbol_specs,
         expected_symbol_pattern_specs,
+        expected_absent_symbol_specs,
         quality_thresholds,
         from_manifest: true,
     }))
@@ -685,6 +732,31 @@ fn finish_expected_symbol_pattern_specs(
                 kind: builder.kind,
                 name_regex,
                 min_count,
+            })
+        })
+        .collect()
+}
+
+fn finish_expected_absent_symbol_specs(
+    repo_name: &str,
+    builders: Vec<ExpectedSymbolBuilder>,
+) -> Result<Vec<ExpectedAbsentSymbol>> {
+    builders
+        .into_iter()
+        .enumerate()
+        .map(|(index, builder)| {
+            let name = builder.name.ok_or_else(|| {
+                anyhow::anyhow!(
+                    "MANIFEST.toml repo `{repo_name}` expected_absent_symbol #{} missing required field `name`",
+                    index + 1
+                )
+            })?;
+
+            Ok(ExpectedAbsentSymbol {
+                language: builder.language,
+                path: builder.path,
+                kind: builder.kind,
+                name,
             })
         })
         .collect()

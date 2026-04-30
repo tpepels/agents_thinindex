@@ -55,6 +55,7 @@ The normal deterministic gate uses tiny fixtures only. It fails on:
 
 - missing expected symbols
 - failing expected-symbol patterns
+- found expected-absent symbols
 - threshold failures
 - duplicate record locations
 - duplicate refs
@@ -87,6 +88,16 @@ name_regex = "^[A-Za-z_].*"
 min_count = 20
 ```
 
+Use expected-absent symbols for known false positives that must not be extracted from comments, strings, generated docs, or unsupported syntax:
+
+```toml
+[[repo.expected_absent_symbol]]
+language = "py"
+path = "app/example.py"
+kind = "function"
+name = "NotARealSymbolFromComment"
+```
+
 Optional quality thresholds are per language:
 
 ```toml
@@ -97,7 +108,7 @@ max_duplicate_locations = 0
 max_malformed_records = 0
 ```
 
-Avoid exact total record counts for real repositories. Prefer expected symbols, expected patterns, and coarse minimum thresholds that reflect supported-language coverage.
+Avoid exact total record counts for real repositories. Prefer expected symbols, expected patterns, expected-absent symbols, and coarse minimum thresholds that reflect supported-language coverage. Failure output should include the repo, language, path, kind, expected name or pattern, and nearby records where helpful.
 
 ## Running Gates
 

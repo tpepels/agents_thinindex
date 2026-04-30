@@ -4,7 +4,10 @@ use std::{fs, path::Path};
 
 use anyhow::Result;
 use thinindex::{
-    bench::{BenchmarkRepoSet, ExpectedSymbol, ExpectedSymbolPattern, QualityThreshold},
+    bench::{
+        BenchmarkRepoSet, ExpectedAbsentSymbol, ExpectedSymbol, ExpectedSymbolPattern,
+        QualityThreshold,
+    },
     indexer::build_index,
     model::{IndexRecord, ReferenceRecord},
     quality::{
@@ -44,6 +47,12 @@ fn normal_deterministic_quality_gate_passes_for_tiny_fixture_repo() {
                 name_regex: "^gate_.*".to_string(),
                 min_count: 1,
             }])
+            .with_expected_absent_symbols(vec![ExpectedAbsentSymbol {
+                language: Some("rs".to_string()),
+                path: Some("src/lib.rs".to_string()),
+                kind: Some("function".to_string()),
+                name: "gate_symbol_from_comment".to_string(),
+            }])
             .with_quality_thresholds(vec![QualityThreshold {
                 language: "rs".to_string(),
                 min_records: Some(2),
@@ -57,6 +66,7 @@ fn normal_deterministic_quality_gate_passes_for_tiny_fixture_repo() {
     let rendered = render_quality_gate_report(&report);
     assert!(rendered.contains("- expected symbols: 1 checked, 0 missing"));
     assert!(rendered.contains("- expected patterns: 1 checked, 0 failing"));
+    assert!(rendered.contains("- expected absent symbols: 1 checked, 0 found"));
     assert!(rendered.contains("- records by language: rs="));
 }
 
@@ -81,8 +91,10 @@ fn missing_expected_symbol_message_is_actionable() {
 
     assert!(message.contains("quality drift gate failed for fixture"));
     assert!(message.contains("missing expected symbol"));
+    assert!(message.contains("repo=fixture"));
     assert!(message.contains("missing_symbol"));
     assert!(message.contains("src/lib.rs"));
+    assert!(message.contains("nearby=src/lib.rs:1:1 function present (rs)"));
 }
 
 #[test]
@@ -137,6 +149,42 @@ fn expected_symbol_patterns_and_thresholds_are_checked() {
     assert!(rendered.contains("min_count=3 actual=2"));
     assert!(rendered.contains("min_records=3 actual=2"));
     assert!(assert_quality_gate_passes(&failing).is_err());
+}
+
+#[test]
+fn expected_absent_symbols_fail_when_found() {
+    let records = vec![
+        record(
+            "src/lib.rs",
+            1,
+            1,
+            "rs",
+            "function",
+            "NotARealSymbolFromComment",
+        ),
+        record("src/lib.rs", 2, 1, "rs", "function", "present"),
+    ];
+    let report = evaluate_quality_gate(
+        &records,
+        &[],
+        QualityGateOptions::new("fixture", "/tmp/fixture").with_expected_absent_symbols(vec![
+            ExpectedAbsentSymbol {
+                language: Some("rs".to_string()),
+                path: Some("src/lib.rs".to_string()),
+                kind: Some("function".to_string()),
+                name: "NotARealSymbolFromComment".to_string(),
+            },
+        ]),
+    )
+    .expect("evaluate gate");
+    let rendered = render_quality_gate_report(&report);
+
+    assert!(rendered.contains("- expected absent symbols: 1 checked, 1 found"));
+    assert!(rendered.contains("Found expected-absent symbols:"));
+    assert!(rendered.contains("repo=fixture"));
+    assert!(rendered.contains("NotARealSymbolFromComment"));
+    assert!(rendered.contains("matches=src/lib.rs:1:1 function NotARealSymbolFromComment (rs)"));
+    assert!(assert_quality_gate_passes(&report).is_err());
 }
 
 #[test]

@@ -23,6 +23,7 @@ The check phase collects:
 
 - missing expected symbols
 - failing expected symbol patterns
+- found expected-absent symbols
 - parser panics or integrity failures surfaced by tests
 - supported-language files that emit zero useful records without a documented reason
 - comparator-only and thinindex-only symbols when the optional comparator is available
@@ -85,6 +86,7 @@ Measurable closure criteria:
 
 - no missing manifest expected symbols
 - no failing expected symbol patterns
+- no found expected-absent symbols
 - no duplicate locations
 - no malformed records or refs
 - no parser panics

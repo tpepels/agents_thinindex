@@ -7,7 +7,10 @@ use anyhow::{Result, bail};
 use regex::Regex;
 
 use crate::{
-    bench::{BenchmarkRepo, ExpectedSymbol, ExpectedSymbolPattern, QualityThreshold},
+    bench::{
+        BenchmarkRepo, ExpectedAbsentSymbol, ExpectedSymbol, ExpectedSymbolPattern,
+        QualityThreshold,
+    },
     model::{IndexRecord, ReferenceRecord},
     quality::{
         comparator::ComparatorRun,
@@ -23,6 +26,7 @@ pub struct QualityGateOptions {
     pub expected_symbol_name_patterns: Vec<String>,
     pub expected_symbols: Vec<ExpectedSymbol>,
     pub expected_symbol_patterns: Vec<ExpectedSymbolPattern>,
+    pub expected_absent_symbols: Vec<ExpectedAbsentSymbol>,
     pub quality_thresholds: Vec<QualityThreshold>,
     pub comparator_run: Option<ComparatorRun>,
 }
@@ -36,6 +40,7 @@ impl QualityGateOptions {
             expected_symbol_name_patterns: Vec::new(),
             expected_symbols: Vec::new(),
             expected_symbol_patterns: Vec::new(),
+            expected_absent_symbols: Vec::new(),
             quality_thresholds: Vec::new(),
             comparator_run: None,
         }
@@ -49,6 +54,7 @@ impl QualityGateOptions {
             expected_symbol_name_patterns: repo.expected_symbol_patterns.clone(),
             expected_symbols: repo.expected_symbol_specs.clone(),
             expected_symbol_patterns: repo.expected_symbol_pattern_specs.clone(),
+            expected_absent_symbols: repo.expected_absent_symbol_specs.clone(),
             quality_thresholds: repo.quality_thresholds.clone(),
             comparator_run: None,
         }
@@ -64,6 +70,14 @@ impl QualityGateOptions {
         expected_symbol_patterns: Vec<ExpectedSymbolPattern>,
     ) -> Self {
         self.expected_symbol_patterns = expected_symbol_patterns;
+        self
+    }
+
+    pub fn with_expected_absent_symbols(
+        mut self,
+        expected_absent_symbols: Vec<ExpectedAbsentSymbol>,
+    ) -> Self {
+        self.expected_absent_symbols = expected_absent_symbols;
         self
     }
 
@@ -95,6 +109,8 @@ pub struct QualityGateReport {
     pub expected_symbols_missing: Vec<String>,
     pub expected_patterns_checked: usize,
     pub expected_patterns_failing: Vec<String>,
+    pub expected_absent_symbols_checked: usize,
+    pub expected_absent_symbols_found: Vec<String>,
     pub thresholds_checked: usize,
     pub threshold_failures: Vec<ThresholdFailure>,
     pub duplicate_record_count: usize,
@@ -146,6 +162,12 @@ pub fn evaluate_quality_gate(
             .iter()
             .filter_map(|pattern| pattern.language.clone()),
     );
+    languages.extend(
+        options
+            .expected_absent_symbols
+            .iter()
+            .filter_map(|symbol| symbol.language.clone()),
+    );
 
     Ok(QualityGateReport {
         repo_name: options.repo_name,
@@ -157,6 +179,8 @@ pub fn evaluate_quality_gate(
         expected_symbols_missing: expected.symbols_missing,
         expected_patterns_checked: expected.patterns_checked,
         expected_patterns_failing: expected.patterns_failing,
+        expected_absent_symbols_checked: expected.absent_symbols_checked,
+        expected_absent_symbols_found: expected.absent_symbols_found,
         thresholds_checked: options.quality_thresholds.len(),
         threshold_failures: thresholds,
         duplicate_record_count: record_metrics.duplicate_record_count,
@@ -174,6 +198,7 @@ pub fn evaluate_quality_gate(
 pub fn assert_quality_gate_passes(report: &QualityGateReport) -> Result<()> {
     if report.expected_symbols_missing.is_empty()
         && report.expected_patterns_failing.is_empty()
+        && report.expected_absent_symbols_found.is_empty()
         && report.threshold_failures.is_empty()
         && report.duplicate_record_count == 0
         && report.duplicate_ref_count == 0
@@ -209,6 +234,11 @@ pub fn render_quality_gate_report(report: &QualityGateReport) -> String {
         "- expected patterns: {} checked, {} failing\n",
         report.expected_patterns_checked,
         report.expected_patterns_failing.len()
+    ));
+    out.push_str(&format!(
+        "- expected absent symbols: {} checked, {} found\n",
+        report.expected_absent_symbols_checked,
+        report.expected_absent_symbols_found.len()
     ));
     out.push_str(&format!(
         "- thresholds: {} checked, {} failing\n",
@@ -269,6 +299,13 @@ pub fn render_quality_gate_report(report: &QualityGateReport) -> String {
         out.push_str("\nFailing expected patterns:\n");
         for failing in &report.expected_patterns_failing {
             out.push_str(&format!("- {failing}\n"));
+        }
+    }
+
+    if !report.expected_absent_symbols_found.is_empty() {
+        out.push_str("\nFound expected-absent symbols:\n");
+        for found in &report.expected_absent_symbols_found {
+            out.push_str(&format!("- {found}\n"));
         }
     }
 
@@ -337,6 +374,8 @@ struct ExpectedCheck {
     symbols_missing: Vec<String>,
     patterns_checked: usize,
     patterns_failing: Vec<String>,
+    absent_symbols_checked: usize,
+    absent_symbols_found: Vec<String>,
 }
 
 fn collect_record_metrics(records: &[IndexRecord]) -> RecordMetrics {
@@ -450,7 +489,10 @@ fn check_expected_symbols(
     for name in &options.expected_symbol_names {
         check.symbols_checked += 1;
         if !records.iter().any(|record| record.name == *name) {
-            check.symbols_missing.push(format!("name={name}"));
+            check.symbols_missing.push(format!(
+                "missing expected symbol repo={} name={name}",
+                options.repo_name
+            ));
         }
     }
 
@@ -461,8 +503,10 @@ fn check_expected_symbols(
             .any(|record| record_matches_symbol(record, expected))
         {
             check.symbols_missing.push(format!(
-                "missing expected symbol {}",
-                format_symbol(expected)
+                "missing expected symbol repo={} {} nearby={}",
+                options.repo_name,
+                format_symbol(expected),
+                render_nearby_records(records, expected)
             ));
         }
     }
@@ -471,9 +515,10 @@ fn check_expected_symbols(
         check.patterns_checked += 1;
         let regex = Regex::new(pattern)?;
         if !records.iter().any(|record| regex.is_match(&record.name)) {
-            check
-                .patterns_failing
-                .push(format!("name_regex={pattern} min_count=1 actual=0"));
+            check.patterns_failing.push(format!(
+                "repo={} name_regex={pattern} min_count=1 actual=0",
+                options.repo_name
+            ));
         }
     }
 
@@ -487,18 +532,38 @@ fn check_expected_symbols(
 
         if count < pattern.min_count {
             check.patterns_failing.push(format!(
-                "language={:?} path_glob={:?} kind={:?} name_regex={} min_count={} actual={count}",
+                "repo={} language={:?} path_glob={:?} kind={:?} name_regex={} min_count={} actual={count} nearby={}",
+                options.repo_name,
                 pattern.language,
                 pattern.path_glob,
                 pattern.kind,
                 pattern.name_regex,
-                pattern.min_count
+                pattern.min_count,
+                render_pattern_candidates(records, pattern)
+            ));
+        }
+    }
+
+    for expected in &options.expected_absent_symbols {
+        check.absent_symbols_checked += 1;
+        let matches = records
+            .iter()
+            .filter(|record| record_matches_absent_symbol(record, expected))
+            .collect::<Vec<_>>();
+
+        if !matches.is_empty() {
+            check.absent_symbols_found.push(format!(
+                "found expected-absent symbol repo={} {} matches={}",
+                options.repo_name,
+                format_absent_symbol(expected),
+                render_records(matches.into_iter())
             ));
         }
     }
 
     check.symbols_missing.sort();
     check.patterns_failing.sort();
+    check.absent_symbols_found.sort();
     Ok(check)
 }
 
@@ -582,6 +647,22 @@ fn record_matches_symbol(record: &IndexRecord, expected: &ExpectedSymbol) -> boo
             .is_none_or(|kind| record.kind == *kind)
 }
 
+fn record_matches_absent_symbol(record: &IndexRecord, expected: &ExpectedAbsentSymbol) -> bool {
+    record.name == expected.name
+        && expected
+            .language
+            .as_ref()
+            .is_none_or(|language| normalize_language(&record.lang) == normalize_language(language))
+        && expected
+            .path
+            .as_ref()
+            .is_none_or(|path| normalize_path(&record.path) == normalize_path(path))
+        && expected
+            .kind
+            .as_ref()
+            .is_none_or(|kind| record.kind == *kind)
+}
+
 fn record_matches_pattern(
     record: &IndexRecord,
     pattern: &ExpectedSymbolPattern,
@@ -606,6 +687,90 @@ fn format_symbol(symbol: &ExpectedSymbol) -> String {
     format!(
         "language={:?} path={:?} kind={:?} name={}",
         symbol.language, symbol.path, symbol.kind, symbol.name
+    )
+}
+
+fn format_absent_symbol(symbol: &ExpectedAbsentSymbol) -> String {
+    format!(
+        "language={:?} path={:?} kind={:?} name={}",
+        symbol.language, symbol.path, symbol.kind, symbol.name
+    )
+}
+
+fn render_nearby_records(records: &[IndexRecord], expected: &ExpectedSymbol) -> String {
+    let mut candidates = records
+        .iter()
+        .filter(|record| {
+            expected
+                .path
+                .as_ref()
+                .is_some_and(|path| normalize_path(&record.path) == normalize_path(path))
+                || expected.language.as_ref().is_some_and(|language| {
+                    normalize_language(&record.lang) == normalize_language(language)
+                })
+                || expected
+                    .kind
+                    .as_ref()
+                    .is_some_and(|kind| record.kind == *kind)
+        })
+        .collect::<Vec<_>>();
+
+    if candidates.is_empty() {
+        candidates = records.iter().take(3).collect();
+    }
+
+    render_records(candidates.into_iter())
+}
+
+fn render_pattern_candidates(records: &[IndexRecord], pattern: &ExpectedSymbolPattern) -> String {
+    let mut candidates = records
+        .iter()
+        .filter(|record| {
+            pattern.language.as_ref().is_none_or(|language| {
+                normalize_language(&record.lang) == normalize_language(language)
+            }) && pattern
+                .kind
+                .as_ref()
+                .is_none_or(|kind| record.kind == *kind)
+                && pattern
+                    .path_glob
+                    .as_ref()
+                    .is_none_or(|path_glob| glob_matches(path_glob, &record.path))
+        })
+        .collect::<Vec<_>>();
+    candidates.sort_by_key(|record| record_sort_key(record));
+
+    render_records(candidates.into_iter())
+}
+
+fn render_records<'a>(records: impl Iterator<Item = &'a IndexRecord>) -> String {
+    let mut records = records.collect::<Vec<_>>();
+    records.sort_by_key(|record| record_sort_key(record));
+    let rendered = records
+        .into_iter()
+        .take(3)
+        .map(|record| {
+            format!(
+                "{}:{}:{} {} {} ({})",
+                record.path, record.line, record.col, record.kind, record.name, record.lang
+            )
+        })
+        .collect::<Vec<_>>();
+
+    if rendered.is_empty() {
+        "none".to_string()
+    } else {
+        rendered.join("; ")
+    }
+}
+
+fn record_sort_key(record: &IndexRecord) -> (&str, usize, usize, &str, &str) {
+    (
+        record.path.as_str(),
+        record.line,
+        record.col,
+        record.kind.as_str(),
+        record.name.as_str(),
     )
 }
 

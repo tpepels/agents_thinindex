@@ -169,6 +169,12 @@ kind = "function"
 name_regex = "^create_.*_service$"
 min_count = 1
 
+[[repo.expected_absent_symbol]]
+language = "py"
+path = "src/service.py"
+kind = "function"
+name = "PromptServiceFromComment"
+
 [[repo.quality_threshold]]
 language = "py"
 min_records = 2
@@ -215,6 +221,11 @@ skip = true
     );
     assert_eq!(repos[0].expected_symbol_pattern_specs.len(), 1);
     assert_eq!(repos[0].expected_symbol_pattern_specs[0].min_count, 1);
+    assert_eq!(repos[0].expected_absent_symbol_specs.len(), 1);
+    assert_eq!(
+        repos[0].expected_absent_symbol_specs[0].name,
+        "PromptServiceFromComment".to_string()
+    );
     assert_eq!(repos[0].quality_thresholds.len(), 1);
     assert_eq!(repos[0].quality_thresholds[0].language, "py");
     assert_eq!(repos[0].quality_thresholds[0].min_records, Some(2));
@@ -249,6 +260,38 @@ queries = ["Missing"]
 
     assert!(
         message.contains("repo `missing` path does not exist"),
+        "unexpected error: {message}"
+    );
+}
+
+#[test]
+fn benchmark_manifest_expected_absent_symbol_requires_name() {
+    let temp = tempfile::tempdir().expect("create tempdir");
+    let root = temp.path();
+    let repo = root.join("python_app");
+    std::fs::create_dir_all(repo.join("src")).expect("create repo");
+    std::fs::write(
+        root.join("MANIFEST.toml"),
+        r#"
+[[repo]]
+name = "python-app"
+path = "python_app"
+queries = ["PromptService"]
+
+[[repo.expected_absent_symbol]]
+language = "py"
+path = "src/service.py"
+kind = "function"
+"#,
+    )
+    .expect("write manifest");
+
+    let error = load_benchmark_repo_set(root)
+        .expect_err("expected_absent_symbol without a name should fail");
+    let message = format!("{error:#}");
+
+    assert!(
+        message.contains("expected_absent_symbol #1 missing required field `name`"),
         "unexpected error: {message}"
     );
 }
