@@ -169,6 +169,12 @@ kind = "function"
 name_regex = "^create_.*_service$"
 min_count = 1
 
+[[repo.quality_threshold]]
+language = "py"
+min_records = 2
+max_duplicate_locations = 0
+max_malformed_records = 0
+
 [[repo]]
 name = "skipped"
 path = "skipped_app"
@@ -209,6 +215,17 @@ skip = true
     );
     assert_eq!(repos[0].expected_symbol_pattern_specs.len(), 1);
     assert_eq!(repos[0].expected_symbol_pattern_specs[0].min_count, 1);
+    assert_eq!(repos[0].quality_thresholds.len(), 1);
+    assert_eq!(repos[0].quality_thresholds[0].language, "py");
+    assert_eq!(repos[0].quality_thresholds[0].min_records, Some(2));
+    assert_eq!(
+        repos[0].quality_thresholds[0].max_duplicate_locations,
+        Some(0)
+    );
+    assert_eq!(
+        repos[0].quality_thresholds[0].max_malformed_records,
+        Some(0)
+    );
     assert!(repos[0].from_manifest);
 }
 

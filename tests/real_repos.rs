@@ -856,6 +856,7 @@ fn expected_symbol_specs_match_records_with_filters() {
             name_regex: "^build_.*".to_string(),
             min_count: 1,
         }],
+        quality_thresholds: Vec::new(),
         from_manifest: false,
     };
     let records = vec![thinindex::model::IndexRecord::new(

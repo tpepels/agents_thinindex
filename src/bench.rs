@@ -78,6 +78,14 @@ pub struct ExpectedSymbolPattern {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QualityThreshold {
+    pub language: String,
+    pub min_records: Option<usize>,
+    pub max_duplicate_locations: Option<usize>,
+    pub max_malformed_records: Option<usize>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchmarkRepo {
     pub name: String,
     pub path: PathBuf,
@@ -89,6 +97,7 @@ pub struct BenchmarkRepo {
     pub expected_symbol_patterns: Vec<String>,
     pub expected_symbol_specs: Vec<ExpectedSymbol>,
     pub expected_symbol_pattern_specs: Vec<ExpectedSymbolPattern>,
+    pub quality_thresholds: Vec<QualityThreshold>,
     pub from_manifest: bool,
 }
 
@@ -319,6 +328,7 @@ pub fn load_benchmark_repo_set(test_repos_root: &Path) -> Result<BenchmarkRepoSe
             expected_symbol_patterns: Vec::new(),
             expected_symbol_specs: Vec::new(),
             expected_symbol_pattern_specs: Vec::new(),
+            quality_thresholds: Vec::new(),
             from_manifest: false,
         });
     }
@@ -385,6 +395,17 @@ pub fn parse_benchmark_manifest(text: &str, test_repos_root: &Path) -> Result<Ve
             continue;
         }
 
+        if line == "[[repo.quality_threshold]]" {
+            let Some(builder) = current.as_mut() else {
+                bail!("MANIFEST.toml line {line_no}: expected [[repo]] before quality thresholds");
+            };
+            builder
+                .quality_thresholds
+                .push(QualityThresholdBuilder::default());
+            section = ManifestSection::QualityThreshold(builder.quality_thresholds.len() - 1);
+            continue;
+        }
+
         let Some(builder) = current.as_mut() else {
             bail!("MANIFEST.toml line {line_no}: expected [[repo]] before fields");
         };
@@ -448,6 +469,28 @@ pub fn parse_benchmark_manifest(text: &str, test_repos_root: &Path) -> Result<Ve
                     }
                 }
             }
+            ManifestSection::QualityThreshold(threshold_index) => {
+                let Some(threshold) = builder.quality_thresholds.get_mut(threshold_index) else {
+                    bail!("MANIFEST.toml line {line_no}: quality threshold section missing");
+                };
+                match key {
+                    "language" => threshold.language = Some(parse_toml_string(value, line_no)?),
+                    "min_records" => {
+                        threshold.min_records = Some(parse_toml_usize(value, line_no)?)
+                    }
+                    "max_duplicate_locations" => {
+                        threshold.max_duplicate_locations = Some(parse_toml_usize(value, line_no)?)
+                    }
+                    "max_malformed_records" => {
+                        threshold.max_malformed_records = Some(parse_toml_usize(value, line_no)?)
+                    }
+                    other => {
+                        bail!(
+                            "MANIFEST.toml line {line_no}: unknown quality_threshold field `{other}`"
+                        )
+                    }
+                }
+            }
             ManifestSection::None => {
                 bail!("MANIFEST.toml line {line_no}: expected [[repo]] before fields")
             }
@@ -492,6 +535,7 @@ enum ManifestSection {
     Repo,
     ExpectedSymbol(usize),
     ExpectedSymbolPattern(usize),
+    QualityThreshold(usize),
 }
 
 #[derive(Debug, Default)]
@@ -506,6 +550,7 @@ struct ManifestRepoBuilder {
     expected_symbol_patterns: Option<Vec<String>>,
     expected_symbol_specs: Vec<ExpectedSymbolBuilder>,
     expected_symbol_pattern_specs: Vec<ExpectedSymbolPatternBuilder>,
+    quality_thresholds: Vec<QualityThresholdBuilder>,
     skip: bool,
 }
 
@@ -524,6 +569,14 @@ struct ExpectedSymbolPatternBuilder {
     kind: Option<String>,
     name_regex: Option<String>,
     min_count: Option<usize>,
+}
+
+#[derive(Debug, Default)]
+struct QualityThresholdBuilder {
+    language: Option<String>,
+    min_records: Option<usize>,
+    max_duplicate_locations: Option<usize>,
+    max_malformed_records: Option<usize>,
 }
 
 fn finish_manifest_repo(
@@ -562,6 +615,7 @@ fn finish_manifest_repo(
     let expected_symbol_specs = finish_expected_symbol_specs(&name, builder.expected_symbol_specs)?;
     let expected_symbol_pattern_specs =
         finish_expected_symbol_pattern_specs(&name, builder.expected_symbol_pattern_specs)?;
+    let quality_thresholds = finish_quality_thresholds(&name, builder.quality_thresholds)?;
 
     Ok(Some(BenchmarkRepo {
         name,
@@ -574,6 +628,7 @@ fn finish_manifest_repo(
         expected_symbol_patterns: builder.expected_symbol_patterns.unwrap_or_default(),
         expected_symbol_specs,
         expected_symbol_pattern_specs,
+        quality_thresholds,
         from_manifest: true,
     }))
 }
@@ -630,6 +685,41 @@ fn finish_expected_symbol_pattern_specs(
                 kind: builder.kind,
                 name_regex,
                 min_count,
+            })
+        })
+        .collect()
+}
+
+fn finish_quality_thresholds(
+    repo_name: &str,
+    builders: Vec<QualityThresholdBuilder>,
+) -> Result<Vec<QualityThreshold>> {
+    builders
+        .into_iter()
+        .enumerate()
+        .map(|(index, builder)| {
+            let language = builder.language.ok_or_else(|| {
+                anyhow::anyhow!(
+                    "MANIFEST.toml repo `{repo_name}` quality_threshold #{} missing required field `language`",
+                    index + 1
+                )
+            })?;
+
+            if builder.min_records.is_none()
+                && builder.max_duplicate_locations.is_none()
+                && builder.max_malformed_records.is_none()
+            {
+                bail!(
+                    "MANIFEST.toml repo `{repo_name}` quality_threshold #{} must define at least one limit",
+                    index + 1
+                );
+            }
+
+            Ok(QualityThreshold {
+                language,
+                min_records: builder.min_records,
+                max_duplicate_locations: builder.max_duplicate_locations,
+                max_malformed_records: builder.max_malformed_records,
             })
         })
         .collect()

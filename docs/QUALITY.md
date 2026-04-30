@@ -46,3 +46,71 @@ Quality reports are compact text files with:
 - unsupported extensions
 
 These reports are intended for parser-quality triage and must not be imported into production indexes.
+
+## Drift Gates
+
+Quality drift gates evaluate checked-in fixture repositories in normal tests and real repositories under `test_repos/` in ignored tests. They stay in the quality module and read SQLite `records` and `refs`; they do not write comparator data back to production tables.
+
+The normal deterministic gate uses tiny fixtures only. It fails on:
+
+- missing expected symbols
+- failing expected-symbol patterns
+- threshold failures
+- duplicate record locations
+- duplicate refs
+- malformed records or refs
+- `.dev_index` paths in records or refs
+- `source = "ctags"` production records
+
+Comparator-only symbols are triage data. They should be classified as expected-symbol additions, fixture/conformance additions, accepted comparator false positives, or documented unsupported syntax. They do not automatically fail deterministic gates.
+
+## Expected Symbols
+
+`test_repos/MANIFEST.toml` can declare exact expected symbols:
+
+```toml
+[[repo.expected_symbol]]
+language = "rs"
+path = "src/indexer.rs"
+kind = "function"
+name = "build_index"
+```
+
+It can also declare expected symbol patterns:
+
+```toml
+[[repo.expected_symbol_pattern]]
+language = "ts"
+path_glob = "src/**/*.ts"
+kind = "function"
+name_regex = "^[A-Za-z_].*"
+min_count = 20
+```
+
+Optional quality thresholds are per language:
+
+```toml
+[[repo.quality_threshold]]
+language = "rs"
+min_records = 100
+max_duplicate_locations = 0
+max_malformed_records = 0
+```
+
+Avoid exact total record counts for real repositories. Prefer expected symbols, expected patterns, and coarse minimum thresholds that reflect supported-language coverage.
+
+## Running Gates
+
+Normal deterministic gates run with:
+
+```sh
+cargo test
+```
+
+Ignored real-repo gates run with:
+
+```sh
+cargo test --test quality_gates -- --ignored
+```
+
+If `test_repos/` is missing or empty, the ignored gate prints a clear skip message. If a local optional Universal Ctags command is unavailable, the comparator report is skipped; Universal Ctags remains optional, external, not bundled, not required, and not used by `build_index`.
