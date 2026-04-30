@@ -23,6 +23,17 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test
 
+  quality-fixtures:
+    name: deterministic quality fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --test parser_conformance
+      - run: cargo test --test support_levels
+      - run: cargo test --test quality
+      - run: cargo test --test quality_gates
+
   clippy:
     name: cargo clippy
     runs-on: ubuntu-latest

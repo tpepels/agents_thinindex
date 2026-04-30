@@ -154,6 +154,45 @@ Normal deterministic gates run with:
 cargo test
 ```
 
+For local CI parity, run:
+
+```sh
+scripts/check-ci
+```
+
+or:
+
+```sh
+make ci-check
+```
+
+`scripts/check-ci` runs formatting, normal tests, deterministic parser/quality fixture suites, clippy, license audit, and command smoke checks. It does not run ignored tests, does not require `test_repos/`, does not invoke optional external comparators, and does not need network access beyond whatever a caller already uses to install the Rust toolchain and cargo-deny.
+
+## CI-Safe Gates
+
+The CI-safe quality set is deterministic and source-controlled:
+
+- parser conformance fixtures: `cargo test --test parser_conformance`
+- support-level claim checks: `cargo test --test support_levels`
+- quality report/export fixtures: `cargo test --test quality`
+- expected-symbol and threshold fixtures: `cargo test --test quality_gates`
+- ctags allowlist gate: covered by normal `cargo test`
+- license audit: `cargo deny check licenses`
+
+These gates use checked-in fixtures or temporary repositories. They must not read local real repos, call optional comparator commands, download side repos, or write comparator output into production SQLite tables.
+
+## Manual-Only Gates
+
+These checks remain ignored/manual because they depend on local repos, optional tools, or a deliberate improvement cycle:
+
+- real-repo parser integrity: `cargo test --test real_repos -- --ignored`
+- real-repo quality gates: `cargo test --test quality_gates -- --ignored`
+- optional comparator quality report: `cargo test --test quality -- --ignored`
+- quality improvement cycle: `cargo test --test quality_loop -- --ignored`
+- real-repo benchmarks: `cargo test --test bench_repos -- --ignored`
+
+Keep these out of normal CI unless a future workflow provisions the required local corpus explicitly.
+
 Ignored real-repo gates run with:
 
 ```sh

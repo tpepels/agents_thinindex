@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+set -eu
+
+cargo fmt --check
+cargo test
+cargo test --test parser_conformance
+cargo test --test support_levels
+cargo test --test quality
+cargo test --test quality_gates
+cargo clippy --all-targets --all-features -- -D warnings
+cargo deny check licenses
+
+cargo run --bin wi -- --help
+cargo run --bin wi -- --version
+cargo run --bin build_index -- --version
+cargo run --bin wi-init -- --version
+cargo run --bin wi-stats -- --version
+
+echo "ci check ok"

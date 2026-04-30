@@ -4,6 +4,20 @@ This document covers release archives and archive install helpers. Native packag
 
 ## Local Release Gates
 
+For local CI parity without packaging, run:
+
+```bash
+scripts/check-ci
+```
+
+or:
+
+```bash
+make ci-check
+```
+
+This runs formatting, normal tests, deterministic parser/quality fixture suites, clippy, license audit, and command smoke checks. It intentionally does not run ignored tests and does not require local real repositories or optional comparator commands.
+
 Run the standard local release check with:
 
 ```bash
@@ -161,6 +175,7 @@ GitHub Actions workflows are configured under `.github/workflows/`.
 
 - `cargo fmt --check`
 - `cargo test`
+- deterministic parser/quality fixture suites
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo deny check licenses`
 - command smoke tests for all binaries

@@ -336,6 +336,14 @@ cargo test
 cargo clippy --all-targets --all-features -- -D warnings
 ```
 
+Local CI parity:
+
+```bash
+scripts/check-ci
+```
+
+Normal CI uses checked-in parser and quality fixtures only. It does not require local real repositories, ignored tests, network-fetched side repos, or optional external comparator commands. Manual quality checks that use `test_repos/` stay ignored and local.
+
 Manual smoke:
 
 ```bash
