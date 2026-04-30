@@ -108,6 +108,8 @@ Normal tests use fixtures and do not depend on local clones. Real-repo validatio
 - No third-party repository contents are committed.
 - `test_repos/MANIFEST.toml` records local benchmark and integrity targets when present.
 - Ignored tests validate indexing, references, context commands, parser coverage, and benchmark behavior against those repos.
+- Manifest entries can define `queries`, `expected_paths`, `expected_symbols`, and `expected_symbol_patterns`. Expected symbols are checked by the ignored real-repo parser hardening test; patterns are Rust regular expressions matched against indexed symbol names.
+- The real-repo parser report lists supported languages with zero emitted records as weak areas. These usually mean the files contain no query-matched declarations, and they should become fixture cases if important symbols are missed.
 
 Run real-repo checks with:
 

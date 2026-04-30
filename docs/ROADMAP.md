@@ -64,6 +64,8 @@ Real-repo work uses local, ignored repositories:
 - Developers clone third-party repositories there manually.
 - `test_repos/MANIFEST.toml` records local real-repo benchmark targets when present.
 - Ignored tests validate real repositories without making normal `cargo test` depend on local clones.
+- Manifest entries may include `expected_symbols` and `expected_symbol_patterns` so real-repo hardening can check targeted symbol coverage without relying on fragile total record counts.
+- Real-repo parser reports include zero-record supported languages as weak areas rather than using fragile total record assertions.
 
 The current ignored checks cover local index behavior, real-repo integrity, and real-repo benchmarks when the local data exists.
 

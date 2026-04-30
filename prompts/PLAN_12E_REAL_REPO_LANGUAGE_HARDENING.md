@@ -197,3 +197,12 @@ Report:
 - verification commands and results
 - ignored local/real repo test status
 - commit hash
+
+## Phase tracking
+
+- [x] Extend real-repo manifests with optional expected symbol and expected symbol pattern checks.
+- [x] Harden ignored real-repo reporting for files, records, refs, supported languages, extras-backed formats, parse errors, unsupported extensions, expected symbols, and query/context smokes.
+- [x] Keep supported extras-backed formats out of unsupported-extension reports.
+- [x] Document real-repo manifest symbol coverage fields.
+- [x] Run required 12E verification.
+- [x] Commit with `Harden parser support on real repos`.

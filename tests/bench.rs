@@ -153,6 +153,8 @@ kind = "python-cli"
 description = "fixture manifest repo"
 queries = ["PromptService", "config", "PromptService"]
 expected_paths = ["src/"]
+expected_symbols = ["PromptService"]
+expected_symbol_patterns = ["^create_.*_service$"]
 
 [[repo]]
 name = "skipped"
@@ -182,6 +184,11 @@ skip = true
         &vec!["PromptService".to_string(), "config".to_string()]
     );
     assert_eq!(repos[0].expected_paths, vec!["src/".to_string()]);
+    assert_eq!(repos[0].expected_symbols, vec!["PromptService".to_string()]);
+    assert_eq!(
+        repos[0].expected_symbol_patterns,
+        vec!["^create_.*_service$".to_string()]
+    );
     assert!(repos[0].from_manifest);
 }
 

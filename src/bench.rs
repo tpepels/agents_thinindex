@@ -66,6 +66,8 @@ pub struct BenchmarkRepo {
     pub description: Option<String>,
     pub queries: Option<Vec<String>>,
     pub expected_paths: Vec<String>,
+    pub expected_symbols: Vec<String>,
+    pub expected_symbol_patterns: Vec<String>,
     pub from_manifest: bool,
 }
 
@@ -283,6 +285,8 @@ pub fn load_benchmark_repo_set(test_repos_root: &Path) -> Result<BenchmarkRepoSe
             description: None,
             queries: None,
             expected_paths: Vec::new(),
+            expected_symbols: Vec::new(),
+            expected_symbol_patterns: Vec::new(),
             from_manifest: false,
         });
     }
@@ -339,6 +343,12 @@ pub fn parse_benchmark_manifest(text: &str, test_repos_root: &Path) -> Result<Ve
             "expected_paths" => {
                 builder.expected_paths = Some(parse_toml_string_array(value, line_no)?)
             }
+            "expected_symbols" => {
+                builder.expected_symbols = Some(parse_toml_string_array(value, line_no)?)
+            }
+            "expected_symbol_patterns" => {
+                builder.expected_symbol_patterns = Some(parse_toml_string_array(value, line_no)?)
+            }
             "skip" => builder.skip = parse_toml_bool(value, line_no)?,
             other => bail!("MANIFEST.toml line {line_no}: unknown repo field `{other}`"),
         }
@@ -384,6 +394,8 @@ struct ManifestRepoBuilder {
     description: Option<String>,
     queries: Option<Vec<String>>,
     expected_paths: Option<Vec<String>>,
+    expected_symbols: Option<Vec<String>>,
+    expected_symbol_patterns: Option<Vec<String>>,
     skip: bool,
 }
 
@@ -427,6 +439,8 @@ fn finish_manifest_repo(
         description: builder.description,
         queries: Some(queries),
         expected_paths: builder.expected_paths.unwrap_or_default(),
+        expected_symbols: builder.expected_symbols.unwrap_or_default(),
+        expected_symbol_patterns: builder.expected_symbol_patterns.unwrap_or_default(),
         from_manifest: true,
     }))
 }
