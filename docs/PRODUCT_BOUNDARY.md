@@ -60,6 +60,25 @@ Possible future Pro value should be treated as candidates, not implemented gates
 
 These are roadmap candidates. They are not active feature gates in the current tool.
 
+## Candidate team/CI and hosted value
+
+Future team and CI value is documented in [TEAM_CI_ROADMAP.md](TEAM_CI_ROADMAP.md)
+and [CI_INTEGRATION.md](CI_INTEGRATION.md). It is roadmap-only today.
+
+Candidate value may include local CI summaries, agent-readiness reports,
+redacted support bundles, team policy packs, benchmark trend reports, hosted
+report viewing, signed installers, and managed update channels.
+
+The required privacy boundary is no-source-upload mode by default. Local
+commands must continue to work without accounts, payment integration, network
+activation, telemetry, cloud sync, hosted APIs, remote indexing, or feature
+lockouts.
+
+Hosted reports, if implemented by a future plan, must accept explicit
+user-provided report artifacts. They must not require uploading repository
+source, `.dev_index/`, `test_repos/`, raw quality detail dumps, or unredacted
+secrets.
+
 ## What must never be paywalled
 
 The following must remain part of the local/free core:

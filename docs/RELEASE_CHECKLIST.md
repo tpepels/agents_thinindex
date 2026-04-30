@@ -45,7 +45,7 @@ Packaging note:
 - Tree-sitter parser and grammar dependencies are bundled and must remain permissively licensed.
 - Cross-platform release archives and installers require a passing `cargo deny check licenses` run.
 - Proprietary packaging remains blocked by GPL, AGPL, LGPL-only, MPL-only, EPL, CDDL, unknown, custom, or non-commercial dependency terms unless a future plan records an explicit review exception.
-- Release archives must include all thinindex binaries, `README.md`, `INSTALL.md`, `SBOM.md`, `docs/GETTING_STARTED.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, `docs/LICENSING.md`, `docs/SECURITY_PRIVACY.md`, `docs/TROUBLESHOOTING.md`, helper install/uninstall scripts, and `THIRD_PARTY_NOTICES`.
+- Release archives must include all thinindex binaries, `README.md`, `INSTALL.md`, `SBOM.md`, `docs/CI_INTEGRATION.md`, `docs/GETTING_STARTED.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, `docs/LICENSING.md`, `docs/SECURITY_PRIVACY.md`, `docs/TEAM_CI_ROADMAP.md`, `docs/TROUBLESHOOTING.md`, helper install/uninstall scripts, and `THIRD_PARTY_NOTICES`.
 - Release archives must not include `.dev_index/`, `.dev_index/quality/`, `test_repos/`, `target/`, `dist/`, source checkout contents, local quality reports, generated local benchmark outputs, signing secret material, or optional external comparator binaries.
 - Native package formats, signing, and notarization are scaffolded only.
 - Windows Authenticode signing, macOS Developer ID signing/notarization, and Linux package signing are not implemented by default; `scripts/sign-release-artifact` is the local/CI secret-backed scaffold.

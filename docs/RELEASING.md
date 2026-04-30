@@ -100,11 +100,13 @@ Each archive contains:
 - `README.md`
 - `INSTALL.md`
 - `SBOM.md`
+- `docs/CI_INTEGRATION.md`
 - `docs/GETTING_STARTED.md`
 - `docs/RELEASING.md`
 - `docs/INSTALLERS.md`
 - `docs/LICENSING.md`
 - `docs/SECURITY_PRIVACY.md`
+- `docs/TEAM_CI_ROADMAP.md`
 - `docs/TROUBLESHOOTING.md`
 - `THIRD_PARTY_NOTICES`
 - `scripts/install-archive-unix`
@@ -198,7 +200,7 @@ The check verifies that the archive:
 
 - includes `wi`, `build_index`, `wi-init`, and `wi-stats`
 - includes `THIRD_PARTY_NOTICES`
-- includes `README.md`, `INSTALL.md`, `SBOM.md`, `docs/GETTING_STARTED.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, `docs/LICENSING.md`, `docs/SECURITY_PRIVACY.md`, and `docs/TROUBLESHOOTING.md`
+- includes `README.md`, `INSTALL.md`, `SBOM.md`, `docs/CI_INTEGRATION.md`, `docs/GETTING_STARTED.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, `docs/LICENSING.md`, `docs/SECURITY_PRIVACY.md`, `docs/TEAM_CI_ROADMAP.md`, and `docs/TROUBLESHOOTING.md`
 - excludes `.dev_index/`
 - excludes `test_repos/`
 - excludes `target/` and `dist/`

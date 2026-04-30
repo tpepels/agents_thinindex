@@ -112,6 +112,8 @@ The free/local core must continue to include local indexing, `build_index`, `wi 
 
 Future paid work is documented in [PRODUCT_BOUNDARY.md](PRODUCT_BOUNDARY.md). Candidate Pro value should come from proof, hardening, integrations, packaging convenience, and advanced workflows, not from paywalling basic local navigation.
 
+Team/CI and hosted-report candidates are documented in [TEAM_CI_ROADMAP.md](TEAM_CI_ROADMAP.md) and [CI_INTEGRATION.md](CI_INTEGRATION.md). They are roadmap-only and preserve no-source-upload local operation by default.
+
 ## Future product work
 
 Future product work may include:

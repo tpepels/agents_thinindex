@@ -32,11 +32,13 @@ fn release_package_script_stages_expected_payload() {
         "README.md",
         "INSTALL.md",
         "SBOM.md",
+        "docs/CI_INTEGRATION.md",
         "docs/GETTING_STARTED.md",
         "docs/RELEASING.md",
         "docs/INSTALLERS.md",
         "docs/LICENSING.md",
         "docs/SECURITY_PRIVACY.md",
+        "docs/TEAM_CI_ROADMAP.md",
         "docs/TROUBLESHOOTING.md",
         "THIRD_PARTY_NOTICES",
         "scripts/install-archive-unix",
@@ -165,8 +167,10 @@ fn release_docs_describe_archive_install_and_boundaries() {
     );
     assert!(
         releasing.contains("SBOM.md")
+            && releasing.contains("docs/CI_INTEGRATION.md")
             && releasing.contains("docs/GETTING_STARTED.md")
             && releasing.contains("docs/LICENSING.md")
+            && releasing.contains("docs/TEAM_CI_ROADMAP.md")
             && releasing.contains("docs/TROUBLESHOOTING.md")
             && releasing.contains("sign-release-artifact")
             && releasing.contains("signing secret"),

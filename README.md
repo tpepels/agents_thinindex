@@ -243,6 +243,8 @@ The free/local core includes local indexing, `build_index`, `wi <term>`, basic f
 
 Future Pro candidates are documented in [docs/PRODUCT_BOUNDARY.md](docs/PRODUCT_BOUNDARY.md). They are candidates, not current restrictions.
 
+Future team/CI and hosted-report candidates are documented in [docs/TEAM_CI_ROADMAP.md](docs/TEAM_CI_ROADMAP.md) and [docs/CI_INTEGRATION.md](docs/CI_INTEGRATION.md). There is no hosted backend, source upload, telemetry, account login, or payment integration.
+
 ## Install/uninstall
 
 Requires Rust/Cargo. Indexing is self-contained and does not require an external parser command.
@@ -327,7 +329,7 @@ Release archives are built with:
 scripts/package-release
 ```
 
-Archives include all four binaries, `README.md`, `INSTALL.md`, `SBOM.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, `docs/LICENSING.md`, helper install/uninstall scripts, and `THIRD_PARTY_NOTICES`. They do not include `.dev_index/index.sqlite`, `.dev_index/quality/`, `test_repos/`, build output junk, local reports, signing secret material, or source checkout contents. Native installers/package formats, completed signing, and notarization remain scaffolded release-hardening work through `scripts/sign-release-artifact`. See [docs/RELEASING.md](docs/RELEASING.md), [docs/INSTALLERS.md](docs/INSTALLERS.md), [docs/SECURITY_PRIVACY.md](docs/SECURITY_PRIVACY.md), and [docs/LICENSING.md](docs/LICENSING.md).
+Archives include all four binaries, `README.md`, `INSTALL.md`, `SBOM.md`, release/onboarding/privacy/licensing/team docs, helper install/uninstall scripts, and `THIRD_PARTY_NOTICES`. They do not include `.dev_index/index.sqlite`, `.dev_index/quality/`, `test_repos/`, build output junk, local reports, signing secret material, or source checkout contents. Native installers/package formats, completed signing, and notarization remain scaffolded release-hardening work through `scripts/sign-release-artifact`. See [docs/RELEASING.md](docs/RELEASING.md), [docs/INSTALLERS.md](docs/INSTALLERS.md), [docs/SECURITY_PRIVACY.md](docs/SECURITY_PRIVACY.md), [docs/LICENSING.md](docs/LICENSING.md), [docs/TEAM_CI_ROADMAP.md](docs/TEAM_CI_ROADMAP.md), and [docs/CI_INTEGRATION.md](docs/CI_INTEGRATION.md).
 
 Local release gates can be run with:
 

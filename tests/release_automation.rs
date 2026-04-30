@@ -139,12 +139,16 @@ fn make_archive(options: &[&str]) -> PathBuf {
     fs::write(package.join("README.md"), "readme").expect("write readme");
     fs::write(package.join("INSTALL.md"), "install").expect("write install");
     fs::write(package.join("SBOM.md"), "sbom").expect("write sbom");
+    fs::write(package.join("docs/CI_INTEGRATION.md"), "ci integration")
+        .expect("write ci integration");
     fs::write(package.join("docs/GETTING_STARTED.md"), "getting started")
         .expect("write getting started");
     fs::write(package.join("docs/RELEASING.md"), "releasing").expect("write releasing");
     fs::write(package.join("docs/INSTALLERS.md"), "installers").expect("write installers");
     fs::write(package.join("docs/LICENSING.md"), "licensing").expect("write licensing");
     fs::write(package.join("docs/SECURITY_PRIVACY.md"), "privacy").expect("write privacy");
+    fs::write(package.join("docs/TEAM_CI_ROADMAP.md"), "team ci roadmap")
+        .expect("write team ci roadmap");
     fs::write(package.join("docs/TROUBLESHOOTING.md"), "troubleshooting")
         .expect("write troubleshooting");
 
