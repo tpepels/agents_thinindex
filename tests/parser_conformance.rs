@@ -593,7 +593,7 @@ fn parser_support_matrix_and_notices_cover_supported_languages() {
             case.grammar_package,
         );
         assert!(
-            notices.contains(case.grammar_package) && notices.contains("License: MIT"),
+            notices.contains(case.grammar_package) && notices.contains("License expression: MIT"),
             "THIRD_PARTY_NOTICES should list permissive notice for {}",
             case.grammar_package,
         );

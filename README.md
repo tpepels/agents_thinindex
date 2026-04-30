@@ -172,7 +172,7 @@ thinindex is intentionally conservative:
 - Agents can still ignore repository instructions.
 - Generated, build, vendor, dependency, and large fixture paths should be ignored.
 - Tree-sitter parser support is deterministic symbol extraction, not semantic or LSP-level analysis.
-- Bundled parser dependencies must stay permissively licensed and audited before commercial release artifacts.
+- Bundled parser dependencies must stay permissively licensed and audited with `cargo deny check licenses` before commercial release artifacts.
 - Generated, vendor, dependency, lockfile, and minified paths should be ignored when they dominate parser timing or record/ref counts without adding navigation value.
 
 ## Parser Support
@@ -294,7 +294,15 @@ wi-init --remove
 
 SQLite and Tree-sitter parser dependencies are bundled through the Rust dependency configuration. Universal Ctags is removed from the active parser path and is not bundled or used.
 
-Proprietary Windows/macOS/Linux packages still require dependency license audit coverage, release hardening, and artifact smoke tests before publishing.
+Dependency license policy is configured in `deny.toml` and checked with:
+
+```bash
+cargo deny check licenses
+```
+
+Only permissively licensed parser dependencies are allowed. Proprietary Windows/macOS/Linux packages remain blocked if the audit finds GPL, AGPL, LGPL-only, MPL-only, EPL, CDDL, unknown, custom, or non-commercial dependency terms.
+
+`THIRD_PARTY_NOTICES` records direct runtime dependencies, bundled SQLite status, Tree-sitter grammar notices, and generated parser source status. It is part of release artifacts. See [docs/LICENSE_AUDIT.md](docs/LICENSE_AUDIT.md) for the policy and audit process.
 
 ## Development
 

@@ -66,6 +66,8 @@ Universal Ctags has been removed from the active parser path. It is not bundled,
 
 Tree-sitter parser dependencies and grammar dependencies must be permissively licensed and audited before release packaging.
 
+The repeatable dependency audit command is `cargo deny check licenses`. Only explicitly allowed permissive licenses are accepted. GPL, AGPL, LGPL-only, MPL-only, EPL, CDDL, unknown, no-license, custom, and non-commercial dependency terms block proprietary packaging unless a future plan adds a documented review exception.
+
 The current Tree-sitter-backed language pack covers Rust, Python, JavaScript, JSX, TypeScript, TSX, Java, C#, Scala, Kotlin, Swift, Dart, Nix, Go, C, C++, Shell, Ruby, and PHP. Additional language support must be added through the same registry, grammar, query, fixture, and notice path rather than a second parser architecture.
 
 CSS, HTML, Markdown, JSON, TOML, and YAML are supported by project-owned extras. Config extraction records useful keys, tables, and sections without treating every scalar value as a symbol.
@@ -78,8 +80,8 @@ Parser performance gates are local and report-oriented: normal tests cover deter
 
 Before packaging work proceeds, thinindex also needs:
 
-- `THIRD_PARTY_NOTICES`
-- full dependency license audit coverage
+- passing `cargo deny check licenses` output for the committed `Cargo.lock`
+- `THIRD_PARTY_NOTICES` included with release artifacts
 - release documentation that matches the audited parser dependency set
 - installer and archive smoke tests on target platforms
 

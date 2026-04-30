@@ -182,7 +182,7 @@ fn docs_state_tree_sitter_is_bundled_and_ctags_removed() {
     );
     assert!(
         release.contains("Universal Ctags is removed, not bundled, and not used")
-            && release.contains("full dependency license audit coverage"),
+            && release.contains("cargo deny check licenses"),
         "release checklist should document ctags removal and license audit"
     );
     assert!(
@@ -204,7 +204,7 @@ fn docs_state_tree_sitter_is_bundled_and_ctags_removed() {
             && third_party.contains("tree-sitter-bash")
             && third_party.contains("tree-sitter-ruby")
             && third_party.contains("tree-sitter-php")
-            && third_party.contains("License: MIT"),
+            && third_party.contains("License expression: MIT"),
         "THIRD_PARTY_NOTICES should list Tree-sitter parser dependencies"
     );
     assert!(

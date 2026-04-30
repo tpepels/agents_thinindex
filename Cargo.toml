@@ -4,6 +4,7 @@ version = "0.1.4"
 edition = "2024"
 description = "Fast repo-local thin code index with compact CLI search"
 license = "Paid-Premium"
+publish = false
 
 [dependencies]
 anyhow = "1"

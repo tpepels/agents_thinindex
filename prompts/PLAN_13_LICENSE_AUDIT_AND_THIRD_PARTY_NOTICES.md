@@ -1,4 +1,4 @@
-# PLAN_12_LICENSE_AUDIT_AND_THIRD_PARTY_NOTICES.md
+# PLAN_13_LICENSE_AUDIT_AND_THIRD_PARTY_NOTICES.md
 
 Use superpowers:subagent-driven-development.
 
@@ -168,3 +168,14 @@ Report:
 - whether ignored real-repo test ran, skipped, or failed
 - remaining legal/licensing caveats
 - commit hash
+
+## Implementation tracking
+
+- [x] Confirm PLAN_00 through PLAN_12G are complete and the Tree-sitter parser stack is active.
+- [x] Add repeatable dependency license audit tooling.
+- [x] Configure explicit permissive license policy and private workspace handling.
+- [x] Update `THIRD_PARTY_NOTICES` for runtime dependencies, parser grammars, generated parser sources, SQLite bundling, and Universal Ctags removal.
+- [x] Update docs for audit command, packaging blockers, parser dependency policy, and release notice requirements.
+- [x] Add focused tests/checks for audit policy, notices, parser license entries, and forbidden documentation claims.
+- [x] Run required verification.
+- [x] Commit with `Add license audit and third-party notices`.

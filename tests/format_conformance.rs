@@ -292,7 +292,8 @@ fn extras_support_matrix_and_notices_cover_supported_formats() {
         "THIRD_PARTY_NOTICES should document extras-backed formats without fake grammar notices"
     );
     assert!(
-        !notices.contains("License: GPL") && !notices.contains("License: AGPL"),
+        !notices.contains("License expression: GPL")
+            && !notices.contains("License expression: AGPL"),
         "parser notices must not include GPL/AGPL parser dependencies"
     );
 }

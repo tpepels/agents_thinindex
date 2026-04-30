@@ -1,128 +1,236 @@
 # Third-Party Notices
 
-This file records parser and runtime dependency notices relevant to thinindex release packaging.
+This file records dependency notices relevant to thinindex release packaging. It records facts and audit status; it is not legal advice.
 
-## Parser and Grammar Dependencies
+Release artifacts should include `THIRD_PARTY_NOTICES` and should be cut only after `cargo deny check licenses` passes against the committed `Cargo.lock`.
 
-Universal Ctags
+## Removed External Parser
+
+Universal Ctags removed/not bundled/not used
 - Status: removed.
 - Bundled: no.
 - Used at runtime: no.
 - Accepted reason: not applicable; thinindex no longer shells out to ctags and does not emit `source = "ctags"` records.
 
+## Direct Runtime Dependencies
+
+anyhow
+- Package: anyhow
+- Upstream: https://github.com/dtolnay/anyhow
+- License expression: MIT OR Apache-2.0
+- Accepted reason: error handling; permissive dual-license expression.
+- Notice/source text: referenced from the crate package and upstream repository.
+
+clap
+- Package: clap
+- Upstream: https://github.com/clap-rs/clap
+- License expression: MIT OR Apache-2.0
+- Accepted reason: command-line argument parsing; permissive dual-license expression.
+- Notice/source text: referenced from the crate package and upstream repository.
+
+ignore
+- Package: ignore
+- Upstream: https://github.com/BurntSushi/ripgrep/tree/master/crates/ignore
+- License expression: Unlicense OR MIT
+- Accepted reason: gitignore-style traversal; permissive dual-license expression.
+- Notice/source text: referenced from the crate package and upstream repository.
+
+regex
+- Package: regex
+- Upstream: https://github.com/rust-lang/regex
+- License expression: MIT OR Apache-2.0
+- Accepted reason: deterministic filtering and reference extraction helpers; permissive dual-license expression.
+- Notice/source text: referenced from the crate package and upstream repository.
+
+rusqlite
+- Package: rusqlite
+- Upstream: https://github.com/rusqlite/rusqlite
+- License expression: MIT
+- Accepted reason: SQLite-backed local index storage.
+- Notice/source text: referenced from the crate package and upstream repository.
+
+serde
+- Package: serde
+- Upstream: https://github.com/serde-rs/serde
+- License expression: MIT OR Apache-2.0
+- Accepted reason: manifest and metadata parsing; permissive dual-license expression.
+- Notice/source text: referenced from the crate package and upstream repository.
+
 Tree-sitter core
 - Package: tree-sitter
 - Upstream: https://github.com/tree-sitter/tree-sitter
-- License: MIT
+- License expression: MIT
 - Accepted reason: parser runtime for bundled deterministic extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
+
+Tree-sitter language ABI helper
+- Package: tree-sitter-language
+- Upstream: https://github.com/tree-sitter/tree-sitter
+- License expression: MIT
+- Accepted reason: parser language ABI helper used by Tree-sitter grammar crates.
+- Notice/source text: referenced from the crate package and upstream repository.
+
+## SQLite Bundling
+
+rusqlite is configured with the `bundled` feature. Through `libsqlite3-sys`, thinindex compiles and links SQLite from vendored source instead of requiring a system SQLite library.
+
+libsqlite3-sys
+- Package: libsqlite3-sys
+- Upstream: https://github.com/rusqlite/rusqlite
+- License expression: MIT
+- Bundled source status: selected indirectly by `rusqlite` with the `bundled` feature.
+- SQLite source status: the bundled SQLite source is documented by upstream SQLite as public domain.
+- Accepted reason: reproducible cross-platform SQLite behavior without a system SQLite dependency.
+- Notice/source text: referenced from the crate package, rusqlite upstream repository, and upstream SQLite copyright page.
+
+## Parser and Grammar Dependencies
 
 Tree-sitter Rust grammar
 - Package: tree-sitter-rust
 - Upstream: https://github.com/tree-sitter/tree-sitter-rust
-- License: MIT
+- License expression: MIT
 - Accepted reason: Rust grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter Python grammar
 - Package: tree-sitter-python
 - Upstream: https://github.com/tree-sitter/tree-sitter-python
-- License: MIT
+- License expression: MIT
 - Accepted reason: Python grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter JavaScript grammar
 - Package: tree-sitter-javascript
 - Upstream: https://github.com/tree-sitter/tree-sitter-javascript
-- License: MIT
+- License expression: MIT
 - Accepted reason: JavaScript and JSX grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter TypeScript grammar
 - Package: tree-sitter-typescript
 - Upstream: https://github.com/tree-sitter/tree-sitter-typescript
-- License: MIT
+- License expression: MIT
 - Accepted reason: TypeScript and TSX grammars for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter Java grammar
 - Package: tree-sitter-java
 - Upstream: https://github.com/tree-sitter/tree-sitter-java
-- License: MIT
+- License expression: MIT
 - Accepted reason: Java grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter C# grammar
 - Package: tree-sitter-c-sharp
 - Upstream: https://github.com/tree-sitter/tree-sitter-c-sharp
-- License: MIT
+- License expression: MIT
 - Accepted reason: C# grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter Scala grammar
 - Package: tree-sitter-scala
 - Upstream: https://github.com/tree-sitter/tree-sitter-scala
-- License: MIT
+- License expression: MIT
 - Accepted reason: Scala grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter Kotlin grammar
 - Package: tree-sitter-kotlin-ng
 - Upstream: https://github.com/tree-sitter-grammars/tree-sitter-kotlin
-- License: MIT
+- License expression: MIT
 - Accepted reason: Kotlin grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter Swift grammar
 - Package: tree-sitter-swift
 - Upstream: https://github.com/alex-pinkus/tree-sitter-swift
-- License: MIT
+- License expression: MIT
 - Accepted reason: Swift grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter Dart grammar
 - Package: tree-sitter-dart
 - Upstream: https://github.com/nielsenko/tree-sitter-dart
-- License: MIT
+- License expression: MIT
 - Accepted reason: Dart grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter Nix grammar
 - Package: tree-sitter-nix
 - Upstream: https://github.com/nix-community/tree-sitter-nix
-- License: MIT
+- License expression: MIT
 - Accepted reason: Nix grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter Go grammar
 - Package: tree-sitter-go
 - Upstream: https://github.com/tree-sitter/tree-sitter-go
-- License: MIT
+- License expression: MIT
 - Accepted reason: Go grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter C grammar
 - Package: tree-sitter-c
 - Upstream: https://github.com/tree-sitter/tree-sitter-c
-- License: MIT
+- License expression: MIT
 - Accepted reason: C grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter C++ grammar
 - Package: tree-sitter-cpp
 - Upstream: https://github.com/tree-sitter/tree-sitter-cpp
-- License: MIT
+- License expression: MIT
 - Accepted reason: C++ grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter Bash grammar
 - Package: tree-sitter-bash
 - Upstream: https://github.com/tree-sitter/tree-sitter-bash
-- License: MIT
+- License expression: MIT
 - Accepted reason: Bash/Shell grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter Ruby grammar
 - Package: tree-sitter-ruby
 - Upstream: https://github.com/tree-sitter/tree-sitter-ruby
-- License: MIT
+- License expression: MIT
 - Accepted reason: Ruby grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
 
 Tree-sitter PHP grammar
 - Package: tree-sitter-php
 - Upstream: https://github.com/tree-sitter/tree-sitter-php
-- License: MIT
+- License expression: MIT
 - Accepted reason: PHP grammar for registry-backed extraction.
+- Notice/source text: referenced from the crate package and upstream repository.
+
+Generated Tree-sitter parser code
+- Status: bundled through the Tree-sitter grammar crates listed above.
+- License expression: MIT, inherited from each grammar crate package.
+- Accepted reason: required implementation detail of the grammar crates used by the registry-backed parser framework.
+- Notice/source text: referenced from each grammar crate package and upstream repository.
 
 Project-owned extras extractors
 - Formats: CSS, HTML, Markdown, JSON, TOML, YAML
 - Third-party parser dependency: none
 - Accepted reason: deterministic local format landmarks without bundled grammar dependencies.
 
-## Audit Status
+## Audit Policy and Status
 
-The parser dependencies listed above are permissively licensed. Proprietary release artifacts still require a full dependency audit against `Cargo.lock` before publishing.
+The configured dependency license audit command is:
+
+```bash
+cargo deny check licenses
+```
+
+The same command is exposed through:
+
+```bash
+make license-audit
+```
+
+The committed `deny.toml` allows only explicitly listed permissive licenses and treats unknown, unlicensed, custom, non-commercial, GPL, AGPL, LGPL-only, MPL-only, EPL, and CDDL license expressions as blocked unless a future plan adds a documented review exception.
+
+Current `Cargo.lock` license expressions pass the audit. Complex dual-license expressions are accepted only when the dependency metadata includes an allowed permissive branch. For example, `r-efi` includes `MIT OR Apache-2.0 OR LGPL-2.1-or-later`; the current audit accepts it through the MIT/Apache alternatives and does not treat the LGPL branch as selected.
+
+Proprietary release artifacts remain blocked if the audit fails, if an unknown/copyleft dependency is introduced, or if this notice file no longer matches the bundled dependency set.

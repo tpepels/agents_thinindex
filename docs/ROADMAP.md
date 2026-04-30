@@ -86,12 +86,13 @@ Do not add new command families or broader search semantics without a plan that 
 
 ## Parser and packaging
 
-Universal Ctags is removed from the active parser path. Proprietary cross-platform packages still require license audit coverage for bundled Tree-sitter parser dependencies and release hardening.
+Universal Ctags is removed from the active parser path. Dependency license audit policy is configured through `cargo deny check licenses`, and proprietary cross-platform packages still require a passing audit, notice review, and release hardening.
 
 Before proprietary Windows/macOS/Linux packages are viable, thinindex needs:
 
 - permissively licensed bundled parser dependencies
-- license audit coverage for those dependencies
+- passing `cargo deny check licenses` output for the committed `Cargo.lock`
+- `THIRD_PARTY_NOTICES` included as a release artifact
 - install docs that match the bundled parser stack
 - release artifacts that pass archive and installer smoke tests
 
