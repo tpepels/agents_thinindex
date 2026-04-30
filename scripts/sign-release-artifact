@@ -1,0 +1,149 @@
+#!/usr/bin/env sh
+set -eu
+
+PLATFORM=""
+ARTIFACT=""
+DRY_RUN=0
+
+usage() {
+    cat <<'USAGE'
+Usage: scripts/sign-release-artifact --platform <windows|macos|linux> --artifact <path> [--dry-run]
+
+Scaffolds platform signing/notarization for release artifacts. This script does
+not contain keys or secrets. Non-dry-run mode fails clearly unless the required
+environment variables and local signing tools are available.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --platform)
+            [ "$#" -ge 2 ] || { echo "error: --platform requires a value" >&2; exit 2; }
+            PLATFORM="$2"
+            shift 2
+            ;;
+        --artifact)
+            [ "$#" -ge 2 ] || { echo "error: --artifact requires a value" >&2; exit 2; }
+            ARTIFACT="$2"
+            shift 2
+            ;;
+        --dry-run)
+            DRY_RUN=1
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "error: unknown argument: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+if [ -z "$PLATFORM" ] || [ -z "$ARTIFACT" ]; then
+    usage >&2
+    exit 2
+fi
+
+if [ ! -f "$ARTIFACT" ]; then
+    echo "error: artifact not found: $ARTIFACT" >&2
+    exit 1
+fi
+
+require_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "error: required signing tool not found: $1" >&2
+        exit 1
+    fi
+}
+
+require_env() {
+    name="$1"
+    eval "value=\${$name:-}"
+    if [ -z "$value" ]; then
+        echo "error: missing required environment variable: $name" >&2
+        exit 1
+    fi
+}
+
+print_requirements() {
+    platform="$1"
+    shift
+
+    echo "artifact: $ARTIFACT"
+    echo "platform: $platform"
+    echo "required environment:"
+    for name in "$@"; do
+        echo "  $name"
+    done
+}
+
+case "$PLATFORM" in
+    windows)
+        REQUIRED_ENV="THININDEX_WINDOWS_CERT_PATH THININDEX_WINDOWS_CERT_PASSWORD THININDEX_WINDOWS_TIMESTAMP_URL"
+        if [ "$DRY_RUN" -eq 1 ]; then
+            print_requirements "windows" $REQUIRED_ENV
+            echo "required tool: signtool"
+            echo "action: Authenticode-sign executable, MSI, MSIX, or catalog artifacts"
+            exit 0
+        fi
+        for name in $REQUIRED_ENV; do
+            require_env "$name"
+        done
+        require_command signtool
+        if [ ! -f "$THININDEX_WINDOWS_CERT_PATH" ]; then
+            echo "error: Windows certificate file not found: $THININDEX_WINDOWS_CERT_PATH" >&2
+            exit 1
+        fi
+        signtool sign \
+            /f "$THININDEX_WINDOWS_CERT_PATH" \
+            /p "$THININDEX_WINDOWS_CERT_PASSWORD" \
+            /tr "$THININDEX_WINDOWS_TIMESTAMP_URL" \
+            /td sha256 \
+            /fd sha256 \
+            "$ARTIFACT"
+        ;;
+    macos)
+        REQUIRED_ENV="THININDEX_APPLE_DEVELOPER_ID THININDEX_APPLE_TEAM_ID THININDEX_APPLE_NOTARY_PROFILE"
+        if [ "$DRY_RUN" -eq 1 ]; then
+            print_requirements "macos" $REQUIRED_ENV
+            echo "required tools: codesign, xcrun notarytool"
+            echo "action: sign package/app artifacts before archive creation, then submit for notarization"
+            exit 0
+        fi
+        for name in $REQUIRED_ENV; do
+            require_env "$name"
+        done
+        require_command codesign
+        require_command xcrun
+        codesign --force --options runtime --timestamp --sign "$THININDEX_APPLE_DEVELOPER_ID" "$ARTIFACT"
+        xcrun notarytool submit "$ARTIFACT" \
+            --keychain-profile "$THININDEX_APPLE_NOTARY_PROFILE" \
+            --team-id "$THININDEX_APPLE_TEAM_ID" \
+            --wait
+        ;;
+    linux)
+        REQUIRED_ENV="THININDEX_LINUX_GPG_KEY_ID"
+        if [ "$DRY_RUN" -eq 1 ]; then
+            print_requirements "linux" $REQUIRED_ENV
+            echo "required tool: gpg"
+            echo "action: create detached ASCII signature beside the artifact"
+            exit 0
+        fi
+        for name in $REQUIRED_ENV; do
+            require_env "$name"
+        done
+        require_command gpg
+        gpg --batch --yes --armor --detach-sign --local-user "$THININDEX_LINUX_GPG_KEY_ID" "$ARTIFACT"
+        ;;
+    *)
+        echo "error: unsupported platform: $PLATFORM" >&2
+        usage >&2
+        exit 2
+        ;;
+esac
+
+echo "signing scaffold completed for: $ARTIFACT"

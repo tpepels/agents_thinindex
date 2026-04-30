@@ -14,7 +14,12 @@ if [ ! -f "$ARCHIVE" ]; then
 fi
 
 case "$ARCHIVE" in
-    thinindex-*|*/thinindex-*) ;;
+    */*) ARCHIVE_BASE="${ARCHIVE##*/}" ;;
+    *) ARCHIVE_BASE="$ARCHIVE" ;;
+esac
+
+case "$ARCHIVE_BASE" in
+    thinindex-*-*.tar.gz|thinindex-*-*.zip) ;;
     *)
         echo "error: archive name must start with thinindex- and include version/target: $ARCHIVE" >&2
         exit 1
@@ -66,15 +71,25 @@ require_entry '/wi-stats(\.exe)?$' "wi-stats binary"
 require_entry '/THIRD_PARTY_NOTICES$' "THIRD_PARTY_NOTICES"
 require_entry '/README\.md$' "README.md"
 require_entry '/INSTALL\.md$' "INSTALL.md"
+require_entry '/SBOM\.md$' "SBOM.md"
 require_entry '/docs/RELEASING\.md$' "docs/RELEASING.md"
 require_entry '/docs/INSTALLERS\.md$' "docs/INSTALLERS.md"
 require_entry '/docs/SECURITY_PRIVACY\.md$' "docs/SECURITY_PRIVACY.md"
 
+FORBIDDEN_EXTERNAL_TOOL="c""tags"
 reject_entry '(^|/)\.dev_index(/|$)' ".dev_index"
 reject_entry '(^|/)test_repos(/|$)' "test_repos"
 reject_entry '(^|/)target(/|$)' "target build directory"
 reject_entry '(^|/)dist(/|$)' "dist build directory"
 reject_entry '(^|/)QUALITY_REPORT(\.md|\.json|_DETAILS\.jsonl)?$' "local quality report"
 reject_entry '(^|/)COMPARATOR_TRIAGE\.md$' "local comparator triage report"
+reject_entry "(^|/)($FORBIDDEN_EXTERNAL_TOOL|$FORBIDDEN_EXTERNAL_TOOL\\.exe|$FORBIDDEN_EXTERNAL_TOOL-[^/]*)$" "forbidden external comparator binary"
+reject_entry '(^|/)(id_rsa|id_dsa|id_ecdsa|id_ed25519|[^/]+\.(p12|pfx|pem|key|mobileprovision))$' "signing secret or certificate-like material"
+
+CHECKSUM_PATH="$ARCHIVE.sha256"
+if [ -f "$CHECKSUM_PATH" ] && ! grep -Fq "$ARCHIVE_BASE" "$CHECKSUM_PATH"; then
+    echo "error: checksum sidecar does not reference archive basename: $CHECKSUM_PATH" >&2
+    exit 1
+fi
 
 echo "package content ok: $ARCHIVE"

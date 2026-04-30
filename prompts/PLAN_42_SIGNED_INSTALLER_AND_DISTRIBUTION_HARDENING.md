@@ -4,6 +4,13 @@ Use superpowers:subagent-driven-development.
 
 Do not implement this until PLAN_41_SECURITY_PRIVACY_AND_REPORT_REDACTION.md is complete and green.
 
+Progress:
+- [x] Phase 1: review existing release archives, installer helpers, signing docs, and artifact checks
+- [x] Phase 2: harden release archive contents, SBOM/checksum checks, and forbidden artifact rejection
+- [x] Phase 3: add signing/notarization scaffold without committed secrets
+- [x] Phase 4: update installer/release docs and tests
+- [x] Phase 5: run required verification and commit completed Plan 42 work
+
 Goal:
 Harden commercial distribution paths for Windows, macOS, and Linux.
 

@@ -5,6 +5,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 $Binaries = @("wi.exe", "build_index.exe", "wi-init.exe", "wi-stats.exe")
+$NoticePath = Join-Path $SourceDir "THIRD_PARTY_NOTICES"
+
+if (!(Test-Path -Path $NoticePath -PathType Leaf)) {
+    throw "missing archive notice file: $NoticePath"
+}
 
 New-Item -ItemType Directory -Force -Path $DestinationDir | Out-Null
 

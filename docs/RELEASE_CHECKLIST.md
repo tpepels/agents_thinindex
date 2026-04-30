@@ -16,6 +16,7 @@ Run before cutting a thinindex release:
 - `cargo run --bin wi-init -- --version`
 - `cargo run --bin wi-stats -- --version`
 - confirm `THIRD_PARTY_NOTICES` matches the audited dependency set and is included with release artifacts
+- confirm generated archive `SBOM.md` names the version, target, shipped binaries, checksum sidecar, and notice file
 - confirm `docs/SECURITY_PRIVACY.md` matches current index, report, and release artifact behavior
 - confirm the documented parser support matrix matches the bundled Tree-sitter grammar dependencies
 - confirm `docs/QUALITY_SYSTEM_AUDIT.md` still matches parser, support, quality, ctags, license, and release behavior
@@ -44,10 +45,10 @@ Packaging note:
 - Tree-sitter parser and grammar dependencies are bundled and must remain permissively licensed.
 - Cross-platform release archives and installers require a passing `cargo deny check licenses` run.
 - Proprietary packaging remains blocked by GPL, AGPL, LGPL-only, MPL-only, EPL, CDDL, unknown, custom, or non-commercial dependency terms unless a future plan records an explicit review exception.
-- Release archives must include all thinindex binaries, `README.md`, `INSTALL.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, helper install/uninstall scripts, and `THIRD_PARTY_NOTICES`.
-- Release archives must not include `.dev_index/`, `.dev_index/quality/`, `test_repos/`, `target/`, `dist/`, source checkout contents, local quality reports, or generated local benchmark outputs.
-- Native package formats, signing, and notarization are later work.
-- Windows Authenticode signing, macOS Developer ID signing/notarization, and Linux package signing are not implemented.
+- Release archives must include all thinindex binaries, `README.md`, `INSTALL.md`, `SBOM.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, helper install/uninstall scripts, and `THIRD_PARTY_NOTICES`.
+- Release archives must not include `.dev_index/`, `.dev_index/quality/`, `test_repos/`, `target/`, `dist/`, source checkout contents, local quality reports, generated local benchmark outputs, signing secret material, or optional external comparator binaries.
+- Native package formats, signing, and notarization are scaffolded only.
+- Windows Authenticode signing, macOS Developer ID signing/notarization, and Linux package signing are not implemented by default; `scripts/sign-release-artifact` is the local/CI secret-backed scaffold.
 - GitHub Actions CI runs format, test, deterministic parser/quality fixtures, clippy, license audit, command smoke, package smoke, and archive content checks.
 - The release workflow uploads workflow artifacts only; it does not publish GitHub Releases.
 - Smoke-test generated artifacts on each target platform before publishing.

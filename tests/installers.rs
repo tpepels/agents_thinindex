@@ -1,7 +1,10 @@
 use std::{
     fs,
     path::{Path, PathBuf},
+    process::Command,
 };
+
+use tempfile::TempDir;
 
 const UNIX_INSTALL: &str = "scripts/install-archive-unix";
 const UNIX_UNINSTALL: &str = "scripts/uninstall-archive-unix";
@@ -9,8 +12,12 @@ const WINDOWS_INSTALL: &str = "scripts/windows/install.ps1";
 const WINDOWS_UNINSTALL: &str = "scripts/windows/uninstall.ps1";
 const BINARIES: &[&str] = &["wi", "build_index", "wi-init", "wi-stats"];
 
+fn repo_root() -> &'static Path {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+}
+
 fn repo_file(path: &str) -> String {
-    fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(path))
+    fs::read_to_string(repo_root().join(path))
         .unwrap_or_else(|error| panic!("failed to read {path}: {error}"))
 }
 
@@ -104,6 +111,22 @@ fn installer_docs_are_honest_about_platform_status_and_signing() {
         "installer docs should not claim signing/notarization is complete"
     );
     assert!(
+        installers.contains("scripts/sign-release-artifact")
+            && installers.contains("THININDEX_WINDOWS_CERT_PATH")
+            && installers.contains("THININDEX_APPLE_NOTARY_PROFILE")
+            && installers.contains("THININDEX_LINUX_GPG_KEY_ID"),
+        "installer docs should document the signing scaffold and environment placeholders"
+    );
+    assert!(
+        installers.contains("MSI")
+            && installers.contains("MSIX")
+            && installers.contains("`.pkg`")
+            && installers.contains("`.deb`")
+            && installers.contains("`.rpm`")
+            && installers.contains("AppImage"),
+        "installer docs should be explicit about platform package scaffolds"
+    );
+    assert!(
         installers.contains("No signing certificates, private keys, or secrets are committed")
             && installers
                 .contains("Unsigned binaries may trigger Microsoft Defender SmartScreen warnings")
@@ -120,8 +143,41 @@ fn installer_docs_are_honest_about_platform_status_and_signing() {
 }
 
 #[test]
+fn signing_scaffold_fails_clearly_without_secret_environment() {
+    let temp = TempDir::new().expect("create temp dir");
+    let artifact = temp
+        .path()
+        .join("thinindex-9.9.9-x86_64-pc-windows-msvc.zip");
+    fs::write(&artifact, "archive").expect("write artifact");
+
+    let output = Command::new(repo_root().join("scripts/sign-release-artifact"))
+        .args([
+            "--platform",
+            "windows",
+            "--artifact",
+            artifact.to_str().expect("artifact path"),
+        ])
+        .env_remove("THININDEX_WINDOWS_CERT_PATH")
+        .env_remove("THININDEX_WINDOWS_CERT_PASSWORD")
+        .env_remove("THININDEX_WINDOWS_TIMESTAMP_URL")
+        .output()
+        .expect("run signing scaffold");
+
+    assert!(
+        !output.status.success(),
+        "signing scaffold should fail without signing environment"
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("missing required environment variable: THININDEX_WINDOWS_CERT_PATH"),
+        "unexpected stderr:\n{stderr}"
+    );
+}
+
+#[test]
 fn no_signing_secret_material_is_committed() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let root = repo_root();
     let mut files = Vec::new();
     collect_repo_files(root, &mut files);
 

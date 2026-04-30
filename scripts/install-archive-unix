@@ -6,6 +6,12 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 ARCHIVE_ROOT="${ARCHIVE_ROOT:-$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)}"
 PREFIX="${PREFIX:-$HOME/.local}"
 BIN_DIR="${BIN_DIR:-$PREFIX/bin}"
+NOTICE_PATH="$ARCHIVE_ROOT/THIRD_PARTY_NOTICES"
+
+if [ ! -f "$NOTICE_PATH" ]; then
+    echo "error: missing archive notice file: $NOTICE_PATH" >&2
+    exit 1
+fi
 
 mkdir -p "$BIN_DIR"
 

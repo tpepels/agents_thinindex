@@ -31,6 +31,7 @@ fn release_package_script_stages_expected_payload() {
     for required in [
         "README.md",
         "INSTALL.md",
+        "SBOM.md",
         "docs/RELEASING.md",
         "docs/INSTALLERS.md",
         "docs/SECURITY_PRIVACY.md",
@@ -89,6 +90,12 @@ fn release_package_script_has_archive_and_checksum_logic() {
             && script.contains("shasum -a 256")
             && script.contains(".sha256"),
         "release package script should write SHA256 checksums"
+    );
+    assert!(
+        script.contains("SBOM.md")
+            && script.contains("release SBOM")
+            && script.contains("THIRD_PARTY_NOTICES"),
+        "release package script should generate a compact SBOM and point to notices"
     );
     assert!(
         script.contains("--target")
@@ -152,6 +159,12 @@ fn release_docs_describe_archive_install_and_boundaries() {
             && releasing.contains("wi-init` or `wi-init.exe")
             && releasing.contains("wi-stats` or `wi-stats.exe"),
         "release docs should list every archive binary"
+    );
+    assert!(
+        releasing.contains("SBOM.md")
+            && releasing.contains("sign-release-artifact")
+            && releasing.contains("signing secret"),
+        "release docs should describe SBOM inclusion and signing scaffold boundaries"
     );
     assert!(
         releasing.contains("scripts/install-archive-unix")

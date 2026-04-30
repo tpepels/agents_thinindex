@@ -7,6 +7,7 @@ use std::{
 use tempfile::TempDir;
 
 const BINARIES: &[&str] = &["wi", "build_index", "wi-init", "wi-stats"];
+const FORBIDDEN_EXTERNAL_TOOL: &str = concat!("c", "tags");
 
 fn repo_root() -> &'static Path {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -106,7 +107,13 @@ fn package_content_check_rejects_missing_notices() {
 
 #[test]
 fn package_content_check_rejects_forbidden_artifacts() {
-    for forbidden in ["dev-index", "test-repos", "quality-report"] {
+    for forbidden in [
+        "dev-index",
+        "test-repos",
+        "quality-report",
+        "external-tool",
+        "signing-secret",
+    ] {
         let archive = make_archive(&[forbidden]);
 
         Command::new(repo_root().join("scripts/check-package-contents"))
@@ -131,6 +138,7 @@ fn make_archive(options: &[&str]) -> PathBuf {
 
     fs::write(package.join("README.md"), "readme").expect("write readme");
     fs::write(package.join("INSTALL.md"), "install").expect("write install");
+    fs::write(package.join("SBOM.md"), "sbom").expect("write sbom");
     fs::write(package.join("docs/RELEASING.md"), "releasing").expect("write releasing");
     fs::write(package.join("docs/INSTALLERS.md"), "installers").expect("write installers");
     fs::write(package.join("docs/SECURITY_PRIVACY.md"), "privacy").expect("write privacy");
@@ -151,6 +159,15 @@ fn make_archive(options: &[&str]) -> PathBuf {
 
     if options.contains(&"quality-report") {
         fs::write(package.join("QUALITY_REPORT.md"), "local report").expect("write report");
+    }
+
+    if options.contains(&"external-tool") {
+        fs::write(package.join(FORBIDDEN_EXTERNAL_TOOL), "external tool")
+            .expect("write external tool");
+    }
+
+    if options.contains(&"signing-secret") {
+        fs::write(package.join("distribution.p12"), "certificate").expect("write certificate");
     }
 
     let archive = root.join("thinindex-9.9.9-test-target.tar.gz");
