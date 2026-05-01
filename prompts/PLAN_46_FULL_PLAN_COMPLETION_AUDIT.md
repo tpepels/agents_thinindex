@@ -33,9 +33,9 @@ Current Audit Snapshot
 This snapshot was updated while executing PLAN_46. Re-run Phase 1 before any future plan-sequence cleanup.
 
 Active plan count:
-- 58 active files matched `prompts/PLAN_*.md`, including this PLAN_46 file, the existing PLAN_47 handoff plan, and the created PLAN_48 scoped archive-hardening plan.
+- 57 active files matched `prompts/PLAN_*.md`, including this PLAN_46 file and the updated PLAN_47 scoped release-distribution plan.
 - `prompts/superseded/**` was excluded.
-- No unchecked `- [ ]` boxes were found in active `PLAN_*.md` files before PLAN_47 was created. PLAN_47 and PLAN_48 now contain their own unchecked execution phases; PLAN_48 is the next scoped implementation plan.
+- No unchecked `- [ ]` boxes were found in active `PLAN_*.md` files before PLAN_47 was created. PLAN_47 now contains its own unchecked execution phases and is the next scoped implementation plan.
 - No duplicate active root plan number remains after renaming the team/CI roadmap to `PLAN_45A_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md`.
 
 Inventory Table
@@ -98,11 +98,10 @@ Inventory Table
 | 45A | `PLAN_45A_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md` | complete | 5/5 checked | `6ff426f Add team CI hosted value roadmap` | Renamed from duplicate PLAN_45 and heading aligned |
 | 45 | `PLAN_45_TREE_SITTER_REAL_REPO_CONVERGENCE_LOOP.md` | complete | 5/5 checked | `961e527 Converge Tree-sitter real-repo quality cycle`; `bf77c71 Align Tree-sitter convergence quality state` | Kept as canonical PLAN_45 convergence loop |
 | 46 | `PLAN_46_FULL_PLAN_COMPLETION_AUDIT.md` | complete | 5/5 checked | current cleanup commit | Audit cleanup plan executed |
-| 47 | `PLAN_47_RELEASE_DISTRIBUTION_COMPLETION.md` | not started | 0/6 checked | existing handoff plan | Left unchanged |
-| 48 | `PLAN_48_RELEASE_ARCHIVE_HARDENING.md` | not started | 0/6 checked | current scoped plan | Next scoped implementation plan |
+| 47 | `PLAN_47_RELEASE_DISTRIBUTION_COMPLETION.md` | not started | 0/6 checked | current scoped plan | Next scoped implementation plan |
 
 Missing Plan Files
-- No required active plan file is missing for the observed sequence `PLAN_00` through `PLAN_48`, with lettered `PLAN_11A` through `PLAN_11C`, `PLAN_12A` through `PLAN_12G`, and `PLAN_45A`.
+- No required active plan file is missing for the observed sequence `PLAN_00` through `PLAN_47`, with lettered `PLAN_11A` through `PLAN_11C`, `PLAN_12A` through `PLAN_12G`, and `PLAN_45A`.
 - There is no active `PLAN_11D`, `PLAN_11E`, or monolithic `PLAN_12_EXTENDED_LANGUAGE_PACK`; stale active references to those names were cleaned.
 - `PLAN_46_FULL_PLAN_COMPLETION_AUDIT.md` is created by this plan-addition pass.
 
@@ -122,7 +121,7 @@ Prerequisite-Chain Problems
   - old release packaging script/checksum references now point to current `PLAN_14` archive work and `PLAN_15` signing scaffolding where appropriate.
 
 Incomplete Checkbox Phases
-- PLAN_47 and PLAN_48 are intentionally not started and contain unchecked execution phases.
+- PLAN_47 is intentionally not started and contains unchecked execution phases.
 - Phase 1 must rerun `rg -n "^- \\[ \\]" prompts/PLAN_*.md || true` before changing any boxes.
 
 Marked Complete Without Implementation Evidence
@@ -264,7 +263,7 @@ Acceptance Criteria
 - Active prerequisite chain is coherent after resolving the duplicate PLAN_45 fork.
 - Stale references are either fixed or explicitly classified as intentional guardrails.
 - Verification requirements are consolidated.
-- Next action is unambiguous: execute `prompts/PLAN_48_RELEASE_ARCHIVE_HARDENING.md` exactly once, selecting one bounded archive-hardening slice and preserving its non-goals.
+- Next action is unambiguous: execute `prompts/PLAN_47_RELEASE_DISTRIBUTION_COMPLETION.md` exactly once, selecting one bounded archive-hardening slice and preserving its non-goals. A documentation cleanup/indexing plan should follow after PLAN_47 is implemented and verified.
 
 Commit Instructions
 - If executing this plan changes only prompt/docs audit alignment, commit with:

@@ -2,189 +2,233 @@
 
 Use superpowers:subagent-driven-development.
 
-Do not implement this until PLAN_46_FULL_PLAN_COMPLETION_AUDIT.md is complete and green.
+Do not implement this until `PLAN_46_FULL_PLAN_COMPLETION_AUDIT.md` is complete and green.
 
-Goal:
-Complete the next bounded release-distribution layer without changing parser behavior, search semantics, licensing enforcement, payment behavior, hosted behavior, telemetry, or source-upload boundaries.
+## Prerequisite
 
-This plan exists because PLAN_46 identified release distribution as the next coherent implementation area after the full plan audit. It must stay focused on distribution readiness and must not turn into product, parser, or hosted-service work.
+Plan 46 must be complete and committed:
 
-Product rule:
-Distribution claims must match artifacts that are actually generated, checked, and documented. Do not claim native packages, signing, notarization, publishing, or update channels are complete until they are implemented and verified on the relevant platform.
+`142a89169243dc23e684be779f340c007c28ad97 Complete full plan completion audit cleanup`
 
-Progress:
-- [ ] Phase 1: audit current release archive, installer helper, signing scaffold, CI, license audit, and package-content state.
-- [ ] Phase 2: choose one bounded distribution slice that can be verified in the current environment.
-- [ ] Phase 3: implement only that selected slice with explicit platform/status documentation.
-- [ ] Phase 4: add or update package, signing, publishing, or update-channel tests/checks for that slice.
-- [ ] Phase 5: update docs, roadmap, and handoff notes with truthful distribution status and next action.
-- [ ] Phase 6: run required verification, commit, and stop.
+Treat the current release/distribution state as the source of truth. This is a
+plan-creation handoff from the Plan 46 recommendation; do not implement Plan 47
+until a later prompt explicitly asks for it.
 
-Hard constraints:
-- Do not reintroduce `WI.md`.
-- Do not make JSONL canonical.
-- Do not use any external tagger as a production parser.
-- Do not bundle optional external comparator binaries.
-- Do not make optional comparator tooling required for install, build, runtime, release, or tests.
-- Do not weaken parser/index quality gates.
-- Do not add parser support or parser extraction rules.
-- Do not claim semantic/compiler/LSP-level analysis.
-- Do not claim unsupported or experimental languages as fully supported.
-- Do not add payment handling, hosted behavior, network activation, telemetry, source upload, or license enforcement.
-- Do not commit signing keys, certificates, private keys, app-specific passwords, notarization profiles, package signing keys, release tokens, or other secrets.
-- Do not commit `test_repos/` contents.
-- Do not implement deferred caveats outside this release-distribution scope.
+## Purpose
 
-Prerequisite audit:
-Before implementation, inspect:
+Turn the Plan 46 release-distribution recommendation into one executable,
+archive-focused implementation plan.
 
-- `docs/ROADMAP.md`
-- `docs/PLAN_CAVEATS_AND_UNIMPLEMENTED_SUMMARY.md`
-- `docs/RELEASING.md`
-- `docs/INSTALLERS.md`
-- `docs/RELEASE_CHECKLIST.md`
-- `docs/SECURITY_PRIVACY.md`
-- `docs/LICENSE_AUDIT.md`
-- `docs/LICENSING.md`
+This plan is intentionally limited to release/distribution completion that can
+be implemented and verified without credentials, payment systems, hosted
+behavior, network activation, external publishing, or secret-backed signing.
+
+Distribution claims must match artifacts that are actually generated, checked,
+documented, and smoke-tested.
+
+## Scope
+
+This plan focuses on hardening the existing local release archive path:
+
+- current-platform release archives produced by `scripts/package-release`;
+- archive install/uninstall helpers already present under `scripts/`;
+- required notices, compact SBOM, install notes, and release documentation bundled in archives;
+- SHA256 checksum sidecar generation and verification;
+- package-content checks through `scripts/check-package-contents`;
+- CI/local smoke checks that can unpack archives and run packaged binaries without secrets;
+- documentation that clearly separates completed local release archives from future native packaging, signing, notarization, publishing, and update-channel work.
+
+## Current Release Surface Inventory
+
+Before implementation, inspect and record the current state of:
+
 - `scripts/package-release`
 - `scripts/check-package-contents`
 - `scripts/check-release`
+- `scripts/check-ci`
+- `scripts/install-archive-unix`
+- `scripts/uninstall-archive-unix`
+- `scripts/windows/install.ps1`
+- `scripts/windows/uninstall.ps1`
 - `scripts/sign-release-artifact`
-- `.github/workflows/`
-- `THIRD_PARTY_NOTICES`
-- `deny.toml`
-
-Current known state:
-- Release archives are implemented through `scripts/package-release`.
-- Archive content checks are implemented through `scripts/check-package-contents`.
-- Local release checks are implemented through `scripts/check-release`.
-- Unix archive install/uninstall helpers exist.
-- Windows archive install/uninstall helpers exist.
-- Signing/notarization support is scaffolded through `scripts/sign-release-artifact`.
-- Native package formats are not implemented.
-- Real signing/notarization is not complete.
-- Release publishing and update channels are not implemented.
-- The current tool remains local/free with no license enforcement, payments, accounts, telemetry, source upload, or hosted backend.
-
-Allowed bounded slices:
-Choose exactly one slice for this plan execution. Do not implement multiple slices unless they are inseparable and still small.
-
-1. Windows native package slice:
-   - add a real, reproducible Windows native package path only if it can be generated and checked in the current environment;
-   - otherwise add tested validation/docs that keep Windows native packaging honestly scaffolded.
-
-2. macOS native package slice:
-   - add a real, reproducible macOS package or disk-image path only if it can be generated and checked in the current environment;
-   - otherwise add tested validation/docs that keep macOS native packaging honestly scaffolded.
-
-3. Linux native package slice:
-   - add one real, reproducible Linux package format such as `.deb`, `.rpm`, or AppImage only if it can be generated and checked in the current environment;
-   - otherwise add tested validation/docs that keep Linux native packaging honestly scaffolded.
-
-4. Real signing/notarization slice:
-   - wire a real signing or notarization path only when required tools and secrets are supplied by environment or secure CI;
-   - dry-run and missing-secret behavior must remain explicit and testable without secrets.
-
-5. Release publishing slice:
-   - add a manual release-publishing workflow only if artifact generation, artifact checks, notices, checksums, and credential boundaries are clear;
-   - do not publish automatically from normal CI.
-
-6. Update-channel boundary slice:
-   - document and test update-channel metadata boundaries without adding auto-update behavior unless a later plan explicitly scopes it.
-
-If none of these slices can be implemented honestly in the current environment, do not fake support. Update docs/tests to make the blocker explicit, commit the audit alignment, and stop.
-
-Implementation requirements:
-- Preserve existing release archive behavior unless the selected slice explicitly changes it.
-- Keep release artifacts assembled from explicit files only.
-- Ensure release artifacts exclude:
-  - `.dev_index/`
-  - `.dev_index/quality/`
-  - `test_repos/`
-  - build output junk
-  - local reports
-  - local benchmark output
-  - signing secrets or secret-like files
-  - optional external comparator binaries
-- Keep `THIRD_PARTY_NOTICES` in all release artifacts.
-- Keep `SBOM.md` or equivalent artifact inventory accurate.
-- Keep checksum behavior accurate for generated artifacts.
-- Keep docs honest about unsigned/scaffolded platforms.
-- Keep normal `cargo test` independent of local `.dev_index/`, `test_repos/`, optional external tools, credentials, network access, and platform-specific signing tools.
-
-Documentation updates:
-Update as needed:
-
-- `README.md`
-- `docs/ROADMAP.md`
+- `.github/workflows/ci.yml`
+- `.github/workflows/release.yml`
 - `docs/RELEASING.md`
 - `docs/INSTALLERS.md`
 - `docs/RELEASE_CHECKLIST.md`
+- `docs/CI_INTEGRATION.md`
+- `docs/LICENSE_AUDIT.md`
+- `docs/LICENSING.md`
 - `docs/SECURITY_PRIVACY.md`
-- `docs/PLAN_CAVEATS_AND_UNIMPLEMENTED_SUMMARY.md`
+- `THIRD_PARTY_NOTICES`
+- `deny.toml`
 
-Do not claim a package/signing/publishing/update-channel capability unless the corresponding artifact or workflow is generated, checked, and documented.
+The inventory must cover:
 
-Tests/checks:
-Add or update focused tests or script checks for the selected slice:
+- existing `scripts/package-release` behavior or equivalent release packaging scripts;
+- release archive contents;
+- install/uninstall helpers;
+- third-party notices;
+- license audit behavior;
+- SBOM behavior, if present;
+- checksum generation and verification;
+- CI package smoke coverage;
+- signing/notarization scaffolds and their dry-run or missing-tool behavior;
+- release/distribution docs and any stale claims.
 
-- generated artifact exists when the slice claims generation;
-- generated artifact has expected name, version, target/platform, and extension;
-- generated artifact includes all expected binaries;
-- generated artifact includes notices, install notes, and inventory/SBOM data;
-- generated artifact excludes local caches, quality reports, test repos, source checkout bulk, build output, comparator binaries, and secret-like material;
-- signing dry-run/missing-secret behavior is deterministic if signing is in scope;
-- release-publishing workflow is manual or tag-scoped and does not publish from normal CI if publishing is in scope;
-- docs do not overclaim unimplemented platforms.
+## Concrete Implementation Deliverables
 
-Verification:
-Run at minimum:
+Implement the smallest archive-focused release hardening slice that satisfies
+the acceptance criteria. Expected deliverables include:
 
-- `cargo fmt --check`
-- `cargo test`
-- `cargo clippy --all-targets --all-features -- -D warnings`
-- `cargo deny check licenses`
-- `scripts/check-ci`
-- `scripts/check-release`
-- `cargo run --bin build_index`
-- `cargo run --bin wi -- --help`
-- `cargo run --bin wi -- doctor`
-- `git diff --check`
+- harden archive packaging for the existing `scripts/package-release` flow;
+- ensure release archives contain all intended thinindex binaries;
+- ensure release archives contain required license, notices, SBOM, checksum, and install documentation where already intended;
+- add or tighten release artifact manifest/checksum verification;
+- add or tighten archive unpack smoke tests that can run without secrets;
+- add packaged binary smoke checks for:
+  - `wi --help`
+  - `wi doctor`
+  - `build_index` in a temporary repo or fixture
+- update release docs to accurately describe what is shipped versus what remains scaffolded;
+- keep release validation local, source-upload-free, and credential-free.
 
-Also run any selected-slice commands, for example:
+If a deliverable cannot be implemented honestly in the current environment, do
+not fake support. Add or update a deterministic check or documentation note that
+keeps the blocker explicit, then stop within this plan.
 
-- package generation command for the selected native package format;
-- package content inspection for the generated artifact;
-- signing dry-run for the selected platform;
-- release-publishing workflow lint/dry-run if available.
+## Explicit Non-goals
 
-Run ignored local/real-repo tests only if this plan changes real-repo, parser, quality, refs, pack, impact, or dependency assumptions:
+- Do not create or complete native MSI, MSIX, WiX, Inno Setup, Store, or other Windows native installers unless existing repo scaffolding already makes this safely testable without credentials.
+- Do not claim Windows Authenticode signing as completed behavior.
+- Do not create or complete macOS `.pkg` or `.dmg` distribution, Developer ID signing, notarization, or stapling.
+- Do not create or complete Linux `.deb`, `.rpm`, AppImage, package repository metadata, or package-manager publishing unless already safely scaffolded and explicitly bounded.
+- Do not publish GitHub Releases.
+- Do not add managed update channels or auto-update behavior.
+- Do not add payment handling.
+- Do not add hosted behavior.
+- Do not add telemetry.
+- Do not add network activation.
+- Do not add account behavior.
+- Do not add license enforcement.
+- Do not require secrets, certificates, private keys, notarization credentials, package signing keys, release tokens, or external services for normal validation.
+- Do not bundle or require Universal Ctags.
+- Do not use Universal Ctags as a production parser.
+- Do not call external tagger tooling from `build_index`.
+- Do not change parser/language support claims except where release docs are stale.
+- Do not commit `test_repos/` contents.
+- Do not implement deferred caveats opportunistically.
+- Do not perform the post-47 documentation cleanup/indexing pass in this plan.
 
-- `cargo test --test local_index -- --ignored`
-- `cargo test --test real_repos -- --ignored` if `test_repos/` exists
+## Hard Constraints
 
-Acceptance:
-- Exactly one bounded distribution slice is selected and reported.
-- Implemented artifacts or workflows are generated, checked, and documented.
-- Unsupported package/signing/publishing/update-channel paths remain clearly scaffolded or blocked.
-- Existing local/free CLI behavior remains stable.
-- No parser, search, hosted, telemetry, payment, or license-enforcement behavior is added.
-- No secrets or `test_repos/` contents are committed.
-- Verification passes.
-- The next recommended action is clear.
+- Do not reintroduce `WI.md`.
+- Do not make JSONL canonical storage.
+- Do not emit production records with `source = "ctags"`.
+- Do not weaken parser/index quality gates.
+- Do not claim semantic/compiler/LSP-level analysis unless actually implemented.
+- Do not claim unsupported or experimental languages as fully supported.
+- Do not make optional comparator tooling required for install, build, runtime, tests, or release artifacts.
+- Do not commit signing keys, certificates, private keys, app-specific passwords, notarization profiles, package signing keys, release tokens, or other secrets.
+- Keep normal `cargo test` independent of local `.dev_index/`, `test_repos/`, optional external tools, credentials, network access, and platform-specific signing tools.
 
-Commit instructions:
-After verification passes, commit with:
+## Implementation Steps
+
+- [ ] Phase 1: run the current release surface inventory and document what already exists versus what is scaffolded.
+- [ ] Phase 2: identify one archive-focused hardening slice that is possible without credentials or external publishing.
+- [ ] Phase 3: harden archive assembly, manifest/SBOM content, checksum behavior, or artifact exclusion checks for that selected slice.
+- [ ] Phase 4: add or update release archive smoke coverage that unpacks the artifact and runs packaged `wi --help`, `wi doctor`, and `build_index` where feasible.
+- [ ] Phase 5: update release docs, installer docs, roadmap, and caveat/handoff docs so completed archive behavior and scaffolded native/signing/publishing work are clearly separated.
+- [ ] Phase 6: run required validation, update this checklist, commit, and stop.
+
+## Validation Steps
+
+Baseline validation:
+
+- [ ] `cargo fmt --check`
+- [ ] `cargo test`
+- [ ] `cargo clippy --all-targets --all-features -- -D warnings`
+- [ ] `cargo run --bin build_index`
+- [ ] `cargo run --bin wi -- --help`
+- [ ] `cargo run --bin wi -- doctor`
+- [ ] `cargo deny check licenses`
+- [ ] `git diff --check`
+
+Release validation:
+
+- [ ] `scripts/package-release`
+- [ ] `scripts/check-release`
+- [ ] `scripts/check-package-contents <generated archive>`
+- [ ] verify the generated `.sha256` sidecar against the generated archive using `sha256sum -c <generated archive>.sha256` or `shasum -a 256 -c <generated archive>.sha256`, depending on the host tools available.
+- [ ] unpack the generated archive into a temporary directory and run packaged `wi --help`.
+- [ ] unpack the generated archive into a temporary directory and run packaged `wi doctor`.
+- [ ] run packaged `build_index` in a temporary repository or fixture when feasible.
+
+If an exact release validation command does not exist yet, the implementation
+pass must add the command or document why that validation is not yet available.
+
+Run ignored local/real-repo tests only if this plan changes real-repo, parser,
+quality, refs, pack, impact, or dependency assumptions:
+
+- [ ] `cargo test --test local_index -- --ignored`
+- [ ] `cargo test --test real_repos -- --ignored` if `test_repos/` exists
+
+## Acceptance Criteria
+
+- Release archives include all intended thinindex binaries.
+- Release archives include required notices, license, SBOM documentation, and release documentation where applicable.
+- Release archives include install/uninstall helper docs or scripts if currently intended.
+- Checksums are produced and verifiable.
+- CI or local smoke tests can unpack and run the packaged binaries.
+- Release docs clearly distinguish completed local archive distribution from scaffolded future native packaging, signing, notarization, publishing, and update-channel work.
+- Packaging remains local-first.
+- No source upload is introduced.
+- No Universal Ctags production dependency is introduced.
+- No secret-dependent step is required for normal validation.
+- No payment, hosted, activation, telemetry, or enforcement behavior is introduced.
+- Native package formats, completed signing, notarization, GitHub Release publishing, package-manager publishing, and managed update channels remain future work unless a later plan implements them.
+
+## Completion And Update Instructions
+
+After implementation and verification:
+
+- update this plan's checkboxes honestly;
+- update `docs/ROADMAP.md` only to reflect shipped release-archive behavior and the next truthful release-distribution action;
+- update `docs/PLAN_CAVEATS_AND_UNIMPLEMENTED_SUMMARY.md` if any caveat is resolved or reclassified;
+- preserve explicit docs that native packages, real signing/notarization, publishing, and update channels remain scaffolded or future work unless implemented;
+- commit with:
 
 `Advance release distribution completion`
 
-Final response:
-- selected distribution slice
+Stop after this one scoped release-distribution pass. Do not start another
+release, packaging, signing, publishing, update-channel, or documentation
+cleanup/indexing plan automatically.
+
+## Final Report Requirements
+
+- selected archive hardening slice
 - why that slice was selected
 - files changed
-- artifacts/workflows added or updated
+- release artifacts/checks added or updated
 - package/signing/publishing/update-channel status by platform
-- verification commands and results
+- validation commands and results
 - ignored local/real-repo test status, if applicable
 - commit hash
 - next recommended prompt/action
+
+## Recommended Follow-up
+
+After Plan 47 is implemented and verified, the next plan should be a
+documentation cleanup/indexing pass.
+
+That later plan should:
+
+- audit existing documentation;
+- remove or rewrite stale/no-longer-relevant docs;
+- create a browsable user documentation index;
+- create a browsable developer documentation index;
+- optionally create or update a general docs index;
+- keep user docs focused on usage;
+- keep developer docs focused on architecture, contribution, validation, and invariants.
+
+Do not perform that documentation cleanup/indexing work as part of Plan 47.

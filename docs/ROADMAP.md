@@ -129,7 +129,8 @@ These items are not shipped behavior today.
 
 Recommended next implementation plan:
 
-- `prompts/PLAN_48_RELEASE_ARCHIVE_HARDENING.md`: harden the existing local release archive path with archive assembly, manifest/SBOM, checksum verification, unpack smoke checks, and honest docs. Native packages, real signing/notarization, GitHub Release publishing, package-manager distribution, and managed update channels remain future work until a later scoped plan implements and verifies them.
+- `prompts/PLAN_47_RELEASE_DISTRIBUTION_COMPLETION.md`: harden the existing local release archive path with archive assembly, manifest/SBOM, checksum verification, unpack smoke checks, and honest release docs. Native packages, real signing/notarization, GitHub Release publishing, package-manager distribution, and managed update channels remain future work until a later scoped plan implements and verifies them.
+- After PLAN_47 is implemented and verified, create a separate documentation cleanup/indexing plan to audit stale docs and add browsable user/developer documentation indexes.
 
 ## Documentation rules
 
