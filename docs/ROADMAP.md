@@ -106,7 +106,7 @@ Current parser support is limited to the documented support matrix and its suppo
 
 ## Product boundary
 
-The current tool is local/free. No payment, account, license enforcement, telemetry, cloud sync, remote indexing, feature lockout, or release installer behavior is implemented. An inert local license status model exists only as a foundation for future explicit plans; it does not gate current commands.
+The current tool is local/free. No payment, account, license enforcement, telemetry, cloud sync, remote indexing, feature lockout, native package format, real signing, release publishing, or update-channel behavior is implemented. An inert local license status model exists only as a foundation for future explicit plans; it does not gate current commands.
 
 The free/local core must continue to include local indexing, `build_index`, `wi <term>`, basic filters, `wi --help`, `wi-init`, repository instruction setup, local cache rebuilds, `.dev_index/index.sqlite`, `wi-stats`, and no-network local operation.
 
@@ -129,8 +129,8 @@ These items are not shipped behavior today.
 
 Recommended next implementation plan:
 
-- After PLAN_49, documentation has browsable user and developer indexes plus a general docs landing page. Release archives have exact payload checks, SBOM manifest validation, checksum verification, unpack smoke checks, and packaged binary startup checks for the current local archive path.
-- Choose the next scoped implementation plan from this roadmap and [PLAN_CAVEATS_AND_UNIMPLEMENTED_SUMMARY.md](PLAN_CAVEATS_AND_UNIMPLEMENTED_SUMMARY.md). Native packages, real signing/notarization, GitHub Release publishing, package-manager distribution, managed update channels, hosted behavior, telemetry, payment handling, network activation, account behavior, and license enforcement remain future work until a later scoped plan implements and verifies them.
+- After PLAN_50, the repository has a bounded legacy cleanup audit in [REPO_LEGACY_CLEANUP_AUDIT.md](REPO_LEGACY_CLEANUP_AUDIT.md). The audit did not find safe tracked code or script deletions; it tightened ambiguous release/product wording and records deferred work.
+- Next recommended action: run a language support truth audit that compares `src/support.rs`, parser docs, generated language support docs, fixtures, notices, and tests without adding parser support opportunistically. Native packages, real signing/notarization, GitHub Release publishing, package-manager distribution, managed update channels, hosted behavior, telemetry, payment handling, network activation, account behavior, and license enforcement remain future work until a later scoped plan implements and verifies them.
 
 ## Documentation rules
 

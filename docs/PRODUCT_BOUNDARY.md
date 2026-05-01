@@ -1,6 +1,6 @@
 # Product Boundary
 
-Thinindex is currently a local/free agent-navigation tool. This document defines the boundary for possible future paid work without adding license enforcement, payment integration, network behavior, telemetry, feature lockouts, release installers, or parser feature gates.
+Thinindex is currently a local/free agent-navigation tool. This document defines the boundary for possible future paid work without adding license enforcement, payment integration, network behavior, telemetry, feature lockouts, native package/signing/update-channel behavior, or parser feature gates.
 
 ## Product principle
 
@@ -55,8 +55,9 @@ Possible future Pro value should be treated as candidates, not implemented gates
 - richer agent integration packs
 - exported agent-readiness reports
 - advanced reference graph quality features
-- signed installers and a managed update channel after release, signing,
-  licensing, and platform-validation requirements are satisfied
+- native packages, signed distribution, and a managed update channel after
+  release, signing, licensing, and platform-validation requirements are
+  satisfied
 - release-quality Tree-sitter parser coverage if it materially improves bundled parser quality
 
 These are roadmap candidates. They are not active feature gates in the current tool.
@@ -133,7 +134,7 @@ This boundary does not add:
 - remote indexing
 - feature lockouts
 - network calls
-- release installers
+- native package/signing/update-channel behavior
 - parser paywalls
 
 ## Licensing/payment deferred decisions

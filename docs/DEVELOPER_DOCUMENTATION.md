@@ -7,6 +7,7 @@ validation, invariants, and where to make changes.
 
 - [Project README](../README.md): product shape, command list, storage model, parser support matrix, install/release summary.
 - [Technical final audit](TECHNICAL_FINAL_AUDIT.md): relationship/navigation architecture checkpoint.
+- [Repository legacy cleanup audit](REPO_LEGACY_CLEANUP_AUDIT.md): stale-surface review and deferred-work handoff.
 - [Roadmap](ROADMAP.md): shipped behavior, future work, and product boundaries.
 - [Caveats and unimplemented summary](PLAN_CAVEATS_AND_UNIMPLEMENTED_SUMMARY.md): deferred work and known limits.
 

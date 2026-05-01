@@ -1,7 +1,7 @@
 # Plan Caveats And Unimplemented Summary
 
 This document summarizes caveats, deferred work, and explicitly unimplemented
-parts across the active plan series after PLAN_49. It is a planning summary, not
+parts across the active plan series after PLAN_50. It is a planning summary, not
 a new implementation plan.
 
 Sources reviewed:
@@ -14,21 +14,23 @@ Sources reviewed:
 
 ## Overall Status
 
-- Active plan files are marked complete through PLAN_49.
-- There are now 59 active plan files after creating and executing PLAN_49 as
-  the documentation cleanup/indexing follow-up to PLAN_48.
+- Active plan files are marked complete through PLAN_50.
+- There are now 60 active plan files after creating and executing PLAN_50 as
+  the repo-wide legacy cleanup and deferred-work audit follow-up to PLAN_49.
 - PLAN_47 is complete and its archive-focused release-distribution hardening
   slice has been implemented.
 - PLAN_48 is complete and its archive hardening slice validates exact archive
   payloads plus generated `SBOM.md` manifest fields.
 - PLAN_49 is complete and adds browsable user, developer, and general
   documentation indexes.
+- PLAN_50 is complete and adds a repo-wide legacy cleanup audit plus a
+  recommended language support truth audit follow-up.
 - No unchecked `- [ ]` boxes were found in active `prompts/PLAN_*.md` files at
   the PLAN_46 cleanup point before PLAN_47 was created.
 - The duplicate PLAN_45 sequence was resolved by renaming the team/CI roadmap to
   `PLAN_45A_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md`.
 - No required active plan file is missing for the observed sequence from
-  PLAN_00 through PLAN_49, including lettered PLAN_11A through PLAN_11C and
+  PLAN_00 through PLAN_50, including lettered PLAN_11A through PLAN_11C and
   PLAN_12A through PLAN_12G.
 - There is no active PLAN_11D, PLAN_11E, or monolithic
   PLAN_12_EXTENDED_LANGUAGE_PACK.
@@ -59,19 +61,18 @@ Validation evidence from this review:
 - `cargo deny check licenses` reports `licenses ok`.
 - `test_repos/` may exist locally, but it remains ignored, local-only, and out
   of scope for normal documentation validation. No third-party repository
-  contents are committed by documentation cleanup.
+  contents are committed by documentation or legacy-cleanup audits.
 
-## PLAN_46 Re-execution Findings
+## Latest Audit Findings After PLAN_50
 
 Audit date: 2026-05-01.
 
 Disk-state findings:
 
-- `git status --short` showed this audit summary as the only untracked file
-  before this pass.
-- `git log --oneline -20` shows PLAN_45A, PLAN_45, PLAN_46 creation, and the
-  prior PLAN_46 cleanup commits at the top of history.
-- `ls prompts/PLAN_*.md | sort` showed 59 active plan files after PLAN_49 was added.
+- `git status --short` showed a clean worktree before PLAN_50 edits.
+- `git log --oneline -20` shows PLAN_47 through PLAN_49 completion commits near
+  the top of history before PLAN_50.
+- `ls prompts/PLAN_*.md | sort` showed 60 active plan files after PLAN_50 was added.
 - `ls prompts/superseded` showed the old native-parser 11-series files only
   under `prompts/superseded/`.
 - `grep -n "Do not implement this until" prompts/PLAN_*.md` showed the active
@@ -105,6 +106,9 @@ Active plan inventory:
   payloads and generated `SBOM.md` manifest fields.
 - PLAN_49: complete; documentation cleanup/indexing now provides user,
   developer, and general docs indexes.
+- PLAN_50: complete; repo-wide legacy cleanup audit added
+  `docs/REPO_LEGACY_CLEANUP_AUDIT.md`, tightened ambiguous release/product
+  wording, and did not delete tracked code/scripts.
 
 Stale reference findings:
 
@@ -134,10 +138,11 @@ Forbidden-surface findings:
 
 Recommended next implementation plan:
 
-- Use the updated roadmap and this caveat summary to choose the next bounded
-  implementation plan. Do not implement deferred parser, packaging, payment,
-  hosted, telemetry, activation, or license-enforcement behavior
-  opportunistically.
+- Run a language support truth audit that compares `src/support.rs`,
+  `README.md`, `docs/PARSER_SUPPORT.md`, `docs/LANGUAGE_SUPPORT.md`,
+  conformance fixtures, notices, parser tests, and real-repo manifest
+  expectations. Do not implement parser support opportunistically during that
+  audit.
 
 ## Per-caveat Implementation Decisions
 
@@ -179,6 +184,7 @@ alongside code.
 | PLAN_47 | Complete | Archive release hardening added checksum verification, unpack smoke, and packaged binary startup checks. Native packages, real signing/notarization, GitHub Release publishing, managed update channels, parser, hosted, telemetry, payment, license-enforcement behavior, and the later documentation cleanup/indexing pass remain out of scope. |
 | PLAN_48 | Complete | Release archive hardening added exact payload checks and generated SBOM manifest validation to package-content verification. Native packages, signing/notarization, publishing, update channels, parser behavior, hosted behavior, telemetry, payment, license enforcement, and documentation indexing remain out of scope. |
 | PLAN_49 | Complete | Documentation cleanup added browsable user/developer/general indexes and rewrote stale product-boundary wording. Product behavior, parser behavior, release behavior, hosted behavior, telemetry, payment, and license enforcement remain unchanged. |
+| PLAN_50 | Complete | Repo-wide legacy cleanup audit added a concise audit document, confirmed ignored local/generated directories are untracked, tightened ambiguous release/product wording, and recommends a language support truth audit. No product, parser, release, hosted, telemetry, payment, or license-enforcement behavior changed. |
 
 ## Parser And Tree-sitter Caveats
 
@@ -365,3 +371,5 @@ Languages and formats not listed in the support matrix are unsupported.
    evidence, privacy design, licensing design, and implementation scope.
 5. For audit work, re-run the PLAN_46 inventory checks before changing plan
    status or adding new active plan files.
+6. For the next bounded pass, run a language support truth audit without adding
+   parser support opportunistically.
