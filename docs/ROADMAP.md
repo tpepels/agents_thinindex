@@ -129,7 +129,7 @@ These items are not shipped behavior today.
 
 Recommended next implementation plan:
 
-- `prompts/PLAN_47_RELEASE_DISTRIBUTION_COMPLETION.md`: finish exactly one bounded release-distribution slice by implementing and verifying native package formats, real signing/notarization paths, release publishing, or update-channel boundaries only when the required credentials, target platforms, CI environment, and license-audit prerequisites are available.
+- `prompts/PLAN_48_RELEASE_ARCHIVE_HARDENING.md`: harden the existing local release archive path with archive assembly, manifest/SBOM, checksum verification, unpack smoke checks, and honest docs. Native packages, real signing/notarization, GitHub Release publishing, package-manager distribution, and managed update channels remain future work until a later scoped plan implements and verifies them.
 
 ## Documentation rules
 
