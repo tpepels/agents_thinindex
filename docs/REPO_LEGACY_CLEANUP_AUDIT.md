@@ -41,8 +41,8 @@ ignored by git rather than tracked.
   behavior.
 - `docs/README.md` now links this audit as a roadmap/handoff document.
 - `docs/PLAN_CAVEATS_AND_UNIMPLEMENTED_SUMMARY.md` now records Plan 50 as the
-  latest completed audit and points to a language support truth audit as the
-  next bounded action.
+  repo-wide legacy cleanup audit and, after Plan 51, points to a real-repo test
+  readiness audit as the next bounded action.
 
 ## Legacy Surfaces Still Present
 
@@ -100,9 +100,9 @@ These remain real deferred items and should not be implemented as cleanup:
 
 ## Future-plan Risks
 
-- A language support truth audit should compare `src/support.rs`,
-  `docs/PARSER_SUPPORT.md`, `docs/LANGUAGE_SUPPORT.md`, README support tables,
-  conformance fixtures, parser tests, and real-repo manifest expectations.
+- The language support truth audit was completed by Plan 51 in
+  `docs/LANGUAGE_SUPPORT_AUDIT.md`; future language work should start from that
+  evidence and avoid opportunistic parser expansion.
 - Release work should stay archive-focused until a dedicated native
   package/signing/publishing plan has platform tools, credentials policy, and CI
   acceptance criteria.
@@ -113,6 +113,7 @@ These remain real deferred items and should not be implemented as cleanup:
 
 ## Recommended Next Action
 
-Run a language support truth audit. It should verify that support labels,
-fixtures, docs, notices, query specs, generated dashboard entries, and tests all
-agree, without adding parser support opportunistically.
+Run a real-repo test readiness audit. It should verify ignored-test skip
+behavior, manifest ergonomics, local corpus assumptions, expected-symbol
+coverage gaps, and docs without committing `test_repos/` contents or adding
+parser support opportunistically.

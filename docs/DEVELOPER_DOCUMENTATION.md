@@ -47,6 +47,7 @@ Read:
 - [Parser support levels](PARSER_SUPPORT.md)
 - [Parser maintenance](PARSER_MAINTENANCE.md)
 - [Language support dashboard](LANGUAGE_SUPPORT.md)
+- [Language support audit](LANGUAGE_SUPPORT_AUDIT.md): claim-vs-implementation evidence, real-repo coverage gaps, and parser architecture findings.
 - [License audit](LICENSE_AUDIT.md)
 
 ## Quality And Real-repo Hardening

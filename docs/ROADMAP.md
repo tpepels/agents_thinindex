@@ -102,7 +102,7 @@ Before proprietary Windows/macOS/Linux packages are viable, thinindex needs:
 
 Tree-sitter parser improvements should be introduced as product infrastructure, not as search-semantics changes by themselves.
 
-Current parser support is limited to the documented support matrix and its support levels. Additional languages must bring a permissively licensed grammar, registry entry, extension mapping, query spec, conformance fixture, and notice entry before they are claimed as supported.
+Current parser support is limited to the documented support matrix and its support levels. Additional languages must bring a permissively licensed grammar, registry entry, extension mapping, query spec, conformance fixture, and notice entry before they are claimed as supported. The claim-vs-implementation audit in [LANGUAGE_SUPPORT_AUDIT.md](LANGUAGE_SUPPORT_AUDIT.md) records current evidence and real-repo coverage gaps.
 
 ## Product boundary
 
@@ -129,8 +129,8 @@ These items are not shipped behavior today.
 
 Recommended next implementation plan:
 
-- After PLAN_50, the repository has a bounded legacy cleanup audit in [REPO_LEGACY_CLEANUP_AUDIT.md](REPO_LEGACY_CLEANUP_AUDIT.md). The audit did not find safe tracked code or script deletions; it tightened ambiguous release/product wording and records deferred work.
-- Next recommended action: run a language support truth audit that compares `src/support.rs`, parser docs, generated language support docs, fixtures, notices, and tests without adding parser support opportunistically. Native packages, real signing/notarization, GitHub Release publishing, package-manager distribution, managed update channels, hosted behavior, telemetry, payment handling, network activation, account behavior, and license enforcement remain future work until a later scoped plan implements and verifies them.
+- After PLAN_51, the repository has a bounded language support truth audit in [LANGUAGE_SUPPORT_AUDIT.md](LANGUAGE_SUPPORT_AUDIT.md). It kept support levels unchanged, found no parser architecture violation, and records local real-repo coverage gaps without adding parser support opportunistically.
+- Next recommended action: run a real-repo test readiness audit that checks ignored-test skip behavior, manifest ergonomics, local corpus assumptions, and expected-symbol coverage gaps without committing `test_repos/` contents. Native packages, real signing/notarization, GitHub Release publishing, package-manager distribution, managed update channels, hosted behavior, telemetry, payment handling, network activation, account behavior, and license enforcement remain future work until a later scoped plan implements and verifies them.
 
 ## Documentation rules
 

@@ -200,7 +200,7 @@ Parser and format support claims use explicit levels from the source-controlled 
 - `blocked`: missing permissive grammar, broken integration, unclear license, or unacceptable parser quality.
 - `extras-backed`: project-owned extras intentionally handle deterministic format landmarks instead of Tree-sitter.
 
-Detailed gaps and blocked reasons are maintained in [docs/PARSER_SUPPORT.md](docs/PARSER_SUPPORT.md). The generated support dashboard in [docs/LANGUAGE_SUPPORT.md](docs/LANGUAGE_SUPPORT.md) summarizes support levels, backend claims, conformance status, real-repo status, expected-symbol coverage, comparator status, and blocked entries from the source-controlled matrix.
+Detailed gaps and blocked reasons are maintained in [docs/PARSER_SUPPORT.md](docs/PARSER_SUPPORT.md). The generated support dashboard in [docs/LANGUAGE_SUPPORT.md](docs/LANGUAGE_SUPPORT.md) summarizes support levels, backend claims, conformance status, real-repo status, expected-symbol coverage, comparator status, and blocked entries from the source-controlled matrix. The claim-vs-implementation audit in [docs/LANGUAGE_SUPPORT_AUDIT.md](docs/LANGUAGE_SUPPORT_AUDIT.md) records implementation evidence, docs alignment, and local real-repo coverage gaps.
 
 | Language/format | Extensions | Level | Backend | Grammar/package | Expected record kinds |
 | --- | --- | --- | --- | --- | --- |

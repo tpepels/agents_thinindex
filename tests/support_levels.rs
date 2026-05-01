@@ -171,6 +171,7 @@ fn docs_use_support_levels_without_overclaiming_experimental_or_blocked_entries(
     let product_boundary = repo_file("docs/PRODUCT_BOUNDARY.md");
     let quality = repo_file("docs/QUALITY.md");
     let dashboard = repo_file("docs/LANGUAGE_SUPPORT.md");
+    let language_audit = repo_file("docs/LANGUAGE_SUPPORT_AUDIT.md");
 
     for (level, _definition) in support_level_definitions() {
         assert!(
@@ -178,7 +179,8 @@ fn docs_use_support_levels_without_overclaiming_experimental_or_blocked_entries(
                 && parser_support.contains(level)
                 && product_boundary.contains(level)
                 && quality.contains(level)
-                && dashboard.contains(level),
+                && dashboard.contains(level)
+                && language_audit.contains(level),
             "docs should mention support level `{level}`"
         );
     }
@@ -192,6 +194,7 @@ fn docs_use_support_levels_without_overclaiming_experimental_or_blocked_entries(
         assert_doc_row_matches_entry(&readme, entry);
         assert_doc_row_matches_entry(&parser_support, entry);
         assert_doc_row_matches_entry(&dashboard, entry);
+        assert_doc_row_matches_entry(&language_audit, entry);
 
         if matches!(
             entry.support_level,
@@ -201,6 +204,7 @@ fn docs_use_support_levels_without_overclaiming_experimental_or_blocked_entries(
                 .into_iter()
                 .chain(table_lines_for(&parser_support, entry.name))
                 .chain(table_lines_for(&dashboard, entry.name))
+                .chain(table_lines_for(&language_audit, entry.name))
             {
                 assert!(
                     !line.contains("| supported |"),
@@ -215,6 +219,7 @@ fn docs_use_support_levels_without_overclaiming_experimental_or_blocked_entries(
                 .into_iter()
                 .chain(table_lines_for(&parser_support, entry.name))
                 .chain(table_lines_for(&dashboard, entry.name))
+                .chain(table_lines_for(&language_audit, entry.name))
             {
                 assert!(
                     line.contains("| extras-backed |") && line.contains("| extras |"),
@@ -235,6 +240,7 @@ fn docs_use_support_levels_without_overclaiming_experimental_or_blocked_entries(
 fn blocked_entries_are_visible_but_have_no_backend_claim() {
     let readme = repo_file("README.md");
     let parser_support = repo_file("docs/PARSER_SUPPORT.md");
+    let language_audit = repo_file("docs/LANGUAGE_SUPPORT_AUDIT.md");
 
     for entry in support_matrix()
         .iter()
@@ -243,6 +249,7 @@ fn blocked_entries_are_visible_but_have_no_backend_claim() {
         for line in table_lines_for(&readme, entry.name)
             .into_iter()
             .chain(table_lines_for(&parser_support, entry.name))
+            .chain(table_lines_for(&language_audit, entry.name))
         {
             assert!(
                 line.contains("| blocked |") && line.contains("| none |"),
