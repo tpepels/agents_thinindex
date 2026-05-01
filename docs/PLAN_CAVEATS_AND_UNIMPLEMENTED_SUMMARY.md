@@ -1,7 +1,7 @@
 # Plan Caveats And Unimplemented Summary
 
 This document summarizes caveats, deferred work, and explicitly unimplemented
-parts across the active plan series after PLAN_48. It is a planning summary, not
+parts across the active plan series after PLAN_49. It is a planning summary, not
 a new implementation plan.
 
 Sources reviewed:
@@ -14,19 +14,21 @@ Sources reviewed:
 
 ## Overall Status
 
-- Active plan files are marked complete through PLAN_48.
-- There are now 58 active plan files after restoring and executing PLAN_48 as
-  the archive-hardening follow-up to PLAN_47.
+- Active plan files are marked complete through PLAN_49.
+- There are now 59 active plan files after creating and executing PLAN_49 as
+  the documentation cleanup/indexing follow-up to PLAN_48.
 - PLAN_47 is complete and its archive-focused release-distribution hardening
   slice has been implemented.
 - PLAN_48 is complete and its archive hardening slice validates exact archive
   payloads plus generated `SBOM.md` manifest fields.
+- PLAN_49 is complete and adds browsable user, developer, and general
+  documentation indexes.
 - No unchecked `- [ ]` boxes were found in active `prompts/PLAN_*.md` files at
   the PLAN_46 cleanup point before PLAN_47 was created.
 - The duplicate PLAN_45 sequence was resolved by renaming the team/CI roadmap to
   `PLAN_45A_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md`.
 - No required active plan file is missing for the observed sequence from
-  PLAN_00 through PLAN_48, including lettered PLAN_11A through PLAN_11C and
+  PLAN_00 through PLAN_49, including lettered PLAN_11A through PLAN_11C and
   PLAN_12A through PLAN_12G.
 - There is no active PLAN_11D, PLAN_11E, or monolithic
   PLAN_12_EXTENDED_LANGUAGE_PACK.
@@ -55,8 +57,9 @@ Validation evidence from this review:
 - `wi --help` lists current commands and does not list `wi ci`.
 - `wi doctor` reports `overall: ok`.
 - `cargo deny check licenses` reports `licenses ok`.
-- `test_repos/` is not present in this checkout, so real-repo promotion claims
-  cannot be strengthened from local evidence.
+- `test_repos/` may exist locally, but it remains ignored, local-only, and out
+  of scope for normal documentation validation. No third-party repository
+  contents are committed by documentation cleanup.
 
 ## PLAN_46 Re-execution Findings
 
@@ -68,7 +71,7 @@ Disk-state findings:
   before this pass.
 - `git log --oneline -20` shows PLAN_45A, PLAN_45, PLAN_46 creation, and the
   prior PLAN_46 cleanup commits at the top of history.
-- `ls prompts/PLAN_*.md | sort` showed 58 active plan files after PLAN_48 was restored.
+- `ls prompts/PLAN_*.md | sort` showed 59 active plan files after PLAN_49 was added.
 - `ls prompts/superseded` showed the old native-parser 11-series files only
   under `prompts/superseded/`.
 - `grep -n "Do not implement this until" prompts/PLAN_*.md` showed the active
@@ -100,6 +103,8 @@ Active plan inventory:
   checksum sidecars and packaged binary startup for generated archives.
 - PLAN_48: complete; release archive hardening now validates exact archive
   payloads and generated `SBOM.md` manifest fields.
+- PLAN_49: complete; documentation cleanup/indexing now provides user,
+  developer, and general docs indexes.
 
 Stale reference findings:
 
@@ -129,11 +134,10 @@ Forbidden-surface findings:
 
 Recommended next implementation plan:
 
-- Create a post-PLAN_48 documentation cleanup/indexing plan. That later plan
-  should audit stale docs, remove or rewrite no-longer-relevant documentation,
-  and add browsable user/developer documentation indexes. It should not change
-  parser, packaging, payment, hosted, telemetry, activation, or license
-  enforcement behavior.
+- Use the updated roadmap and this caveat summary to choose the next bounded
+  implementation plan. Do not implement deferred parser, packaging, payment,
+  hosted, telemetry, activation, or license-enforcement behavior
+  opportunistically.
 
 ## Per-caveat Implementation Decisions
 
@@ -174,6 +178,7 @@ alongside code.
 | PLAN_46 | Complete | Audit cleanup is complete. It did not implement product features. It records residual caveats and keeps stale-reference guardrails visible. |
 | PLAN_47 | Complete | Archive release hardening added checksum verification, unpack smoke, and packaged binary startup checks. Native packages, real signing/notarization, GitHub Release publishing, managed update channels, parser, hosted, telemetry, payment, license-enforcement behavior, and the later documentation cleanup/indexing pass remain out of scope. |
 | PLAN_48 | Complete | Release archive hardening added exact payload checks and generated SBOM manifest validation to package-content verification. Native packages, signing/notarization, publishing, update channels, parser behavior, hosted behavior, telemetry, payment, license enforcement, and documentation indexing remain out of scope. |
+| PLAN_49 | Complete | Documentation cleanup added browsable user/developer/general indexes and rewrote stale product-boundary wording. Product behavior, parser behavior, release behavior, hosted behavior, telemetry, payment, and license enforcement remain unchanged. |
 
 ## Parser And Tree-sitter Caveats
 

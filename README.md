@@ -53,6 +53,12 @@ wi impact build_index
 
 Run `wi doctor` when setup looks wrong or results are missing/stale. Run `wi --help` for the current command syntax, filters, examples, and subcommands. Keep that help output as the source of truth for CLI details. See [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
+## Documentation Map
+
+- [User documentation](docs/USER_DOCUMENTATION.md): install, setup, workflow, storage, privacy, release archives, and troubleshooting.
+- [Developer documentation](docs/DEVELOPER_DOCUMENTATION.md): architecture, parser workflow, quality gates, release validation, tests, and invariants.
+- [All docs](docs/README.md): browsable index of user, developer, release, security, licensing, roadmap, and handoff docs.
+
 ## Agent workflow
 
 The canonical agent workflow is:

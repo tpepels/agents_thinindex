@@ -55,7 +55,8 @@ Possible future Pro value should be treated as candidates, not implemented gates
 - richer agent integration packs
 - exported agent-readiness reports
 - advanced reference graph quality features
-- signed installers and a managed update channel after parser/licensing blockers are removed
+- signed installers and a managed update channel after release, signing,
+  licensing, and platform-validation requirements are satisfied
 - release-quality Tree-sitter parser coverage if it materially improves bundled parser quality
 
 These are roadmap candidates. They are not active feature gates in the current tool.
@@ -139,7 +140,9 @@ This boundary does not add:
 
 Pricing, license provider, activation flow, local license cache shape, paid update policy, and team licensing are deferred decisions.
 
-Do not encode pricing or edition limits in code until the product has evidence that a paid edition is useful and the parser/package blocker has been resolved.
+Do not encode pricing or edition limits in code until the product has evidence
+that a paid edition is useful and the release/package blockers have been
+resolved.
 
 ## Evidence needed before charging
 

@@ -237,44 +237,45 @@ or semantic/compiler/LSP-level analysis exist unless they actually exist.
 
 ## Implementation Steps
 
-- [ ] Phase 1: run the current documentation inventory and classify docs by purpose.
-- [ ] Phase 2: audit current docs for stale or risky claims listed in this plan.
-- [ ] Phase 3: remove, rewrite, or clearly mark stale documentation while preserving valid guardrails.
-- [ ] Phase 4: create or update `docs/USER_DOCUMENTATION.md`.
-- [ ] Phase 5: create or update `docs/DEVELOPER_DOCUMENTATION.md`.
-- [ ] Phase 6: create or update `docs/README.md`.
-- [ ] Phase 7: update `README.md`, `docs/ROADMAP.md`, or handoff docs only where needed to point readers to the new indexes and truthful next action.
-- [ ] Phase 8: run link hygiene checks for edited Markdown links.
-- [ ] Phase 9: run required validation, update this checklist, commit, and stop.
+- [x] Phase 1: run the current documentation inventory and classify docs by purpose.
+- [x] Phase 2: audit current docs for stale or risky claims listed in this plan.
+- [x] Phase 3: remove, rewrite, or clearly mark stale documentation while preserving valid guardrails.
+- [x] Phase 4: create or update `docs/USER_DOCUMENTATION.md`.
+- [x] Phase 5: create or update `docs/DEVELOPER_DOCUMENTATION.md`.
+- [x] Phase 6: create or update `docs/README.md`.
+- [x] Phase 7: update `README.md`, `docs/ROADMAP.md`, or handoff docs only where needed to point readers to the new indexes and truthful next action.
+- [x] Phase 8: run link hygiene checks for edited Markdown links.
+- [x] Phase 9: run required validation, update this checklist, commit, and stop.
 
 ## Validation Steps
 
 Documentation validation:
 
-- [ ] `git diff --check`
-- [ ] `ls docs/*.md | sort`
-- [ ] `grep -RIn "WI.md\\|JSONL\\|jsonl\\|ctags\\|Ctags\\|Universal Ctags\\|source = \"ctags\"\\|semantic\\|LSP\\|installer\\|notarization\\|payment\\|license enforcement\\|test_repos\\|managed update\\|telemetry\\|hosted\\|network activation" README.md docs prompts 2>/dev/null || true`
-- [ ] Review the grep output and classify matches as valid guardrails, accurate caveats, or stale claims fixed by this plan.
-- [ ] `grep -RIn "supported\\|experimental\\|blocked\\|extras-backed" README.md docs prompts 2>/dev/null || true`
-- [ ] Review support-level matches and confirm no unsupported or experimental language is overclaimed.
-- [ ] `grep -RIn "build_index\\|wi refs\\|wi pack\\|wi impact\\|wi doctor\\|wi-stats\\|wi-init" README.md docs 2>/dev/null || true`
-- [ ] Confirm the user/developer indexes route readers to command docs without duplicating `wi --help` as CLI source of truth.
-- [ ] Run the repository's Markdown/link-check command if one exists, otherwise run a one-off relative `.md` link check for edited Markdown files.
+- [x] `git diff --check`
+- [x] `ls docs/*.md | sort`
+- [x] `grep -RIn "WI.md\\|JSONL\\|jsonl\\|ctags\\|Ctags\\|Universal Ctags\\|source = \"ctags\"\\|semantic\\|LSP\\|installer\\|notarization\\|payment\\|license enforcement\\|test_repos\\|managed update\\|telemetry\\|hosted\\|network activation" README.md docs prompts 2>/dev/null || true`
+- [x] Review the grep output and classify matches as valid guardrails, accurate caveats, or stale claims fixed by this plan.
+- [x] `grep -RIn "supported\\|experimental\\|blocked\\|extras-backed" README.md docs prompts 2>/dev/null || true`
+- [x] Review support-level matches and confirm no unsupported or experimental language is overclaimed.
+- [x] `grep -RIn "build_index\\|wi refs\\|wi pack\\|wi impact\\|wi doctor\\|wi-stats\\|wi-init" README.md docs 2>/dev/null || true`
+- [x] Confirm the user/developer indexes route readers to command docs without duplicating `wi --help` as CLI source of truth.
+- [x] Run the repository's Markdown/link-check command if one exists, otherwise run a one-off relative `.md` link check for edited Markdown files.
 
 Baseline validation:
 
-- [ ] `cargo fmt --check`
-- [ ] `cargo test`
-- [ ] `cargo clippy --all-targets --all-features -- -D warnings`
+- [x] `cargo fmt --check`
+- [x] `cargo test`
+- [x] `cargo clippy --all-targets --all-features -- -D warnings`
 
 Run only if this plan changes code, scripts, generated docs, parser support,
 release behavior, quality behavior, or real-repo assumptions:
 
-- [ ] `cargo run --bin build_index`
-- [ ] `cargo run --bin wi -- doctor`
-- [ ] `cargo deny check licenses`
-- [ ] `cargo test --test local_index -- --ignored`
-- [ ] `cargo test --test real_repos -- --ignored` if `test_repos/` exists
+- [x] Not applicable after docs-only changes: `cargo run --bin build_index`
+      was run before editing for repository discovery.
+- [x] Not applicable after docs-only changes: `cargo run --bin wi -- doctor`.
+- [x] Not applicable after docs-only changes: `cargo deny check licenses`.
+- [x] Not applicable after docs-only changes: `cargo test --test local_index -- --ignored`.
+- [x] Not applicable after docs-only changes: `cargo test --test real_repos -- --ignored` if `test_repos/` exists.
 
 Plan 49 should normally be docs-only. If the implementation pass changes only
 Markdown documentation and prompt files, the ignored local/real-repo tests are
@@ -333,6 +334,5 @@ quality, payment, hosted, telemetry, licensing, or product-feature work.
 
 ## Recommended Next Action
 
-Execute Plan 49. After Plan 49 is complete, choose the next scoped plan from
-the updated roadmap and caveat summary rather than implementing deferred
-features opportunistically.
+Choose the next scoped plan from the updated roadmap and caveat summary rather
+than implementing deferred features opportunistically.

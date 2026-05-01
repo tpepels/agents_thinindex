@@ -129,8 +129,8 @@ These items are not shipped behavior today.
 
 Recommended next implementation plan:
 
-- After PLAN_48, release archives have exact payload checks, SBOM manifest validation, checksum verification, unpack smoke checks, and packaged binary startup checks for the current local archive path. Native packages, real signing/notarization, GitHub Release publishing, package-manager distribution, and managed update channels remain future work until a later scoped plan implements and verifies them.
-- Execute `prompts/PLAN_49_DOCUMENTATION_CLEANUP_AND_INDEXES.md` to audit stale docs and add browsable user/developer documentation indexes. PLAN_49 is not complete until it is executed, verified, and committed.
+- After PLAN_49, documentation has browsable user and developer indexes plus a general docs landing page. Release archives have exact payload checks, SBOM manifest validation, checksum verification, unpack smoke checks, and packaged binary startup checks for the current local archive path.
+- Choose the next scoped implementation plan from this roadmap and [PLAN_CAVEATS_AND_UNIMPLEMENTED_SUMMARY.md](PLAN_CAVEATS_AND_UNIMPLEMENTED_SUMMARY.md). Native packages, real signing/notarization, GitHub Release publishing, package-manager distribution, managed update channels, hosted behavior, telemetry, payment handling, network activation, account behavior, and license enforcement remain future work until a later scoped plan implements and verifies them.
 
 ## Documentation rules
 
