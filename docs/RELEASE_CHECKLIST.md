@@ -23,7 +23,10 @@ Run before cutting a thinindex release:
 - confirm `docs/TECHNICAL_FINAL_AUDIT.md` still matches dependency, refs, pack, impact, performance, semantic adapter, and agent integration behavior
 - `scripts/package-release`
 - `scripts/check-package-contents <archive>`
+- `scripts/smoke-release-archive <archive>`
 - inspect/list the generated archive contents
+- verify the generated `.sha256` sidecar with `sha256sum -c` or `shasum -a 256 -c`
+- unpack smoke with packaged `wi --help`, packaged `wi doctor`, and packaged `build_index` in a temporary repo
 - archive install smoke with `scripts/install-archive-unix` from the extracted archive on Unix-like platforms
 - archive uninstall smoke with `scripts/uninstall-archive-unix` from the extracted archive on Unix-like platforms
 - install smoke with a temp `BIN_DIR`
@@ -49,6 +52,7 @@ Packaging note:
 - Release archives must not include `.dev_index/`, `.dev_index/quality/`, `test_repos/`, `target/`, `dist/`, source checkout contents, local quality reports, generated local benchmark outputs, signing secret material, or optional external comparator binaries.
 - Native package formats, signing, and notarization are scaffolded only.
 - Windows Authenticode signing, macOS Developer ID signing/notarization, and Linux package signing are not implemented by default; `scripts/sign-release-artifact` is the local/CI secret-backed scaffold.
-- GitHub Actions CI runs format, test, deterministic parser/quality fixtures, clippy, license audit, command smoke, package smoke, and archive content checks.
+- GitHub Actions CI runs format, test, deterministic parser/quality fixtures, clippy, license audit, command smoke, package smoke, archive content checks, checksum verification, and packaged binary smoke.
+- Release archive smoke verifies checksum sidecars and packaged binary startup without requiring secrets.
 - The release workflow uploads workflow artifacts only; it does not publish GitHub Releases.
 - Smoke-test generated artifacts on each target platform before publishing.

@@ -59,3 +59,8 @@ Release archives are assembled from explicit files. They must not include:
 - source checkout contents copied wholesale
 
 Release archives include `SBOM.md` and `THIRD_PARTY_NOTICES` so recipients can inspect the shipped binaries, target, checksum sidecar, and dependency notices. Run `scripts/check-package-contents <archive>` after packaging.
+
+Run `scripts/smoke-release-archive <archive>` before distribution to verify the
+checksum sidecar, unpack the archive in a temporary directory, and run packaged
+`wi --help`, `build_index`, and `wi doctor` without source upload, credentials,
+or signing secrets.

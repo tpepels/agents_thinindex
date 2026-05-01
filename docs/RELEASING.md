@@ -48,6 +48,7 @@ cargo run --bin wi-init -- --version
 cargo run --bin wi-stats -- --version
 scripts/package-release
 scripts/check-package-contents <archive>
+scripts/smoke-release-archive <archive>
 ```
 
 The local release check intentionally does not require `test_repos/` and does not run ignored real-repo tests.
@@ -211,6 +212,26 @@ The check verifies that the archive:
 - includes version and target information in the archive name
 - references the archive basename from the `.sha256` sidecar when the sidecar exists
 
+## Archive Smoke Checks
+
+Validate a generated archive and checksum sidecar with:
+
+```bash
+scripts/smoke-release-archive dist/thinindex-<version>-<target>.tar.gz
+```
+
+The smoke check:
+
+- verifies the generated `.sha256` sidecar with `sha256sum -c` or `shasum -a 256 -c`
+- unpacks the archive into a temporary directory
+- runs packaged `wi --help`
+- runs packaged `wi-init`, `build_index`, and `wi doctor` inside a temporary repository
+- fails if `wi doctor` reports any failure rows
+
+This remains a local, source-upload-free, credential-free archive validation
+path. It does not sign, notarize, publish, or build native package-manager
+artifacts.
+
 ## CI Workflows
 
 GitHub Actions workflows are configured under `.github/workflows/`.
@@ -223,9 +244,9 @@ GitHub Actions workflows are configured under `.github/workflows/`.
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo deny check licenses`
 - command smoke tests for all binaries
-- current-platform package smoke and archive content checks
+- current-platform package smoke, archive content checks, checksum verification, and packaged binary smoke
 
-`release.yml` runs on `workflow_dispatch` and tags matching `v*`. It runs the same core gates, builds a current-platform Linux release archive, checks archive contents, and uploads the archive plus `.sha256` checksum as workflow artifacts.
+`release.yml` runs on `workflow_dispatch` and tags matching `v*`. It runs the same core gates, builds a current-platform Linux release archive, checks archive contents, verifies the checksum sidecar, runs packaged binary smoke, and uploads the archive plus `.sha256` checksum as workflow artifacts.
 
 The release workflow does not publish GitHub Releases, sign binaries, notarize macOS artifacts, or build package-manager installers.
 

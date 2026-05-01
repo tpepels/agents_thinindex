@@ -14,10 +14,11 @@ Sources reviewed:
 
 ## Overall Status
 
-- Active plan files are marked complete through PLAN_46.
+- Active plan files are marked complete through PLAN_47.
 - There are now 57 active plan files after updating PLAN_47 as the scoped
   release-distribution plan.
-- PLAN_47 is intentionally not started and contains unchecked execution phases.
+- PLAN_47 is complete and its archive-focused release-distribution hardening
+  slice has been implemented.
 - No unchecked `- [ ]` boxes were found in active `prompts/PLAN_*.md` files at
   the PLAN_46 cleanup point before PLAN_47 was created.
 - The duplicate PLAN_45 sequence was resolved by renaming the team/CI roadmap to
@@ -93,8 +94,8 @@ Active plan inventory:
 - PLAN_45: complete; Tree-sitter real-repo convergence loop is not restarted by
   this audit.
 - PLAN_46: complete; this pass is audit/cleanup/alignment only.
-- PLAN_47: updated as the next scoped release-distribution implementation plan;
-  not started.
+- PLAN_47: complete; archive-focused release-distribution hardening now verifies
+  checksum sidecars and packaged binary startup for generated archives.
 
 Stale reference findings:
 
@@ -124,13 +125,11 @@ Forbidden-surface findings:
 
 Recommended next implementation plan:
 
-- `prompts/PLAN_47_RELEASE_DISTRIBUTION_COMPLETION.md`: execute one bounded
-  archive-focused release hardening pass. The plan covers archive assembly,
-  manifest/SBOM, checksum verification, unpack smoke checks, and honest release
-  docs, while keeping native packages, real signing/notarization, GitHub Release
-  publishing, package-manager distribution, update channels, source upload,
-  telemetry, payments, license enforcement, hosted behavior, parser work, and
-  the later documentation cleanup/indexing pass out of scope.
+- Create a post-PLAN_47 documentation cleanup/indexing plan. That later plan
+  should audit stale docs, remove or rewrite no-longer-relevant documentation,
+  and add browsable user/developer documentation indexes. It should not change
+  parser, packaging, payment, hosted, telemetry, activation, or license
+  enforcement behavior.
 
 ## Per-caveat Implementation Decisions
 
@@ -144,7 +143,7 @@ Recommended next implementation plan:
 | Known extraction gaps | Yes | No | The listed gaps are mostly semantic, runtime, package-manager, or language-specific resolver work. Each needs targeted tests and architecture decisions; none should be patched opportunistically. |
 | Refs, pack, impact, and dependency caveats | Yes | No product change needed | Existing behavior is intentionally conservative, evidence-backed, and bounded. Removing these caveats would require semantic adapters or broader resolver guarantees. |
 | Quality and real-repo caveats | Yes | No product change needed | Quality/comparator output must remain isolated. Real-repo checks remain ignored/manual because they depend on local `test_repos/`. |
-| Release archive and signing gaps | Yes | No | Archive packaging and signing scaffolds exist. Real signing, notarization, native package formats, release publishing, and update channels require external tools, credentials, target platforms, and CI/release policy. |
+| Release archive and signing gaps | Yes | Yes, for archive smoke only | Archive packaging now has checksum verification and packaged binary startup smoke for generated archives. Real signing, notarization, native package formats, release publishing, and update channels still require external tools, credentials, target platforms, and CI/release policy. |
 | Licensing, Pro, hosted, and payment gaps | Yes | No | These are explicitly out of scope for the current free/local product. Implementing enforcement, payments, accounts, hosted APIs, telemetry, or source upload requires a dedicated product/security/privacy plan. |
 | Security, privacy, and agent caveats | Yes | No product change needed | Local-only paths, redaction boundaries, and advisory agent behavior remain accurate. Agents cannot be forced to comply from inside this tool. |
 | Plan hygiene guardrails | Yes | No product change needed | Mentions of `WI.md`, JSONL, and the external-comparator boundary remain intentional guardrails. They should not be removed unless the related architecture changes. |
@@ -169,7 +168,7 @@ alongside code.
 | PLAN_45A | Complete | Team/CI and hosted value is a roadmap only. No `wi ci`, hosted backend, source upload, account system, payment integration, telemetry, or paid gate exists. |
 | PLAN_45 | Complete | One bounded Tree-sitter real-repo convergence cycle was completed. The process intentionally stops after one cycle and at most 10 selected gaps. Future cycles require explicit human request. |
 | PLAN_46 | Complete | Audit cleanup is complete. It did not implement product features. It records residual caveats and keeps stale-reference guardrails visible. |
-| PLAN_47 | Not started | Archive release hardening is now the next scoped active implementation plan. It must not add native packages, real signing/notarization, GitHub Release publishing, managed update channels, parser, hosted, telemetry, payment, license-enforcement behavior, or the later documentation cleanup/indexing pass. |
+| PLAN_47 | Complete | Archive release hardening added checksum verification, unpack smoke, and packaged binary startup checks. Native packages, real signing/notarization, GitHub Release publishing, managed update channels, parser, hosted, telemetry, payment, license-enforcement behavior, and the later documentation cleanup/indexing pass remain out of scope. |
 
 ## Parser And Tree-sitter Caveats
 

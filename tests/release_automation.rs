@@ -6,6 +6,9 @@ use std::{
 
 use tempfile::TempDir;
 
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+
 const BINARIES: &[&str] = &["wi", "build_index", "wi-init", "wi-stats"];
 const FORBIDDEN_EXTERNAL_TOOL: &str = concat!("c", "tags");
 
@@ -42,6 +45,7 @@ fn github_actions_workflows_cover_release_gates() {
         assert!(
             workflow.contains("scripts/package-release")
                 && workflow.contains("scripts/check-package-contents")
+                && workflow.contains("scripts/smoke-release-archive")
                 && workflow.contains("THIRD_PARTY_NOTICES"),
             "workflow should package and content-check release artifacts"
         );
@@ -76,7 +80,8 @@ fn local_release_check_runs_required_gates_without_real_repos() {
             && script.contains("cargo clippy --all-targets --all-features -- -D warnings")
             && script.contains("cargo deny check licenses")
             && script.contains("scripts/package-release")
-            && script.contains("scripts/check-package-contents"),
+            && script.contains("scripts/check-package-contents")
+            && script.contains("scripts/smoke-release-archive"),
         "release-check script should run local release gates and package content checks"
     );
     assert!(
@@ -123,6 +128,39 @@ fn package_content_check_rejects_forbidden_artifacts() {
                 "expected archive containing {forbidden} to fail content check"
             ));
     }
+}
+
+#[test]
+fn release_archive_smoke_accepts_executable_package() {
+    let archive = make_smoke_archive();
+
+    Command::new(repo_root().join("scripts/smoke-release-archive"))
+        .arg(&archive)
+        .current_dir(repo_root())
+        .assert_success("expected executable release archive smoke to pass");
+}
+
+#[test]
+fn release_archive_smoke_rejects_bad_checksum() {
+    let archive = make_smoke_archive();
+    let checksum = checksum_path(&archive);
+    let archive_name = archive
+        .file_name()
+        .and_then(|name| name.to_str())
+        .expect("archive filename");
+
+    fs::write(
+        checksum,
+        format!(
+            "0000000000000000000000000000000000000000000000000000000000000000  {archive_name}\n"
+        ),
+    )
+    .expect("write bad checksum");
+
+    Command::new(repo_root().join("scripts/smoke-release-archive"))
+        .arg(&archive)
+        .current_dir(repo_root())
+        .assert_failure("expected bad checksum sidecar to fail release archive smoke");
 }
 
 fn make_archive(options: &[&str]) -> PathBuf {
@@ -191,6 +229,115 @@ fn make_archive(options: &[&str]) -> PathBuf {
         .assert_success("failed to create test archive");
 
     archive
+}
+
+fn make_smoke_archive() -> PathBuf {
+    let temp = TempDir::new().expect("create temp dir");
+    let root = temp.keep();
+    let package_name = "thinindex-9.9.9-test-target";
+    let package = root.join(package_name);
+
+    fs::create_dir_all(&package).expect("create package");
+
+    write_executable(
+        &package.join("wi"),
+        r#"#!/usr/bin/env sh
+set -eu
+case "${1:-}" in
+  --help)
+    echo "fake wi help"
+    ;;
+  doctor)
+    echo "thinindex doctor"
+    echo "overall: ok"
+    echo "[ok] fake"
+    ;;
+  *)
+    echo "unexpected wi args: $*" >&2
+    exit 2
+    ;;
+esac
+"#,
+    );
+    write_executable(
+        &package.join("build_index"),
+        r#"#!/usr/bin/env sh
+set -eu
+mkdir -p .dev_index
+: > .dev_index/index.sqlite
+echo "indexed"
+"#,
+    );
+    write_executable(
+        &package.join("wi-init"),
+        r#"#!/usr/bin/env sh
+set -eu
+cat > AGENTS.md <<'AGENTS'
+# AGENTS
+
+## Repository search
+AGENTS
+echo "initialized"
+"#,
+    );
+    write_executable(
+        &package.join("wi-stats"),
+        r#"#!/usr/bin/env sh
+set -eu
+echo "stats"
+"#,
+    );
+
+    let archive = root.join(format!("{package_name}.tar.gz"));
+    Command::new("tar")
+        .args([
+            "-czf",
+            archive.to_str().expect("archive path"),
+            "-C",
+            root.to_str().expect("root path"),
+            package_name,
+        ])
+        .assert_success("failed to create smoke test archive");
+
+    let output = Command::new("sha256sum")
+        .arg(archive.file_name().expect("archive filename"))
+        .current_dir(&root)
+        .output()
+        .expect("run sha256sum");
+    assert!(
+        output.status.success(),
+        "sha256sum failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    fs::write(
+        checksum_path(&archive),
+        String::from_utf8_lossy(&output.stdout).as_ref(),
+    )
+    .expect("write checksum");
+
+    archive
+}
+
+fn write_executable(path: &Path, contents: &str) {
+    fs::write(path, contents).unwrap_or_else(|error| panic!("write {}: {error}", path.display()));
+    make_executable(path);
+}
+
+#[cfg(unix)]
+fn make_executable(path: &Path) {
+    let mut permissions = fs::metadata(path)
+        .unwrap_or_else(|error| panic!("stat {}: {error}", path.display()))
+        .permissions();
+    permissions.set_mode(0o755);
+    fs::set_permissions(path, permissions)
+        .unwrap_or_else(|error| panic!("chmod {}: {error}", path.display()));
+}
+
+#[cfg(not(unix))]
+fn make_executable(_path: &Path) {}
+
+fn checksum_path(archive: &Path) -> PathBuf {
+    PathBuf::from(format!("{}.sha256", archive.display()))
 }
 
 trait CommandExt {

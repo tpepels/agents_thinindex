@@ -77,6 +77,7 @@ jobs:
           archive="$(ls dist/thinindex-*.tar.gz)"
           tar -tzf "$archive"
           scripts/check-package-contents "$archive"
+          scripts/smoke-release-archive "$archive"
       - uses: actions/upload-artifact@v4
         with:
           name: thinindex-linux-package-smoke

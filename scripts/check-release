@@ -24,5 +24,6 @@ if [ -z "$ARCHIVE" ]; then
 fi
 
 scripts/check-package-contents "$ARCHIVE"
+scripts/smoke-release-archive "$ARCHIVE"
 
 echo "release check ok"

@@ -115,8 +115,9 @@ fn release_package_script_has_archive_and_checksum_logic() {
         "release package script should derive version and default target locally"
     );
     assert!(
-        repo_file("scripts/check-release").contains("scripts/check-package-contents"),
-        "local release-check should validate archive contents"
+        repo_file("scripts/check-release").contains("scripts/check-package-contents")
+            && repo_file("scripts/check-release").contains("scripts/smoke-release-archive"),
+        "local release-check should validate archive contents and smoke packaged binaries"
     );
 }
 
@@ -179,8 +180,9 @@ fn release_docs_describe_archive_install_and_boundaries() {
     assert!(
         releasing.contains("scripts/install-archive-unix")
             && releasing.contains("scripts/windows/install.ps1")
+            && releasing.contains("scripts/smoke-release-archive")
             && releasing.contains("docs/INSTALLERS.md"),
-        "release docs should mention archive install helpers and installer docs"
+        "release docs should mention archive install helpers, archive smoke, and installer docs"
     );
     assert!(
         roadmap

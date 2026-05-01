@@ -134,35 +134,35 @@ keeps the blocker explicit, then stop within this plan.
 
 ## Implementation Steps
 
-- [ ] Phase 1: run the current release surface inventory and document what already exists versus what is scaffolded.
-- [ ] Phase 2: identify one archive-focused hardening slice that is possible without credentials or external publishing.
-- [ ] Phase 3: harden archive assembly, manifest/SBOM content, checksum behavior, or artifact exclusion checks for that selected slice.
-- [ ] Phase 4: add or update release archive smoke coverage that unpacks the artifact and runs packaged `wi --help`, `wi doctor`, and `build_index` where feasible.
-- [ ] Phase 5: update release docs, installer docs, roadmap, and caveat/handoff docs so completed archive behavior and scaffolded native/signing/publishing work are clearly separated.
-- [ ] Phase 6: run required validation, update this checklist, commit, and stop.
+- [x] Phase 1: run the current release surface inventory and document what already exists versus what is scaffolded.
+- [x] Phase 2: identify one archive-focused hardening slice that is possible without credentials or external publishing.
+- [x] Phase 3: harden archive assembly, manifest/SBOM content, checksum behavior, or artifact exclusion checks for that selected slice.
+- [x] Phase 4: add or update release archive smoke coverage that unpacks the artifact and runs packaged `wi --help`, `wi doctor`, and `build_index` where feasible.
+- [x] Phase 5: update release docs, installer docs, roadmap, and caveat/handoff docs so completed archive behavior and scaffolded native/signing/publishing work are clearly separated.
+- [x] Phase 6: run required validation, update this checklist, commit, and stop.
 
 ## Validation Steps
 
 Baseline validation:
 
-- [ ] `cargo fmt --check`
-- [ ] `cargo test`
-- [ ] `cargo clippy --all-targets --all-features -- -D warnings`
-- [ ] `cargo run --bin build_index`
-- [ ] `cargo run --bin wi -- --help`
-- [ ] `cargo run --bin wi -- doctor`
-- [ ] `cargo deny check licenses`
-- [ ] `git diff --check`
+- [x] `cargo fmt --check`
+- [x] `cargo test`
+- [x] `cargo clippy --all-targets --all-features -- -D warnings`
+- [x] `cargo run --bin build_index`
+- [x] `cargo run --bin wi -- --help`
+- [x] `cargo run --bin wi -- doctor`
+- [x] `cargo deny check licenses`
+- [x] `git diff --check`
 
 Release validation:
 
-- [ ] `scripts/package-release`
-- [ ] `scripts/check-release`
-- [ ] `scripts/check-package-contents <generated archive>`
-- [ ] verify the generated `.sha256` sidecar against the generated archive using `sha256sum -c <generated archive>.sha256` or `shasum -a 256 -c <generated archive>.sha256`, depending on the host tools available.
-- [ ] unpack the generated archive into a temporary directory and run packaged `wi --help`.
-- [ ] unpack the generated archive into a temporary directory and run packaged `wi doctor`.
-- [ ] run packaged `build_index` in a temporary repository or fixture when feasible.
+- [x] `scripts/package-release`
+- [x] `scripts/check-release`
+- [x] `scripts/check-package-contents <generated archive>`
+- [x] verify the generated `.sha256` sidecar against the generated archive using `sha256sum -c <generated archive>.sha256` or `shasum -a 256 -c <generated archive>.sha256`, depending on the host tools available.
+- [x] unpack the generated archive into a temporary directory and run packaged `wi --help`.
+- [x] unpack the generated archive into a temporary directory and run packaged `wi doctor`.
+- [x] run packaged `build_index` in a temporary repository or fixture when feasible.
 
 If an exact release validation command does not exist yet, the implementation
 pass must add the command or document why that validation is not yet available.
@@ -170,8 +170,8 @@ pass must add the command or document why that validation is not yet available.
 Run ignored local/real-repo tests only if this plan changes real-repo, parser,
 quality, refs, pack, impact, or dependency assumptions:
 
-- [ ] `cargo test --test local_index -- --ignored`
-- [ ] `cargo test --test real_repos -- --ignored` if `test_repos/` exists
+- [x] Not applicable: `cargo test --test local_index -- --ignored` was not required because this pass did not change real-repo, parser, quality, refs, pack, impact, or dependency assumptions.
+- [x] Not applicable: `cargo test --test real_repos -- --ignored` was not required because this pass did not change real-repo, parser, quality, refs, pack, impact, or dependency assumptions.
 
 ## Acceptance Criteria
 
