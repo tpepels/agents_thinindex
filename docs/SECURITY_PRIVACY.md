@@ -58,7 +58,7 @@ Release archives are assembled from explicit files. They must not include:
 - signing keys, certificates, provisioning profiles, notarization credentials, or package signing material
 - source checkout contents copied wholesale
 
-Release archives include `SBOM.md` and `THIRD_PARTY_NOTICES` so recipients can inspect the shipped binaries, target, checksum sidecar, and dependency notices. Run `scripts/check-package-contents <archive>` after packaging.
+Release archives include `SBOM.md` and `THIRD_PARTY_NOTICES` so recipients can inspect the shipped binaries, target, checksum sidecar, and dependency notices. Run `scripts/check-package-contents <archive>` after packaging; it validates the SBOM fields and rejects unexpected payload entries as well as known forbidden local artifacts.
 
 Run `scripts/smoke-release-archive <archive>` before distribution to verify the
 checksum sidecar, unpack the archive in a temporary directory, and run packaged

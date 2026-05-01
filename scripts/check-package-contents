@@ -26,6 +26,16 @@ case "$ARCHIVE_BASE" in
         ;;
 esac
 
+case "$ARCHIVE_BASE" in
+    *.tar.gz) PACKAGE_NAME="${ARCHIVE_BASE%.tar.gz}" ;;
+    *.zip) PACKAGE_NAME="${ARCHIVE_BASE%.zip}" ;;
+esac
+
+case "$ARCHIVE_BASE" in
+    *windows*|*msvc*|*mingw*) EXE_SUFFIX=".exe" ;;
+    *) EXE_SUFFIX="" ;;
+esac
+
 case "$ARCHIVE" in
     *.tar.gz)
         CONTENTS="$(tar -tzf "$ARCHIVE")"
@@ -55,11 +65,78 @@ require_entry() {
     fi
 }
 
+first_entry() {
+    pattern="$1"
+    label="$2"
+    entry="$(printf '%s\n' "$CONTENTS" | grep -E "$pattern" | head -n 1 || true)"
+    if [ -z "$entry" ]; then
+        echo "error: archive missing $label" >&2
+        exit 1
+    fi
+    printf '%s\n' "$entry"
+}
+
 reject_entry() {
     pattern="$1"
     label="$2"
     if printf '%s\n' "$CONTENTS" | grep -Eiq "$pattern"; then
         echo "error: archive contains forbidden $label" >&2
+        exit 1
+    fi
+}
+
+is_allowed_entry() {
+    case "$1" in
+        "$PACKAGE_NAME"|"$PACKAGE_NAME/") return 0 ;;
+        "$PACKAGE_NAME/wi$EXE_SUFFIX") return 0 ;;
+        "$PACKAGE_NAME/build_index$EXE_SUFFIX") return 0 ;;
+        "$PACKAGE_NAME/wi-init$EXE_SUFFIX") return 0 ;;
+        "$PACKAGE_NAME/wi-stats$EXE_SUFFIX") return 0 ;;
+        "$PACKAGE_NAME/README.md") return 0 ;;
+        "$PACKAGE_NAME/INSTALL.md") return 0 ;;
+        "$PACKAGE_NAME/SBOM.md") return 0 ;;
+        "$PACKAGE_NAME/THIRD_PARTY_NOTICES") return 0 ;;
+        "$PACKAGE_NAME/LICENSE") return 0 ;;
+        "$PACKAGE_NAME/docs"|"$PACKAGE_NAME/docs/") return 0 ;;
+        "$PACKAGE_NAME/docs/CI_INTEGRATION.md") return 0 ;;
+        "$PACKAGE_NAME/docs/GETTING_STARTED.md") return 0 ;;
+        "$PACKAGE_NAME/docs/RELEASING.md") return 0 ;;
+        "$PACKAGE_NAME/docs/INSTALLERS.md") return 0 ;;
+        "$PACKAGE_NAME/docs/LICENSING.md") return 0 ;;
+        "$PACKAGE_NAME/docs/SECURITY_PRIVACY.md") return 0 ;;
+        "$PACKAGE_NAME/docs/TEAM_CI_ROADMAP.md") return 0 ;;
+        "$PACKAGE_NAME/docs/TROUBLESHOOTING.md") return 0 ;;
+        "$PACKAGE_NAME/scripts"|"$PACKAGE_NAME/scripts/") return 0 ;;
+        "$PACKAGE_NAME/scripts/install-archive-unix") return 0 ;;
+        "$PACKAGE_NAME/scripts/uninstall-archive-unix") return 0 ;;
+        "$PACKAGE_NAME/scripts/windows"|"$PACKAGE_NAME/scripts/windows/") return 0 ;;
+        "$PACKAGE_NAME/scripts/windows/install.ps1") return 0 ;;
+        "$PACKAGE_NAME/scripts/windows/uninstall.ps1") return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+archive_text_entry() {
+    entry="$1"
+    case "$ARCHIVE" in
+        *.tar.gz)
+            tar -xOzf "$ARCHIVE" "$entry"
+            ;;
+        *.zip)
+            if ! command -v unzip >/dev/null 2>&1; then
+                echo "error: unzip is required to inspect zip archive file contents" >&2
+                exit 1
+            fi
+            unzip -p "$ARCHIVE" "$entry"
+            ;;
+    esac
+}
+
+require_sbom_text() {
+    needle="$1"
+    label="$2"
+    if ! printf '%s\n' "$SBOM_CONTENT" | grep -Fq -- "$needle"; then
+        echo "error: SBOM.md missing $label: $needle" >&2
         exit 1
     fi
 }
@@ -81,6 +158,13 @@ require_entry '/docs/SECURITY_PRIVACY\.md$' "docs/SECURITY_PRIVACY.md"
 require_entry '/docs/TEAM_CI_ROADMAP\.md$' "docs/TEAM_CI_ROADMAP.md"
 require_entry '/docs/TROUBLESHOOTING\.md$' "docs/TROUBLESHOOTING.md"
 
+for entry in $CONTENTS; do
+    if ! is_allowed_entry "$entry"; then
+        echo "error: archive contains unexpected entry: $entry" >&2
+        exit 1
+    fi
+done
+
 FORBIDDEN_EXTERNAL_TOOL="c""tags"
 reject_entry '(^|/)\.dev_index(/|$)' ".dev_index"
 reject_entry '(^|/)test_repos(/|$)' "test_repos"
@@ -96,5 +180,27 @@ if [ -f "$CHECKSUM_PATH" ] && ! grep -Fq "$ARCHIVE_BASE" "$CHECKSUM_PATH"; then
     echo "error: checksum sidecar does not reference archive basename: $CHECKSUM_PATH" >&2
     exit 1
 fi
+
+SBOM_ENTRY="$(first_entry '/SBOM\.md$' "SBOM.md")"
+SBOM_CONTENT="$(archive_text_entry "$SBOM_ENTRY")"
+
+require_sbom_text "# thinindex release SBOM" "title"
+require_sbom_text "\`scripts/package-release\`" "generator"
+require_sbom_text "- package: thinindex" "package name"
+require_sbom_text "- archive: $ARCHIVE_BASE" "archive basename"
+require_sbom_text "- checksum: $ARCHIVE_BASE.sha256" "checksum sidecar"
+require_sbom_text "- package manager: Cargo" "package manager"
+require_sbom_text "- license audit: \`cargo deny check licenses\`" "license audit command"
+require_sbom_text "## Shipped binaries" "shipped binaries section"
+require_sbom_text "- wi$EXE_SUFFIX" "wi binary"
+require_sbom_text "- build_index$EXE_SUFFIX" "build_index binary"
+require_sbom_text "- wi-init$EXE_SUFFIX" "wi-init binary"
+require_sbom_text "- wi-stats$EXE_SUFFIX" "wi-stats binary"
+require_sbom_text "## Bundled notices" "bundled notices section"
+require_sbom_text "\`THIRD_PARTY_NOTICES\`" "third-party notices"
+require_sbom_text "## Not bundled" "not bundled section"
+require_sbom_text "optional external comparator binaries" "external comparator exclusion"
+require_sbom_text "signing keys, certificates" "signing secret exclusion"
+require_sbom_text "repo-local indexes, quality reports, test repositories, build output, dist" "local artifact exclusions"
 
 echo "package content ok: $ARCHIVE"

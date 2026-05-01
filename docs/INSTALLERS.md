@@ -36,6 +36,8 @@ They do not run `wi-init`, create `.dev_index`, mutate user repositories, delete
 `SBOM.md` ships with release archives. It identifies the thinindex package
 version, target triple, shipped binaries, checksum sidecar, and the
 `THIRD_PARTY_NOTICES` file that contains dependency and parser grammar notices.
+`scripts/check-package-contents` validates those SBOM fields and rejects
+unexpected archive payload entries before an archive is treated as release-ready.
 
 ## Platform Matrix
 

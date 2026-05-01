@@ -1,7 +1,7 @@
 # Plan Caveats And Unimplemented Summary
 
 This document summarizes caveats, deferred work, and explicitly unimplemented
-parts across the active plan series after PLAN_46. It is a planning summary, not
+parts across the active plan series after PLAN_48. It is a planning summary, not
 a new implementation plan.
 
 Sources reviewed:
@@ -14,17 +14,19 @@ Sources reviewed:
 
 ## Overall Status
 
-- Active plan files are marked complete through PLAN_47.
-- There are now 57 active plan files after updating PLAN_47 as the scoped
-  release-distribution plan.
+- Active plan files are marked complete through PLAN_48.
+- There are now 58 active plan files after restoring and executing PLAN_48 as
+  the archive-hardening follow-up to PLAN_47.
 - PLAN_47 is complete and its archive-focused release-distribution hardening
   slice has been implemented.
+- PLAN_48 is complete and its archive hardening slice validates exact archive
+  payloads plus generated `SBOM.md` manifest fields.
 - No unchecked `- [ ]` boxes were found in active `prompts/PLAN_*.md` files at
   the PLAN_46 cleanup point before PLAN_47 was created.
 - The duplicate PLAN_45 sequence was resolved by renaming the team/CI roadmap to
   `PLAN_45A_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md`.
 - No required active plan file is missing for the observed sequence from
-  PLAN_00 through PLAN_47, including lettered PLAN_11A through PLAN_11C and
+  PLAN_00 through PLAN_48, including lettered PLAN_11A through PLAN_11C and
   PLAN_12A through PLAN_12G.
 - There is no active PLAN_11D, PLAN_11E, or monolithic
   PLAN_12_EXTENDED_LANGUAGE_PACK.
@@ -66,7 +68,7 @@ Disk-state findings:
   before this pass.
 - `git log --oneline -20` shows PLAN_45A, PLAN_45, PLAN_46 creation, and the
   prior PLAN_46 cleanup commits at the top of history.
-- `ls prompts/PLAN_*.md | sort` showed 57 active plan files after PLAN_47 was updated.
+- `ls prompts/PLAN_*.md | sort` showed 58 active plan files after PLAN_48 was restored.
 - `ls prompts/superseded` showed the old native-parser 11-series files only
   under `prompts/superseded/`.
 - `grep -n "Do not implement this until" prompts/PLAN_*.md` showed the active
@@ -96,6 +98,8 @@ Active plan inventory:
 - PLAN_46: complete; this pass is audit/cleanup/alignment only.
 - PLAN_47: complete; archive-focused release-distribution hardening now verifies
   checksum sidecars and packaged binary startup for generated archives.
+- PLAN_48: complete; release archive hardening now validates exact archive
+  payloads and generated `SBOM.md` manifest fields.
 
 Stale reference findings:
 
@@ -125,7 +129,7 @@ Forbidden-surface findings:
 
 Recommended next implementation plan:
 
-- Create a post-PLAN_47 documentation cleanup/indexing plan. That later plan
+- Create a post-PLAN_48 documentation cleanup/indexing plan. That later plan
   should audit stale docs, remove or rewrite no-longer-relevant documentation,
   and add browsable user/developer documentation indexes. It should not change
   parser, packaging, payment, hosted, telemetry, activation, or license
@@ -143,7 +147,7 @@ Recommended next implementation plan:
 | Known extraction gaps | Yes | No | The listed gaps are mostly semantic, runtime, package-manager, or language-specific resolver work. Each needs targeted tests and architecture decisions; none should be patched opportunistically. |
 | Refs, pack, impact, and dependency caveats | Yes | No product change needed | Existing behavior is intentionally conservative, evidence-backed, and bounded. Removing these caveats would require semantic adapters or broader resolver guarantees. |
 | Quality and real-repo caveats | Yes | No product change needed | Quality/comparator output must remain isolated. Real-repo checks remain ignored/manual because they depend on local `test_repos/`. |
-| Release archive and signing gaps | Yes | Yes, for archive smoke only | Archive packaging now has checksum verification and packaged binary startup smoke for generated archives. Real signing, notarization, native package formats, release publishing, and update channels still require external tools, credentials, target platforms, and CI/release policy. |
+| Release archive and signing gaps | Yes | Yes, for archive payload/SBOM/smoke only | Archive packaging now has exact payload checks, SBOM manifest validation, checksum verification, and packaged binary startup smoke for generated archives. Real signing, notarization, native package formats, release publishing, and update channels still require external tools, credentials, target platforms, and CI/release policy. |
 | Licensing, Pro, hosted, and payment gaps | Yes | No | These are explicitly out of scope for the current free/local product. Implementing enforcement, payments, accounts, hosted APIs, telemetry, or source upload requires a dedicated product/security/privacy plan. |
 | Security, privacy, and agent caveats | Yes | No product change needed | Local-only paths, redaction boundaries, and advisory agent behavior remain accurate. Agents cannot be forced to comply from inside this tool. |
 | Plan hygiene guardrails | Yes | No product change needed | Mentions of `WI.md`, JSONL, and the external-comparator boundary remain intentional guardrails. They should not be removed unless the related architecture changes. |
@@ -169,6 +173,7 @@ alongside code.
 | PLAN_45 | Complete | One bounded Tree-sitter real-repo convergence cycle was completed. The process intentionally stops after one cycle and at most 10 selected gaps. Future cycles require explicit human request. |
 | PLAN_46 | Complete | Audit cleanup is complete. It did not implement product features. It records residual caveats and keeps stale-reference guardrails visible. |
 | PLAN_47 | Complete | Archive release hardening added checksum verification, unpack smoke, and packaged binary startup checks. Native packages, real signing/notarization, GitHub Release publishing, managed update channels, parser, hosted, telemetry, payment, license-enforcement behavior, and the later documentation cleanup/indexing pass remain out of scope. |
+| PLAN_48 | Complete | Release archive hardening added exact payload checks and generated SBOM manifest validation to package-content verification. Native packages, signing/notarization, publishing, update channels, parser behavior, hosted behavior, telemetry, payment, license enforcement, and documentation indexing remain out of scope. |
 
 ## Parser And Tree-sitter Caveats
 
@@ -279,6 +284,9 @@ Languages and formats not listed in the support matrix are unsupported.
 
 - Release archives and archive install helpers exist; polished native packaging
   does not.
+- Release archive content checks validate the exact payload contract and
+  generated `SBOM.md` fields for archive name, checksum sidecar, shipped
+  binaries, notices, and not-bundled local/secret/comparator boundaries.
 - Not implemented:
   - Windows MSI, MSIX, WiX, Inno Setup, Store packages, or completed
     Authenticode signing.

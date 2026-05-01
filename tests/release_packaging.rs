@@ -81,6 +81,7 @@ fn release_package_script_stages_expected_payload() {
 #[test]
 fn release_package_script_has_archive_and_checksum_logic() {
     let script = repo_file("scripts/package-release");
+    let content_check = repo_file("scripts/check-package-contents");
 
     assert!(
         script.contains("tar.gz") && script.contains("tar -czf"),
@@ -118,6 +119,12 @@ fn release_package_script_has_archive_and_checksum_logic() {
         repo_file("scripts/check-release").contains("scripts/check-package-contents")
             && repo_file("scripts/check-release").contains("scripts/smoke-release-archive"),
         "local release-check should validate archive contents and smoke packaged binaries"
+    );
+    assert!(
+        content_check.contains("archive_text_entry")
+            && content_check.contains("require_sbom_text")
+            && content_check.contains("archive contains unexpected entry"),
+        "package content check should validate SBOM fields and reject unexpected payload entries"
     );
 }
 
@@ -176,6 +183,11 @@ fn release_docs_describe_archive_install_and_boundaries() {
             && releasing.contains("sign-release-artifact")
             && releasing.contains("signing secret"),
         "release docs should describe SBOM inclusion and signing scaffold boundaries"
+    );
+    assert!(
+        releasing.contains("validates `SBOM.md` fields")
+            && releasing.contains("rejects unexpected payload entries"),
+        "release docs should describe SBOM field validation and exact payload checks"
     );
     assert!(
         releasing.contains("scripts/install-archive-unix")

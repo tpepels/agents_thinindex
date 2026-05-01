@@ -33,9 +33,9 @@ Current Audit Snapshot
 This snapshot was updated while executing PLAN_46. Re-run Phase 1 before any future plan-sequence cleanup.
 
 Active plan count:
-- 57 active files matched `prompts/PLAN_*.md`, including this PLAN_46 file and the updated PLAN_47 scoped release-distribution plan.
+- 58 active files matched `prompts/PLAN_*.md`, including this PLAN_46 file, the completed PLAN_47 scoped release-distribution plan, and the completed PLAN_48 archive-hardening follow-up.
 - `prompts/superseded/**` was excluded.
-- No unchecked `- [ ]` boxes were found in active `PLAN_*.md` files before PLAN_47 was created. PLAN_47 has since been executed and checked complete.
+- No unchecked `- [ ]` boxes were found in active `PLAN_*.md` files before PLAN_47 was created. PLAN_47 and PLAN_48 have since been executed and checked complete.
 - No duplicate active root plan number remains after renaming the team/CI roadmap to `PLAN_45A_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md`.
 
 Inventory Table
@@ -98,10 +98,11 @@ Inventory Table
 | 45A | `PLAN_45A_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md` | complete | 5/5 checked | `6ff426f Add team CI hosted value roadmap` | Renamed from duplicate PLAN_45 and heading aligned |
 | 45 | `PLAN_45_TREE_SITTER_REAL_REPO_CONVERGENCE_LOOP.md` | complete | 5/5 checked | `961e527 Converge Tree-sitter real-repo quality cycle`; `bf77c71 Align Tree-sitter convergence quality state` | Kept as canonical PLAN_45 convergence loop |
 | 46 | `PLAN_46_FULL_PLAN_COMPLETION_AUDIT.md` | complete | 5/5 checked | current cleanup commit | Audit cleanup plan executed |
-| 47 | `PLAN_47_RELEASE_DISTRIBUTION_COMPLETION.md` | complete | 6/6 checked | archive smoke/checksum hardening implemented | Keep complete; documentation cleanup/indexing should follow in a later plan |
+| 47 | `PLAN_47_RELEASE_DISTRIBUTION_COMPLETION.md` | complete | 6/6 checked | archive smoke/checksum hardening implemented | Keep complete |
+| 48 | `PLAN_48_RELEASE_ARCHIVE_HARDENING.md` | complete | 6/6 checked | exact payload and SBOM manifest validation implemented | Keep complete; documentation cleanup/indexing should follow in a later plan |
 
 Missing Plan Files
-- No required active plan file is missing for the observed sequence `PLAN_00` through `PLAN_47`, with lettered `PLAN_11A` through `PLAN_11C`, `PLAN_12A` through `PLAN_12G`, and `PLAN_45A`.
+- No required active plan file is missing for the observed sequence `PLAN_00` through `PLAN_48`, with lettered `PLAN_11A` through `PLAN_11C`, `PLAN_12A` through `PLAN_12G`, and `PLAN_45A`.
 - There is no active `PLAN_11D`, `PLAN_11E`, or monolithic `PLAN_12_EXTENDED_LANGUAGE_PACK`; stale active references to those names were cleaned.
 - `PLAN_46_FULL_PLAN_COMPLETION_AUDIT.md` is created by this plan-addition pass.
 
@@ -121,7 +122,7 @@ Prerequisite-Chain Problems
   - old release packaging script/checksum references now point to current `PLAN_14` archive work and `PLAN_15` signing scaffolding where appropriate.
 
 Incomplete Checkbox Phases
-- None found in active `PLAN_*.md` files after PLAN_47 completion.
+- None found in active `PLAN_*.md` files after PLAN_48 completion.
 - Phase 1 must rerun `rg -n "^- \\[ \\]" prompts/PLAN_*.md || true` before changing any boxes.
 
 Marked Complete Without Implementation Evidence
@@ -263,7 +264,7 @@ Acceptance Criteria
 - Active prerequisite chain is coherent after resolving the duplicate PLAN_45 fork.
 - Stale references are either fixed or explicitly classified as intentional guardrails.
 - Verification requirements are consolidated.
-- Next action is unambiguous: create a post-PLAN_47 documentation cleanup/indexing plan. It should audit stale docs and add browsable user/developer documentation indexes without changing parser, packaging, payment, hosted, telemetry, activation, or license enforcement behavior.
+- Next action is unambiguous: create a post-PLAN_48 documentation cleanup/indexing plan. It should audit stale docs and add browsable user/developer documentation indexes without changing parser, packaging, payment, hosted, telemetry, activation, or license enforcement behavior.
 
 Commit Instructions
 - If executing this plan changes only prompt/docs audit alignment, commit with:

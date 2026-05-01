@@ -73,7 +73,7 @@ Real-repo work uses local, ignored repositories:
 
 The current ignored checks cover local index behavior, real-repo integrity, and real-repo benchmarks when the local data exists.
 
-Release archive packaging is available through `scripts/package-release` for the current platform. The script stages all thinindex binaries plus release notices, a compact `SBOM.md`, documentation, and archive install/uninstall helpers, then writes a `.tar.gz` or `.zip` archive and SHA256 checksum under `dist/`. Local and CI package smoke verifies archive contents, checksum sidecars, and packaged binary startup for the current Linux archive path. Native package formats, completed signing, and notarization remain scaffolded future release-hardening work.
+Release archive packaging is available through `scripts/package-release` for the current platform. The script stages all thinindex binaries plus release notices, a compact `SBOM.md`, documentation, and archive install/uninstall helpers, then writes a `.tar.gz` or `.zip` archive and SHA256 checksum under `dist/`. Local and CI package smoke verifies exact archive payloads, SBOM manifest fields, checksum sidecars, and packaged binary startup for the current Linux archive path. Native package formats, completed signing, and notarization remain scaffolded future release-hardening work.
 
 ## Near-term work
 
@@ -129,8 +129,8 @@ These items are not shipped behavior today.
 
 Recommended next implementation plan:
 
-- After PLAN_47, release archives have checksum verification, unpack smoke checks, and packaged binary startup checks for the current local archive path. Native packages, real signing/notarization, GitHub Release publishing, package-manager distribution, and managed update channels remain future work until a later scoped plan implements and verifies them.
-- After PLAN_47 is implemented and verified, create a separate documentation cleanup/indexing plan to audit stale docs and add browsable user/developer documentation indexes.
+- After PLAN_48, release archives have exact payload checks, SBOM manifest validation, checksum verification, unpack smoke checks, and packaged binary startup checks for the current local archive path. Native packages, real signing/notarization, GitHub Release publishing, package-manager distribution, and managed update channels remain future work until a later scoped plan implements and verifies them.
+- Create a separate documentation cleanup/indexing plan to audit stale docs and add browsable user/developer documentation indexes.
 
 ## Documentation rules
 

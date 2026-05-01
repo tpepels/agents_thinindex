@@ -199,9 +199,11 @@ scripts/check-package-contents dist/thinindex-<version>-<target>.tar.gz
 
 The check verifies that the archive:
 
+- contains only the expected release payload entries under the archive root and rejects unexpected payload entries such as source checkout files
 - includes `wi`, `build_index`, `wi-init`, and `wi-stats`
 - includes `THIRD_PARTY_NOTICES`
 - includes `README.md`, `INSTALL.md`, `SBOM.md`, `docs/CI_INTEGRATION.md`, `docs/GETTING_STARTED.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, `docs/LICENSING.md`, `docs/SECURITY_PRIVACY.md`, `docs/TEAM_CI_ROADMAP.md`, and `docs/TROUBLESHOOTING.md`
+- validates `SBOM.md` fields for the archive basename, checksum sidecar, shipped binaries, notice file, license-audit command, and not-bundled local/secret/comparator boundaries
 - excludes `.dev_index/`
 - excludes `test_repos/`
 - excludes `target/` and `dist/`
