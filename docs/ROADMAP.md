@@ -121,11 +121,15 @@ Future product work may include:
 - richer Tree-sitter parser coverage
 - broader language support
 - better diagnostics for stale or missing indexes
-- cross-platform archives and installers after the parser blocker is removed
+- native package formats, real signing/notarization, release publishing, and update-channel design after license audit, release-hardening, credential, and platform-CI requirements are satisfied
 - optional paid editions after licensing, packaging, and parser licensing are solved
 - team policy templates after a stable individual workflow exists
 
 These items are not shipped behavior today.
+
+Recommended next implementation plan:
+
+- `PLAN_47_RELEASE_DISTRIBUTION_COMPLETION`: finish the next bounded release-distribution layer by implementing and verifying native package formats, real signing/notarization paths, release publishing, and update-channel boundaries only after the required credentials, target platforms, CI environment, and license-audit prerequisites are available. This should be a separate plan before any implementation starts.
 
 ## Documentation rules
 

@@ -262,7 +262,7 @@ Acceptance Criteria
 - Active prerequisite chain is coherent after resolving the duplicate PLAN_45 fork.
 - Stale references are either fixed or explicitly classified as intentional guardrails.
 - Verification requirements are consolidated.
-- Next action is unambiguous: execute Phase 1, then resolve the duplicate PLAN_45 sequence and stale headings/references before any future product plan.
+- Next action is unambiguous: create a scoped `PLAN_47_RELEASE_DISTRIBUTION_COMPLETION` plan before implementing native package formats, real signing/notarization, release publishing, or update-channel behavior.
 
 Commit Instructions
 - If executing this plan changes only prompt/docs audit alignment, commit with:
