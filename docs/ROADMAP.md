@@ -129,7 +129,7 @@ These items are not shipped behavior today.
 
 Recommended next implementation plan:
 
-- `PLAN_47_RELEASE_DISTRIBUTION_COMPLETION`: finish the next bounded release-distribution layer by implementing and verifying native package formats, real signing/notarization paths, release publishing, and update-channel boundaries only after the required credentials, target platforms, CI environment, and license-audit prerequisites are available. This should be a separate plan before any implementation starts.
+- `prompts/PLAN_47_RELEASE_DISTRIBUTION_COMPLETION.md`: finish exactly one bounded release-distribution slice by implementing and verifying native package formats, real signing/notarization paths, release publishing, or update-channel boundaries only when the required credentials, target platforms, CI environment, and license-audit prerequisites are available.
 
 ## Documentation rules
 

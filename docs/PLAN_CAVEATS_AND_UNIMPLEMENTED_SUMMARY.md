@@ -15,9 +15,10 @@ Sources reviewed:
 ## Overall Status
 
 - Active plan files are marked complete through PLAN_46.
-- PLAN_46 recorded 56 active plan files, including PLAN_46 itself.
+- There are now 57 active plan files after creating PLAN_47.
+- PLAN_47 is intentionally not started and contains unchecked execution phases.
 - No unchecked `- [ ]` boxes were found in active `prompts/PLAN_*.md` files at
-  the PLAN_46 cleanup point.
+  the PLAN_46 cleanup point before PLAN_47 was created.
 - The duplicate PLAN_45 sequence was resolved by renaming the team/CI roadmap to
   `PLAN_45A_TEAM_CI_AND_HOSTED_VALUE_ROADMAP.md`.
 - No required active plan file is missing for the observed sequence from
@@ -63,7 +64,7 @@ Disk-state findings:
   before this pass.
 - `git log --oneline -20` shows PLAN_45A, PLAN_45, PLAN_46 creation, and the
   prior PLAN_46 cleanup commits at the top of history.
-- `ls prompts/PLAN_*.md | sort` showed 56 active plan files.
+- `ls prompts/PLAN_*.md | sort` showed 57 active plan files after PLAN_47 was created.
 - `ls prompts/superseded` showed the old native-parser 11-series files only
   under `prompts/superseded/`.
 - `grep -n "Do not implement this until" prompts/PLAN_*.md` showed the active
@@ -91,6 +92,7 @@ Active plan inventory:
 - PLAN_45: complete; Tree-sitter real-repo convergence loop is not restarted by
   this audit.
 - PLAN_46: complete; this pass is audit/cleanup/alignment only.
+- PLAN_47: created as the next active plan; not started.
 
 Stale reference findings:
 
@@ -120,13 +122,11 @@ Forbidden-surface findings:
 
 Recommended next implementation plan:
 
-- `PLAN_47_RELEASE_DISTRIBUTION_COMPLETION`: a new scoped plan should be
-  created before implementation. Its purpose should be to finish the release
-  distribution layer: native package formats, real signing/notarization, release
-  publishing, update-channel boundaries, and platform-specific smoke gates. It
-  must keep source upload, telemetry, payments, license enforcement, hosted
-  behavior, and parser work out of scope unless a separate prerequisite plan
-  explicitly adds them.
+- `prompts/PLAN_47_RELEASE_DISTRIBUTION_COMPLETION.md`: execute exactly one
+  bounded release-distribution slice. The plan covers native package formats,
+  real signing/notarization, release publishing, update-channel boundaries, and
+  platform-specific smoke gates, while keeping source upload, telemetry,
+  payments, license enforcement, hosted behavior, and parser work out of scope.
 
 ## Per-caveat Implementation Decisions
 
@@ -165,6 +165,7 @@ alongside code.
 | PLAN_45A | Complete | Team/CI and hosted value is a roadmap only. No `wi ci`, hosted backend, source upload, account system, payment integration, telemetry, or paid gate exists. |
 | PLAN_45 | Complete | One bounded Tree-sitter real-repo convergence cycle was completed. The process intentionally stops after one cycle and at most 10 selected gaps. Future cycles require explicit human request. |
 | PLAN_46 | Complete | Audit cleanup is complete. It did not implement product features. It records residual caveats and keeps stale-reference guardrails visible. |
+| PLAN_47 | Not started | Release-distribution completion is now the next active plan. It must choose exactly one bounded distribution slice and must not add parser, hosted, telemetry, payment, or license-enforcement behavior. |
 
 ## Parser And Tree-sitter Caveats
 
