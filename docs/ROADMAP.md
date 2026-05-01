@@ -130,7 +130,7 @@ These items are not shipped behavior today.
 Recommended next implementation plan:
 
 - After PLAN_48, release archives have exact payload checks, SBOM manifest validation, checksum verification, unpack smoke checks, and packaged binary startup checks for the current local archive path. Native packages, real signing/notarization, GitHub Release publishing, package-manager distribution, and managed update channels remain future work until a later scoped plan implements and verifies them.
-- Create a separate documentation cleanup/indexing plan to audit stale docs and add browsable user/developer documentation indexes.
+- Execute `prompts/PLAN_49_DOCUMENTATION_CLEANUP_AND_INDEXES.md` to audit stale docs and add browsable user/developer documentation indexes. PLAN_49 is not complete until it is executed, verified, and committed.
 
 ## Documentation rules
 
