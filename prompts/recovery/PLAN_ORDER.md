@@ -1,6 +1,6 @@
 # Recovery Plan Order
 
-This recovery cycle supersedes old roadmap execution until RECOVERY_10 says otherwise.
+This recovery cycle supersedes old roadmap execution until the latest listed recovery decision says otherwise.
 
 Execute one plan at a time. Do not skip ahead. Do not continue automatically after a plan unless explicitly asked.
 
@@ -17,6 +17,7 @@ Execute one plan at a time. Do not skip ahead. Do not continue automatically aft
 8. prompts/recovery/RECOVERY_08_ERROR_MESSAGE_AND_HELP_AUDIT.md
 9. prompts/recovery/RECOVERY_09_MINIMUM_AGENT_ACCEPTANCE_TEST.md
 10. prompts/recovery/RECOVERY_10_RECOVERY_FINAL_AUDIT_AND_NEXT_DECISION.md
+11. prompts/recovery/RECOVERY_11_REAL_REPO_READINESS_AND_SUPPORT_CLAIMS.md
 
 ## Standard execution prompt
 
