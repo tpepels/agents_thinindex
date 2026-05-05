@@ -14,15 +14,15 @@ Current failure it addresses:
 The roadmap became too large while basic product touchpoints were broken. This plan prevents returning to roadmap execution without evidence.
 
 Phases:
-- [ ] Audit RECOVERY_01 through RECOVERY_09.
-- [ ] Verify core touchpoints.
-- [ ] Review performance budgets.
-- [ ] Review value scorecard.
-- [ ] Review agent acceptance workflow.
-- [ ] List unresolved bugs.
-- [ ] List unresolved value gaps.
-- [ ] Decide next path.
-- [ ] Commit.
+- [x] Audit RECOVERY_01 through RECOVERY_09.
+- [x] Verify core touchpoints.
+- [x] Review performance budgets.
+- [x] Review value scorecard.
+- [x] Review agent acceptance workflow.
+- [x] List unresolved bugs.
+- [x] List unresolved value gaps.
+- [x] Decide next path.
+- [x] Commit.
 
 Decision options:
 - resume old roadmap at the next incomplete plan
