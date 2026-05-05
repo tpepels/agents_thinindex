@@ -14,16 +14,16 @@ Current failure it addresses:
 There are many plan files, but basic behavior may still be wrong. The project needs evidence, not assumptions.
 
 Phases:
-- [ ] Inventory active plan files and superseded plan files.
-- [ ] Inspect current code paths for wi, build_index, wi doctor, wi-init, wi-stats, refs, pack, and impact.
-- [ ] Check whether ctags, WI.md, JSONL canonical storage, stale native parser code, or old assumptions remain.
-- [ ] Run the core commands in the current repo.
-- [ ] Run the core commands in at least one real repo if available.
-- [ ] Record current bugs.
-- [ ] Record current value gaps.
-- [ ] Create prompts/recovery/CURRENT_STATE.md.
-- [ ] Run verification.
-- [ ] Commit.
+- [x] Inventory active plan files and superseded plan files.
+- [x] Inspect current code paths for wi, build_index, wi doctor, wi-init, wi-stats, refs, pack, and impact.
+- [x] Check whether ctags, WI.md, JSONL canonical storage, stale native parser code, or old assumptions remain.
+- [x] Run the core commands in the current repo.
+- [x] Run the core commands in at least one real repo if available.
+- [x] Record current bugs.
+- [x] Record current value gaps.
+- [x] Create prompts/recovery/CURRENT_STATE.md.
+- [x] Run verification.
+- [x] Commit.
 
 Audit areas:
 - stale/missing index behavior
