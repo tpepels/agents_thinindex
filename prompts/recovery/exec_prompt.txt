@@ -1,0 +1,78 @@
+Use superpowers:subagent-driven-development.
+
+Execute the recovery cycle one plan at a time according to `prompts/recovery/PLAN_ORDER.md`.
+
+Primary objective:
+Improve the actual product outcome, not just complete checkboxes.
+
+Execution loop:
+1. Read `prompts/recovery/PLAN_ORDER.md`.
+2. Find the first recovery plan in order that is not complete.
+3. Implement only that plan.
+4. Use the selected plan as authoritative.
+5. Update its checkbox phases as work is completed.
+6. Run every verification command listed in the selected plan.
+7. Commit only after verification is green or explicitly inapplicable with evidence.
+8. Stop after that one plan.
+9. Report the next plan in order.
+
+Do not implement later recovery plans in the same run.
+
+Quality bar:
+A plan is not complete unless:
+- the behavior works in the CLI, not only in tests
+- tests cover the behavior
+- docs/help/instructions match the behavior
+- performance-sensitive changes were profiled before optimization
+- failures are not hidden as caveats
+- checkboxes reflect real evidence
+- the commit exists
+
+Hard rules:
+- Do not resume the old roadmap.
+- Do not implement roadmap plans outside `prompts/recovery/`.
+- Do not add packaging, licensing, payment, telemetry, cloud, MCP, or hosted features unless the selected recovery plan explicitly asks for them.
+- Do not reintroduce Universal Ctags as production parser.
+- Do not reintroduce `WI.md`.
+- Do not reintroduce JSONL as canonical storage.
+- Do not weaken parser/index/quality gates.
+- Do not silently use stale indexes.
+- Do not mark incomplete work complete.
+- Do not guess performance root causes; profile first.
+- Do not run quality/comparator/real-repo checks during normal `wi` or `build_index` unless explicitly intended by the selected plan.
+
+For RECOVERY_02:
+The stale/missing index behavior must be fixed for real:
+- `wi <query>` auto-builds missing index once, then continues the query.
+- `wi <query>` auto-rebuilds stale/schema-stale index once, then continues the query.
+- immediate second `wi <query>` does not rebuild.
+- rebuild failure is clear.
+- no rebuild loop is possible.
+- `wi doctor`, `wi --help`, `wi-init`, AGENTS.md, and existing CLAUDE.md behavior must match.
+
+For RECOVERY_03:
+Profile before fixing:
+- cold/stale `build_index`
+- immediate no-change `build_index`
+- stale `wi <query>`
+- warm `wi <query>`
+- `wi refs`
+- `wi pack`
+- `wi impact`
+
+Record phase timings, identify the measured bottleneck, then fix the measured issue.
+
+For every plan:
+Prefer fixing product touchpoints over expanding architecture.
+
+Final response:
+- selected plan
+- why it was selected
+- changed files
+- behavior implemented or audited
+- tests added/updated
+- verification commands and results
+- evidence from real CLI runs where relevant
+- commit hash
+- next plan in `PLAN_ORDER.md`
+- any remaining blockers
