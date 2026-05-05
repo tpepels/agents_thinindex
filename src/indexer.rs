@@ -84,9 +84,12 @@ pub struct BuildStats {
 }
 
 pub fn find_repo_root(start: &Path) -> Result<PathBuf> {
-    let start = start
-        .canonicalize()
-        .with_context(|| format!("failed to canonicalize {}", start.display()))?;
+    let start = start.canonicalize().with_context(|| {
+        format!(
+            "failed to locate repository root from {}; path does not exist or is not accessible",
+            start.display()
+        )
+    })?;
 
     for candidate in start.ancestors() {
         if candidate.join(".git").exists() {

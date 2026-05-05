@@ -185,6 +185,37 @@ fn wi_stats_no_usage_message() {
 }
 
 #[test]
+fn wi_stats_help_is_actionable_and_local() {
+    let output = wi_stats_bin()
+        .arg("--help")
+        .output()
+        .expect("run wi-stats --help");
+
+    assert!(
+        output.status.success(),
+        "wi-stats --help failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for needle in [
+        "repo-local wi usage stats",
+        "Run `wi <query>`",
+        "wi refs <query>",
+        "wi pack <query>",
+        "wi impact <query>",
+        "advisory local report",
+        "cannot detect external grep/find/ls/Read usage",
+    ] {
+        assert!(
+            stdout.contains(needle),
+            "expected wi-stats help to contain `{needle}`, got:\n{stdout}"
+        );
+    }
+}
+
+#[test]
 fn wi_stats_recent_misses_section() {
     let repo = temp_repo();
     let root = repo.path();

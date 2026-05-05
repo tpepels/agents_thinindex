@@ -23,10 +23,14 @@ fn schema_version(root: &std::path::Path) -> u32 {
 }
 
 fn force_schema_version(root: &std::path::Path, version: u32) {
+    force_schema_version_value(root, &version.to_string());
+}
+
+fn force_schema_version_value(root: &std::path::Path, value: &str) {
     let conn = Connection::open(sqlite_path(root)).expect("open sqlite index");
     conn.execute(
         "UPDATE meta SET value = ?1 WHERE key = 'schema_version'",
-        params![version.to_string()],
+        params![value],
     )
     .expect("update schema_version");
 }
@@ -140,6 +144,50 @@ fn wi_schema_version_mismatch_auto_rebuilds_and_continues_query() {
             && stderr.contains("running `build_index` once")
             && stderr.contains("index schema changed; rebuilding .dev_index"),
         "schema-stale wi should explain one-shot auto-rebuild, got:\n{stderr}"
+    );
+    assert!(
+        !stderr.contains("index schema version 999 does not match 11; run `build_index`"),
+        "schema-stale auto-rebuild should not embed stale manual rebuild guidance, got:\n{stderr}"
+    );
+}
+
+#[test]
+fn wi_invalid_schema_message_is_clear_and_auto_rebuilds() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "src/main.py", "class FreshService: pass\n");
+    run_build(root);
+    force_schema_version_value(root, "not-a-number");
+
+    let output = wi_bin()
+        .current_dir(root)
+        .arg("FreshService")
+        .output()
+        .expect("run wi with invalid schema value");
+
+    assert!(
+        output.status.success(),
+        "wi should auto-rebuild invalid schema index\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stdout.contains("src/main.py:1 class FreshService"),
+        "original query should continue after invalid schema rebuild, got:\n{stdout}"
+    );
+    assert!(
+        stderr.contains("index schema version is invalid")
+            && stderr.contains("running `build_index` once")
+            && stderr.contains("index database invalid; rebuilding .dev_index"),
+        "invalid schema should explain one-shot auto-rebuild, got:\n{stderr}"
+    );
+    assert!(
+        !stderr.contains("run `build_index`"),
+        "invalid schema auto-rebuild should not tell users to rebuild manually, got:\n{stderr}"
     );
 }
 

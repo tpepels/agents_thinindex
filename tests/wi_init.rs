@@ -73,6 +73,24 @@ fn wi_init_does_not_create_wi_md() {
 }
 
 #[test]
+fn wi_init_help_describes_current_instruction_surfaces() {
+    wi_init_bin()
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("AGENTS.md"))
+        .stdout(predicates::str::contains(".cursor/rules/thinindex.mdc"))
+        .stdout(predicates::str::contains(".github/copilot-instructions.md"))
+        .stdout(predicates::str::contains(
+            "does not create CLAUDE.md when absent",
+        ))
+        .stdout(predicates::str::contains("Does not create WI.md"))
+        .stdout(predicates::str::contains(
+            "global agent/editor configuration",
+        ));
+}
+
+#[test]
 fn wi_init_creates_agents_md_when_absent() {
     let repo = temp_repo();
     let root = repo.path();

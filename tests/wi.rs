@@ -2,6 +2,7 @@ mod common;
 
 use assert_cmd::prelude::*;
 use common::*;
+use predicates::prelude::PredicateBooleanExt;
 use thinindex::agent_instructions::REPOSITORY_SEARCH_BLOCK;
 
 fn write_context_fixture(root: &std::path::Path) {
@@ -478,11 +479,43 @@ fn wi_help_mentions_context_commands() {
         .assert()
         .success()
         .stdout(predicates::str::contains("auto-builds or auto-rebuilds"))
+        .stdout(predicates::str::contains("Use `wi refs <term>`"))
+        .stdout(predicates::str::contains("Related commands:"))
+        .stdout(predicates::str::contains("build_index"))
+        .stdout(predicates::str::contains("wi-init"))
+        .stdout(predicates::str::contains("wi-stats"))
+        .stdout(predicates::str::contains("wi-scorecard"))
         .stdout(predicates::str::contains("wi refs PromptService"))
         .stdout(predicates::str::contains("wi pack PromptService"))
         .stdout(predicates::str::contains("wi impact PromptService"))
         .stdout(predicates::str::contains("wi doctor"))
-        .stdout(predicates::str::contains("wi bench"));
+        .stdout(predicates::str::contains("wi bench"))
+        .stdout(predicates::str::contains("WI.md").not())
+        .stdout(predicates::str::contains("JSONL").not())
+        .stdout(predicates::str::contains(removed_external_tagger()).not());
+}
+
+fn removed_external_tagger() -> String {
+    ["c", "tags"].concat()
+}
+
+#[test]
+fn wi_reports_clear_missing_repo_path() {
+    let repo = temp_repo();
+    let missing = repo.path().join("missing");
+
+    wi_bin()
+        .arg("-r")
+        .arg(&missing)
+        .arg("Service")
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains(
+            "failed to locate repository root from",
+        ))
+        .stderr(predicates::str::contains(
+            "path does not exist or is not accessible",
+        ));
 }
 
 #[test]
@@ -1781,6 +1814,10 @@ class NewName:
     assert!(
         stderr.contains("index is stale") && stderr.contains("running `build_index` once"),
         "stale wi should explain one-shot auto-rebuild, got:\n{stderr}"
+    );
+    assert!(
+        !stderr.contains("run `build_index` manually"),
+        "ordinary stale-index recovery should not tell users to rebuild manually, got:\n{stderr}"
     );
 
     let second = wi_bin()

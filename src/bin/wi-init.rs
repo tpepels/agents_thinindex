@@ -20,7 +20,14 @@ const COPILOT_INSTRUCTIONS_PATH: &str = ".github/copilot-instructions.md";
 #[command(
     name = "wi-init",
     version,
-    about = "Initialize or remove thinindex/wi agent usage for one repository"
+    about = "Initialize or remove thinindex/wi agent usage for one repository",
+    after_help = "\
+Behavior:
+  Writes AGENTS.md, .cursor/rules/thinindex.mdc, and .github/copilot-instructions.md.
+  Normalizes an existing CLAUDE.md, but does not create CLAUDE.md when absent.
+  Builds the repo-local .dev_index/index.sqlite cache.
+  Does not create WI.md or modify global agent/editor configuration.
+"
 )]
 struct Args {
     #[arg(

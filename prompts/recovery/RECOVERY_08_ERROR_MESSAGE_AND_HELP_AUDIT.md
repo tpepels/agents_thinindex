@@ -14,13 +14,13 @@ Current failure it addresses:
 The tool told the user to manually run build_index when it should have auto-rebuilt. Help/error text must match actual behavior.
 
 Phases:
-- [ ] Inventory user-facing messages for wi, build_index, wi doctor, wi-init, and wi-stats.
-- [ ] Remove stale guidance that contradicts auto-rebuild behavior.
-- [ ] Ensure every failure has a next action.
-- [ ] Ensure help text mentions current commands and avoids removed concepts.
-- [ ] Add tests for important messages.
-- [ ] Run verification.
-- [ ] Commit.
+- [x] Inventory user-facing messages for wi, build_index, wi doctor, wi-init, and wi-stats.
+- [x] Remove stale guidance that contradicts auto-rebuild behavior.
+- [x] Ensure every failure has a next action.
+- [x] Ensure help text mentions current commands and avoids removed concepts.
+- [x] Add tests for important messages.
+- [x] Run verification.
+- [x] Commit.
 
 Required checks:
 - no WI.md guidance

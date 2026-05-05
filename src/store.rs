@@ -515,20 +515,18 @@ fn validate_schema_version(conn: &Connection) -> Result<()> {
             |row| row.get(0),
         )
         .optional()
-        .context("failed to read index schema version; run `build_index`")?;
+        .context("failed to read index schema version")?;
 
     let Some(value) = value else {
-        bail!("index schema version missing; run `build_index`");
+        bail!("index schema version missing");
     };
 
-    let version = value.parse::<u32>().with_context(|| {
-        format!("index schema version is invalid ({value:?}); run `build_index`")
-    })?;
+    let version = value
+        .parse::<u32>()
+        .with_context(|| format!("index schema version is invalid ({value:?})"))?;
 
     if version != INDEX_SCHEMA_VERSION {
-        bail!(
-            "index schema version {version} does not match {INDEX_SCHEMA_VERSION}; run `build_index`"
-        );
+        bail!("index schema version {version} does not match {INDEX_SCHEMA_VERSION}");
     }
 
     Ok(())

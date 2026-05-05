@@ -11,7 +11,17 @@ use thinindex::{
 };
 
 #[derive(Debug, Parser)]
-#[command(name = "wi-stats", version, about = "Show repo-local wi usage stats")]
+#[command(
+    name = "wi-stats",
+    version,
+    about = "Show repo-local wi usage stats",
+    after_help = "\
+Notes:
+  Reads local usage events from .dev_index/index.sqlite.
+  Run `wi <query>`, `wi refs <query>`, `wi pack <query>`, or `wi impact <query>` first to record events.
+  This is an advisory local report; it cannot detect external grep/find/ls/Read usage.
+"
+)]
 struct Args {
     #[arg(
         long = "repo",

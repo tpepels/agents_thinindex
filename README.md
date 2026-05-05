@@ -63,13 +63,14 @@ Run `wi doctor` when setup looks wrong. Run `wi --help` for the current command 
 
 The canonical agent workflow is:
 
-1. Use `wi <term>` before grep/find/ls/Read to locate code; `wi` auto-builds or auto-rebuilds a missing/stale index once before searching.
-2. Run `wi --help` if search filters, examples, or subcommands are needed.
-3. For implementation work, prefer `wi pack <term>` to get a compact read set.
-4. Before editing a symbol or feature area, run `wi impact <term>` to find related tests/docs/callers.
-5. Read only files returned by `wi` unless the result is insufficient.
-6. Run `build_index` manually only when you want an explicit rebuild or when `wi` reports that auto-build failed.
-7. Fall back to grep/find/Read only after that retry fails.
+1. Use `wi <term>` directly before grep/find/ls/Read for repository discovery; `wi` auto-builds or auto-rebuilds a missing/stale index once before searching.
+2. Use `wi refs <term>` before broad reference searches.
+3. Use `wi pack <term>` before implementation to get a compact read set.
+4. Use `wi impact <term>` before edits to find related tests/docs/callers.
+5. Use `wi --help` for filters, examples, subcommands, and command details.
+6. Read only files returned by `wi` unless the result is insufficient.
+7. Run `build_index` manually only when you want an explicit rebuild or when `wi` reports that auto-build failed.
+8. Fall back to grep/find/Read only after that retry fails.
 
 `wi-init` creates or normalizes this workflow in `AGENTS.md` and normalizes an existing `CLAUDE.md` when present. It does not generate a `WI.md` instruction file.
 
