@@ -16,6 +16,19 @@ The workflow is intentionally direct:
 6. Read only files returned by `wi` unless the result is insufficient.
 7. Run `build_index` manually only when you want an explicit rebuild or when `wi` reports that auto-build failed.
 
+## Minimum Agent Acceptance Workflow
+
+For a small code-change task, the minimum useful agent behavior is:
+
+1. Start with `wi <symbol-or-concept>` in the target repository. Do not require a manual `build_index` pre-step; missing or stale indexes should self-heal once and continue the query.
+2. Run `wi refs <symbol-or-concept>` to inspect callers, tests, and textual references before broad reference searches.
+3. Run `wi pack <symbol-or-concept>` to build a compact context set for likely implementation files, dependencies, tests, docs, and config.
+4. Run `wi impact <symbol-or-concept>` before editing so affected files and likely tests are visible with reasons and confidence.
+5. Choose likely edit files and likely tests from the `pack` and `impact` output before any broad grep, find, ls, or blind file-read pass.
+6. If the first query rebuilt a missing or stale index, repeat the same `wi <term>` once after no file changes; it should not rebuild again.
+
+The normal acceptance path is local and lightweight. It must not run parser quality reports, comparator checks, optional real-repo checks, telemetry, hosted services, or package/install workflows.
+
 ## Common Agent Surfaces
 
 `AGENTS.md` is the shared local instruction surface for Codex, OpenCode, and agents that read repository-level instructions. For Codex, run `wi-init` in the repository and keep the generated `AGENTS.md` block under version control. OpenCode should use the same `AGENTS.md` guidance; no OpenCode-specific config is required.

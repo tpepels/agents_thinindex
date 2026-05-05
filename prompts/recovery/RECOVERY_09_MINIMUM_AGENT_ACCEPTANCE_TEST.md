@@ -14,14 +14,14 @@ Current failure it addresses:
 Agents may still ignore thinindex or find it unhelpful. We need an executable workflow that proves the tool is useful before deeper integrations.
 
 Phases:
-- [ ] Define a small fixture repo/task.
-- [ ] Define expected agent workflow steps.
-- [ ] Add an acceptance test or scripted check.
-- [ ] Ensure workflow uses wi, wi pack, and wi impact.
-- [ ] Ensure output is bounded and useful.
-- [ ] Update docs with the workflow.
-- [ ] Run verification.
-- [ ] Commit.
+- [x] Define a small fixture repo/task.
+- [x] Define expected agent workflow steps.
+- [x] Add an acceptance test or scripted check.
+- [x] Ensure workflow uses wi, wi pack, and wi impact.
+- [x] Ensure output is bounded and useful.
+- [x] Update docs with the workflow.
+- [x] Run verification.
+- [x] Commit.
 
 Workflow:
 - initialize or use fixture repo
