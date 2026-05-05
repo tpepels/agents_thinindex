@@ -14,17 +14,17 @@ Current failure it addresses:
 The project needs an evidence-based decision before returning to long-range roadmap work.
 
 Phases:
-- [ ] Audit RECOVERY_00 through RECOVERY_05.
-- [ ] Verify core touchpoints.
-- [ ] Verify performance budgets.
-- [ ] Verify value workflows.
-- [ ] Verify minimum agent integration.
-- [ ] Identify remaining bugs.
-- [ ] Identify remaining value gaps.
-- [ ] Decide next path.
-- [ ] Create or update prompts/recovery/RECOVERY_STATUS.md.
-- [ ] Run verification.
-- [ ] Commit.
+- [x] Audit RECOVERY_00 through RECOVERY_05.
+- [x] Verify core touchpoints.
+- [x] Verify performance budgets.
+- [x] Verify value workflows.
+- [x] Verify minimum agent integration.
+- [x] Identify remaining bugs.
+- [x] Identify remaining value gaps.
+- [x] Decide next path.
+- [x] Create or update prompts/recovery/RECOVERY_STATUS.md.
+- [x] Run verification.
+- [x] Commit.
 
 Decision options:
 - resume old roadmap at the next incomplete plan
