@@ -11,9 +11,9 @@ Each row stores the source file, line, column, raw target string, resolved local
 - `require`: local require/include-style relationships.
 - `source`: shell source/dot references.
 - `link`: local document links.
-- `asset`: images, fonts, CSS `url(...)`, and other static assets.
+- `asset`: images, fonts, HTML `srcset`, CSS `url(...)`, and other static assets.
 - `script`: HTML script references.
-- `stylesheet`: HTML stylesheet references.
+- `stylesheet`: HTML stylesheet references and CSS/SCSS `@import` paths.
 - `config_path`: explicit path-like config values.
 - `package_entry`: package/build entrypoints and file lists.
 - `fixture`: test fixture paths.
@@ -27,8 +27,10 @@ Resolution is local and deterministic:
 - extensionless imports use practical local candidates and directory indexes;
 - bare HTML/CSS/Markdown filenames resolve relative to the source file;
 - package/config paths with directories resolve from the repository root;
+- project-file entries such as `.csproj` `Include` paths resolve relative to the project file;
+- Markdown and similar targets with query strings or fragments preserve the raw target but resolve the file portion;
 - unresolved local-looking paths remain in the table with `target_not_found`, `ambiguous_match`, or `absolute_path`;
-- external URLs, anchors, `mailto:`, `data:`, and package names are not resolved as local files.
+- external URLs, anchors, `mailto:`, `data:`, package names, template expressions, variables, route-like URIs, and version strings are not resolved as local files.
 
 No network access, package-manager execution, compiler, LSP, or broad semantic analysis is used.
 
@@ -46,4 +48,4 @@ Context commands translate these to user-facing labels such as `dependency`, `te
 
 ## Known Limits
 
-Config and package scanning is intentionally allowlisted and may miss project-specific keys. File references do not prove runtime behavior. Dynamic route construction, generated paths, package-manager aliases, webpack/Vite aliases, compiler path mapping, and framework-specific asset pipelines are not resolved unless they appear as explicit local paths.
+Config and package scanning is intentionally allowlisted and may miss project-specific keys. File references do not prove runtime behavior. Dynamic route construction, generated paths, package-manager aliases, webpack/Vite aliases, compiler path mapping, framework-specific asset pipelines, and root-relative web paths are not resolved unless they appear as explicit local paths.

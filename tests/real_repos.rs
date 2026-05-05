@@ -151,6 +151,7 @@ fn check_repo(repo: &BenchmarkRepo) -> RepoHardeningReport {
         indexed_files: manifest.files.len(),
         record_count: snapshot.records.len(),
         ref_count: snapshot.refs.len(),
+        file_reference_coverage: collect_file_reference_coverage(&snapshot.file_references),
         coverage,
         zero_record_languages,
         symbol_coverage,
@@ -215,12 +216,23 @@ struct QuerySmoke {
 }
 
 #[derive(Debug, Default)]
+struct FileReferenceCoverage {
+    total: usize,
+    resolved: usize,
+    unresolved: usize,
+    by_kind: BTreeMap<String, usize>,
+    by_language: BTreeMap<String, usize>,
+    by_unresolved_reason: BTreeMap<String, usize>,
+}
+
+#[derive(Debug, Default)]
 struct RepoHardeningReport {
     repo_name: String,
     repo_path: String,
     indexed_files: usize,
     record_count: usize,
     ref_count: usize,
+    file_reference_coverage: FileReferenceCoverage,
     coverage: ParserCoverage,
     zero_record_languages: Vec<String>,
     symbol_coverage: SymbolCoverage,
@@ -240,6 +252,9 @@ struct AggregateCoverage {
     expected_absent_symbols_checked: usize,
     expected_absent_symbols_found: usize,
     zero_record_languages: BTreeSet<String>,
+    file_references: usize,
+    resolved_file_references: usize,
+    unresolved_file_references: usize,
 }
 
 fn print_parser_coverage_report(report: &RepoHardeningReport) {
@@ -261,6 +276,24 @@ fn print_parser_coverage_report(report: &RepoHardeningReport) {
     println!(
         "  refs emitted by language: {}",
         render_counts(&coverage.refs_by_language)
+    );
+    println!(
+        "  file references emitted: total={} resolved={} unresolved={}",
+        report.file_reference_coverage.total,
+        report.file_reference_coverage.resolved,
+        report.file_reference_coverage.unresolved,
+    );
+    println!(
+        "  file references by kind: {}",
+        render_counts(&report.file_reference_coverage.by_kind)
+    );
+    println!(
+        "  file references by language: {}",
+        render_counts(&report.file_reference_coverage.by_language)
+    );
+    println!(
+        "  unresolved file reference reasons: {}",
+        render_counts(&report.file_reference_coverage.by_unresolved_reason)
     );
     println!(
         "  parse time by language: {}",
@@ -459,6 +492,39 @@ fn collect_parser_coverage(
     coverage
         .large_files
         .sort_by(|a, b| b.size_bytes.cmp(&a.size_bytes).then(a.path.cmp(&b.path)));
+
+    coverage
+}
+
+fn collect_file_reference_coverage(
+    file_references: &[thinindex::model::FileReference],
+) -> FileReferenceCoverage {
+    let mut coverage = FileReferenceCoverage {
+        total: file_references.len(),
+        ..FileReferenceCoverage::default()
+    };
+
+    for reference in file_references {
+        if reference.target_path.is_some() {
+            coverage.resolved += 1;
+        } else {
+            coverage.unresolved += 1;
+        }
+        *coverage
+            .by_kind
+            .entry(reference.reference_kind.clone())
+            .or_default() += 1;
+        *coverage
+            .by_language
+            .entry(reference.lang.clone())
+            .or_default() += 1;
+        if let Some(reason) = &reference.unresolved_reason {
+            *coverage
+                .by_unresolved_reason
+                .entry(reason.clone())
+                .or_default() += 1;
+        }
+    }
 
     coverage
 }
@@ -948,6 +1014,9 @@ impl AggregateCoverage {
         self.expected_symbol_patterns_missing += report.symbol_coverage.patterns_missing.len();
         self.expected_absent_symbols_checked += report.symbol_coverage.absent_symbols_checked;
         self.expected_absent_symbols_found += report.symbol_coverage.absent_symbols_found.len();
+        self.file_references += report.file_reference_coverage.total;
+        self.resolved_file_references += report.file_reference_coverage.resolved;
+        self.unresolved_file_references += report.file_reference_coverage.unresolved;
     }
 }
 
@@ -981,6 +1050,12 @@ fn print_aggregate_coverage_report(aggregate: &AggregateCoverage) {
     println!(
         "  expected absent symbols: checked={} found={}",
         aggregate.expected_absent_symbols_checked, aggregate.expected_absent_symbols_found
+    );
+    println!(
+        "  file references: total={} resolved={} unresolved={}",
+        aggregate.file_references,
+        aggregate.resolved_file_references,
+        aggregate.unresolved_file_references
     );
 }
 

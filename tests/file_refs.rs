@@ -32,12 +32,15 @@ fn write_file_reference_fixture(root: &std::path::Path) {
     write_file(root, "c/main.c", "#include \"defs.h\"\n");
     write_file(root, "assets/logo.png", "fake image bytes\n");
     write_file(root, "assets/bg.png", "fake image bytes\n");
+    write_file(root, "assets/logo-small.png", "fake image bytes\n");
+    write_file(root, "assets/logo-large.png", "fake image bytes\n");
     write_file(root, "templates/base.html", "<main></main>\n");
     write_file(root, "tests/fixtures/sample.json", "{}\n");
+    write_file(root, "docs/guide.md", "# Guide\n");
     write_file(
         root,
         "docs/readme.md",
-        "[Guide](../templates/base.html)\n![Logo](../assets/logo.png)\n![Logo again](../assets/logo.png)\n[External](https://example.com/logo.png)\n",
+        "[Guide](guide.md#intro)\n[Template](../templates/base.html?cache=1#main)\n![Logo](../assets/logo.png)\n![Logo again](../assets/logo.png)\n[External](https://example.com/logo.png)\n",
     );
     write_file(
         root,
@@ -46,23 +49,41 @@ fn write_file_reference_fixture(root: &std::path::Path) {
 <link rel="stylesheet" href="style.css">
 <script src="app.js"></script>
 <img src="../assets/logo.png">
+<img srcset="../assets/logo-small.png 1x, ../assets/logo-large.png 2x">
 "#,
     );
     write_file(
         root,
         "web/style.css",
         r#"
+@import "../styles/theme";
 .hero { background: url("../assets/bg.png"); }
 .remote { background: url("https://example.com/remote.png"); }
 "#,
     );
     write_file(root, "web/app.js", "console.log('app');\n");
+    write_file(root, "styles/theme.scss", "$brand: #fff;\n");
+    write_file(root, "_sass/mixins/_buttons.scss", "@mixin button {}\n");
+    write_file(root, "styles/app.scss", "@import \"mixins/buttons\";\n");
     write_file(
         root,
         "config/app.json",
-        r#"{ "template": "templates/base.html", "fixture": "tests/fixtures/sample.json", "schema": "missing/schema.json" }"#,
+        r#"{ "template": "templates/base.html", "fixture": "tests/fixtures/sample.json", "schema": "missing/schema.json", "root": "/blog/:num/", "version": "1.2.3", "generated": "${OUT_DIR}/schema.json" }"#,
     );
     write_file(root, "package.json", r#"{ "main": "web/app.js" }"#);
+    write_file(root, "project/App.cs", "class App {}\n");
+    write_file(root, "project/App.config", "<configuration />\n");
+    write_file(
+        root,
+        "project/App.csproj",
+        r#"
+<Project>
+  <Reference Include="System.Core" />
+  <Compile Include="App.cs" />
+  <None Include="App.config" />
+</Project>
+"#,
+    );
 }
 
 #[test]
@@ -106,7 +127,14 @@ fn file_references_are_extracted_resolved_deduped_and_deterministic() {
     assert_file_ref(
         &first,
         "docs/readme.md",
-        "../templates/base.html",
+        "guide.md#intro",
+        Some("docs/guide.md"),
+        "link",
+    );
+    assert_file_ref(
+        &first,
+        "docs/readme.md",
+        "../templates/base.html?cache=1#main",
         Some("templates/base.html"),
         "link",
     );
@@ -140,6 +168,34 @@ fn file_references_are_extracted_resolved_deduped_and_deterministic() {
     );
     assert_file_ref(
         &first,
+        "web/index.html",
+        "../assets/logo-small.png",
+        Some("assets/logo-small.png"),
+        "asset",
+    );
+    assert_file_ref(
+        &first,
+        "web/index.html",
+        "../assets/logo-large.png",
+        Some("assets/logo-large.png"),
+        "asset",
+    );
+    assert_file_ref(
+        &first,
+        "web/style.css",
+        "../styles/theme",
+        Some("styles/theme.scss"),
+        "stylesheet",
+    );
+    assert_file_ref(
+        &first,
+        "styles/app.scss",
+        "mixins/buttons",
+        Some("_sass/mixins/_buttons.scss"),
+        "stylesheet",
+    );
+    assert_file_ref(
+        &first,
         "web/style.css",
         "../assets/bg.png",
         Some("assets/bg.png"),
@@ -168,6 +224,20 @@ fn file_references_are_extracted_resolved_deduped_and_deterministic() {
     );
     assert_file_ref(
         &first,
+        "project/App.csproj",
+        "App.cs",
+        Some("project/App.cs"),
+        "package_entry",
+    );
+    assert_file_ref(
+        &first,
+        "project/App.csproj",
+        "App.config",
+        Some("project/App.config"),
+        "package_entry",
+    );
+    assert_file_ref(
+        &first,
         "config/app.json",
         "missing/schema.json",
         None,
@@ -179,6 +249,15 @@ fn file_references_are_extracted_resolved_deduped_and_deterministic() {
             .iter()
             .all(|reference| !reference.raw_target.contains("https://")),
         "external URLs should not become local file references:\n{first:#?}"
+    );
+    assert!(
+        first.iter().all(|reference| {
+            !matches!(
+                reference.raw_target.as_str(),
+                "1.2.3" | "${OUT_DIR}/schema.json" | "/blog/:num/" | "System.Core"
+            )
+        }),
+        "non-local versions, variables, and packages should not become file references:\n{first:#?}"
     );
     assert_eq!(
         first
@@ -235,6 +314,33 @@ fn deleted_target_file_rebuilds_file_reference_as_unresolved() {
         }),
         "deleted target should clear resolved target and keep an unresolved hint:\n{after:#?}"
     );
+}
+
+#[test]
+fn absolute_and_ambiguous_targets_keep_clear_unresolved_reasons() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_file(root, "docs/readme.md", "[Absolute](/assets/logo.png)\n");
+    write_file(root, "web/app.md", "[Widget](./widget)\n");
+    write_file(root, "web/widget.js", "console.log('js');\n");
+    write_file(root, "web/widget.ts", "export const widget = 1;\n");
+
+    run_build(root);
+    let references = thinindex::store::load_file_references(root).expect("load file references");
+
+    assert!(references.iter().any(|reference| {
+        reference.source_path == "docs/readme.md"
+            && reference.raw_target == "/assets/logo.png"
+            && reference.target_path.is_none()
+            && reference.unresolved_reason.as_deref() == Some("absolute_path")
+    }));
+    assert!(references.iter().any(|reference| {
+        reference.source_path == "web/app.md"
+            && reference.raw_target == "./widget"
+            && reference.target_path.is_none()
+            && reference.confidence == "ambiguous"
+            && reference.unresolved_reason.as_deref() == Some("ambiguous_match")
+    }));
 }
 
 #[test]

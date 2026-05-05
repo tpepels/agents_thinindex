@@ -21,7 +21,8 @@ const REASON_TARGET_NOT_FOUND: &str = "target_not_found";
 const COMMON_EXTENSIONS: &[&str] = &[
     "rs", "py", "js", "jsx", "ts", "tsx", "mjs", "cjs", "json", "toml", "yaml", "yml", "md",
     "markdown", "html", "htm", "css", "scss", "sass", "png", "jpg", "jpeg", "svg", "gif", "webp",
-    "ico", "sh", "bash", "rb", "php", "go", "h", "hpp", "hh", "c", "cc", "cpp",
+    "ico", "sh", "bash", "rb", "php", "go", "h", "hpp", "hh", "c", "cc", "cpp", "cs", "java", "kt",
+    "swift", "dart", "resx", "config", "settings", "sln", "csproj", "props", "targets", "xml",
 ];
 
 const DIRECTORY_INDEXES: &[&str] = &[
@@ -156,6 +157,7 @@ fn scan_file_candidates(rel: &str, text: &str) -> Vec<Candidate> {
         "html" | "htm" => scan_html(text),
         "css" | "scss" | "sass" => scan_css(text),
         "json" | "toml" | "yaml" | "yml" => scan_config(rel, text),
+        _ if is_project_file(rel) => scan_project_file(text),
         _ if is_package_or_build_file(rel) => scan_config(rel, text),
         _ => Vec::new(),
     }
@@ -192,8 +194,8 @@ fn scan_markdown(text: &str) -> Vec<Candidate> {
 }
 
 fn scan_html(text: &str) -> Vec<Candidate> {
-    let attr_re =
-        Regex::new(r#"(?i)(href|src|poster|action)\s*=\s*["']([^"']+)["']"#).expect("valid regex");
+    let attr_re = Regex::new(r#"(?i)(href|src|srcset|poster|action)\s*=\s*["']([^"']+)["']"#)
+        .expect("valid regex");
     let mut candidates = Vec::new();
 
     for (line_no, line) in text.lines().enumerate() {
@@ -206,17 +208,33 @@ fn scan_html(text: &str) -> Vec<Candidate> {
                 .to_ascii_lowercase();
             let target = caps.get(2).expect("target match");
             let raw = target.as_str().trim();
-            if !is_path_like(raw) {
-                continue;
-            }
+            if attr == "srcset" {
+                for srcset_target in split_srcset_targets(raw) {
+                    if !is_path_like(srcset_target) {
+                        continue;
+                    }
 
-            candidates.push(Candidate {
-                raw: raw.to_string(),
-                line: line_no + 1,
-                col: target.start() + 1,
-                kind: html_reference_kind(&lower, &attr, raw),
-                evidence: line.trim().to_string(),
-            });
+                    candidates.push(Candidate {
+                        raw: srcset_target.to_string(),
+                        line: line_no + 1,
+                        col: target.start() + raw.find(srcset_target).unwrap_or(0) + 1,
+                        kind: "asset",
+                        evidence: line.trim().to_string(),
+                    });
+                }
+            } else {
+                if !is_path_like(raw) {
+                    continue;
+                }
+
+                candidates.push(Candidate {
+                    raw: raw.to_string(),
+                    line: line_no + 1,
+                    col: target.start() + 1,
+                    kind: html_reference_kind(&lower, &attr, raw),
+                    evidence: line.trim().to_string(),
+                });
+            }
         }
     }
 
@@ -237,9 +255,26 @@ fn html_reference_kind(line: &str, attr: &str, raw: &str) -> &'static str {
 
 fn scan_css(text: &str) -> Vec<Candidate> {
     let url_re = Regex::new(r#"url\(\s*["']?([^"')]+)["']?\s*\)"#).expect("valid regex");
+    let import_re = Regex::new(r#"@import\s+(?:url\(\s*)?["']?([^"')\s;]+)"#).expect("valid regex");
     let mut candidates = Vec::new();
 
     for (line_no, line) in text.lines().enumerate() {
+        for caps in import_re.captures_iter(line) {
+            let target = caps.get(1).expect("target match");
+            let raw = target.as_str().trim();
+            if !is_path_like(raw) {
+                continue;
+            }
+
+            candidates.push(Candidate {
+                raw: raw.to_string(),
+                line: line_no + 1,
+                col: target.start() + 1,
+                kind: "stylesheet",
+                evidence: line.trim().to_string(),
+            });
+        }
+
         for caps in url_re.captures_iter(line) {
             let target = caps.get(1).expect("target match");
             let raw = target.as_str().trim();
@@ -252,6 +287,33 @@ fn scan_css(text: &str) -> Vec<Candidate> {
                 line: line_no + 1,
                 col: target.start() + 1,
                 kind: "asset",
+                evidence: line.trim().to_string(),
+            });
+        }
+    }
+
+    candidates
+}
+
+fn scan_project_file(text: &str) -> Vec<Candidate> {
+    let attr_re =
+        Regex::new(r#"(?i)\b(include|update|remove|project|hintpath)\s*=\s*["']([^"']+)["']"#)
+            .expect("valid regex");
+    let mut candidates = Vec::new();
+
+    for (line_no, line) in text.lines().enumerate() {
+        for caps in attr_re.captures_iter(line) {
+            let target = caps.get(2).expect("target match");
+            let raw = target.as_str().trim();
+            if !is_path_like(raw) {
+                continue;
+            }
+
+            candidates.push(Candidate {
+                raw: raw.to_string(),
+                line: line_no + 1,
+                col: target.start() + 1,
+                kind: config_reference_kind("project.csproj", raw),
                 evidence: line.trim().to_string(),
             });
         }
@@ -301,11 +363,16 @@ fn scan_config(rel: &str, text: &str) -> Vec<Candidate> {
 fn config_reference_kind(rel: &str, raw: &str) -> &'static str {
     if is_testish_path(rel) || raw.contains("fixture") || raw.contains("fixtures/") {
         "fixture"
-    } else if is_package_or_build_file(rel) {
+    } else if is_package_or_build_file(rel) || is_project_file(rel) {
         "package_entry"
     } else {
         "config_path"
     }
+}
+
+fn split_srcset_targets(raw: &str) -> impl Iterator<Item = &str> {
+    raw.split(',')
+        .filter_map(|entry| entry.split_whitespace().next())
 }
 
 #[derive(Debug, Clone)]
@@ -388,8 +455,43 @@ fn path_candidates(base: &str, raw: &str) -> Vec<String> {
             candidates.push(format!("{base}.{extension}"));
         }
 
+        candidates.extend(stylesheet_partial_candidates(base, raw));
+
         for index in DIRECTORY_INDEXES {
             candidates.push(format!("{base}/{index}"));
+        }
+    }
+
+    candidates
+}
+
+fn stylesheet_partial_candidates(base: &str, raw: &str) -> Vec<String> {
+    let mut candidates = Vec::new();
+    let base_path = Path::new(base);
+    let Some(name) = base_path.file_name().and_then(|name| name.to_str()) else {
+        return candidates;
+    };
+
+    let parent = base_path
+        .parent()
+        .map(|path| normalize_rel_path(&path.to_string_lossy()))
+        .unwrap_or_default();
+    for extension in ["scss", "sass", "css"] {
+        if parent.is_empty() {
+            candidates.push(format!("_{name}.{extension}"));
+        } else {
+            candidates.push(format!("{parent}/_{name}.{extension}"));
+        }
+    }
+
+    if !raw.starts_with("./") && !raw.starts_with("../") && !raw.starts_with('/') {
+        for extension in ["scss", "sass", "css"] {
+            candidates.push(format!("_sass/{raw}.{extension}"));
+            if let Some((dir, name)) = raw.rsplit_once('/') {
+                candidates.push(format!("_sass/{dir}/_{name}.{extension}"));
+            } else {
+                candidates.push(format!("_sass/_{raw}.{extension}"));
+            }
         }
     }
 
@@ -402,19 +504,19 @@ fn clean_local_target(raw: &str) -> Option<String> {
         return None;
     }
 
-    let without_query = trimmed
-        .split_once('#')
-        .map(|(path, _)| path)
-        .unwrap_or(trimmed)
-        .split_once('?')
-        .map(|(path, _)| path)
-        .unwrap_or_else(|| {
-            trimmed
-                .split_once('?')
-                .map(|(path, _)| path)
-                .unwrap_or(trimmed)
-        })
-        .trim();
+    if is_template_or_variable_target(trimmed) {
+        return None;
+    }
+
+    let mut end = trimmed.len();
+    for delimiter in ['#', '?'] {
+        if let Some(index) = trimmed.find(delimiter) {
+            end = end.min(index);
+        }
+    }
+
+    let cleaned = trimmed[..end].replace('\\', "/");
+    let without_query = cleaned.trim();
 
     if without_query.is_empty() {
         None
@@ -433,10 +535,12 @@ fn is_external_or_fragment(raw: &str) -> bool {
     lower.starts_with("http://")
         || lower.starts_with("https://")
         || lower.starts_with("mailto:")
+        || lower.starts_with("package:")
         || lower.starts_with("tel:")
         || lower.starts_with("data:")
         || lower.starts_with("javascript:")
         || lower.starts_with("//")
+        || has_non_file_uri_scheme(&lower)
 }
 
 fn is_path_like(raw: &str) -> bool {
@@ -445,11 +549,20 @@ fn is_path_like(raw: &str) -> bool {
     }
 
     let cleaned = clean_local_target(raw).unwrap_or_default();
+    if cleaned.is_empty()
+        || cleaned.contains(':')
+        || is_template_or_variable_target(&cleaned)
+        || looks_like_version(&cleaned)
+    {
+        return false;
+    }
+
     cleaned.starts_with("./")
         || cleaned.starts_with("../")
         || cleaned.starts_with('/')
         || cleaned.contains('/')
-        || Path::new(&cleaned).extension().is_some()
+        || raw.contains('\\')
+        || has_known_file_extension(&cleaned)
 }
 
 fn is_asset_path(path: &str) -> bool {
@@ -511,13 +624,81 @@ fn is_package_or_build_file(rel: &str) -> bool {
     ) || rel.starts_with(".github/workflows/")
 }
 
+fn is_project_file(rel: &str) -> bool {
+    matches!(
+        Path::new(rel)
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .unwrap_or_default()
+            .to_ascii_lowercase()
+            .as_str(),
+        "csproj" | "vbproj" | "fsproj" | "props" | "targets"
+    )
+}
+
+fn has_known_file_extension(path: &str) -> bool {
+    let extension = Path::new(path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+
+    COMMON_EXTENSIONS.contains(&extension.as_str())
+}
+
+fn has_non_file_uri_scheme(lower: &str) -> bool {
+    let Some((scheme, _)) = lower.split_once(':') else {
+        return false;
+    };
+
+    !scheme.is_empty()
+        && scheme
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '+' | '-' | '.'))
+        && scheme
+            .chars()
+            .next()
+            .is_some_and(|ch| ch.is_ascii_alphabetic())
+        && scheme.len() > 1
+}
+
+fn is_template_or_variable_target(raw: &str) -> bool {
+    raw.contains("{{")
+        || raw.contains("}}")
+        || raw.contains("{%")
+        || raw.contains("%}")
+        || raw.contains("$(")
+        || raw.contains("${")
+        || raw.starts_with('$')
+        || raw.contains("{ ")
+        || raw.contains(" }")
+}
+
+fn looks_like_version(raw: &str) -> bool {
+    let mut saw_dot = false;
+    let mut saw_digit = false;
+
+    for ch in raw.chars() {
+        if ch.is_ascii_digit() {
+            saw_digit = true;
+        } else if ch == '.' {
+            saw_dot = true;
+        } else {
+            return false;
+        }
+    }
+
+    saw_dot && saw_digit
+}
+
 fn should_resolve_bare_name_relative(from_path: &str, target: &str) -> bool {
     !target.contains('/')
         && Path::new(target).extension().is_some()
-        && matches!(
-            lang_from_path(from_path),
-            "html" | "css" | "scss" | "sass" | "md"
-        )
+        && (is_project_file(from_path)
+            || matches!(
+                lang_from_path(from_path),
+                "html" | "css" | "scss" | "sass" | "md"
+            ))
 }
 
 fn is_testish_path(rel: &str) -> bool {
