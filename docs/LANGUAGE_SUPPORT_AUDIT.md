@@ -102,9 +102,29 @@ corpora for normal tests.
 - Extras-backed formats must not be described as Tree-sitter-backed
   code-symbol parsers.
 
+## RECOVERY_11 Readiness Classification
+
+RECOVERY_11 kept support levels unchanged. Go and PHP remain supported because
+they have grammar/query/fixture/license/docs coverage and normal conformance
+validation. Their missing Go-heavy and PHP-heavy local manifest targets are
+classified as real-repo hardening gaps, not reasons to weaken fixture-backed
+support claims.
+
+The local ignored real-repo manifest is practical hardening evidence when
+present. In this checkout it includes many active repos and expected-symbol or
+expected-pattern checks, but some side corpora remain exploratory until stable
+checks are added. Local clones under `test_repos/` that are not manifest entries
+are out of scope for support claims until a scoped plan adds, skips, or
+classifies them.
+
+The ignored real-repo test is intentionally local-only and can take several
+minutes because it removes and rebuilds each repo's `.dev_index/`. Run it with
+`--nocapture` when interactive progress is needed:
+
+```sh
+cargo test --test real_repos -- --ignored --nocapture
+```
+
 ## Recommended Next Action
 
-Run a real-repo test readiness audit. It should inspect
-`test_repos/MANIFEST.toml` behavior, skip reasons, local corpus expectations,
-coverage gaps such as Go/PHP real-repo targets, and ignored-test ergonomics
-without committing third-party repository contents.
+When practical local corpora are available, add Go-heavy and PHP-heavy manifest targets with stable queries and expected-symbol or expected-pattern checks. Do not commit third-party repository contents, and do not promote experimental or blocked languages from partial real-repo evidence.

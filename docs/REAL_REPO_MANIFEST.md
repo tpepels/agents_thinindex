@@ -18,6 +18,17 @@ When a useful repo has noisy generated/vendor paths, add local ignore rules in t
 
 Run `build_index --stats` inside large or noisy local clones before tightening expected symbols. The compact stats report surfaces large skipped files, broad size warnings, and phase timings without writing bulky snapshots.
 
+## Readiness Classification
+
+Classify each local corpus entry before treating it as support evidence:
+
+- `hardened`: active repo with stable `queries` plus exact expected symbols, expected patterns, expected-absent symbols, or thresholds that exercise the claimed language/format.
+- `exploratory`: active repo with useful local coverage but no stable expected-symbol checks yet. Keep a `notes` field explaining what syntax or product risk it explores before promoting findings.
+- `skipped`: documented repo that is absent, stale, too noisy, duplicated by another corpus, or intentionally deferred. Set `skip = true` and `skip_reason`.
+- `out of scope`: local third-party clone under `test_repos/` that is not part of the manifest. Do not use it as support evidence until it is added, skipped, or documented by a scoped change.
+
+Supported languages can remain supported when fixture and conformance evidence is valid, even if local real-repo evidence is still incomplete. Record that separately as a real-repo hardening gap. Current known examples are Go and PHP: both are fixture-backed supported languages, but this checkout does not currently have a Go-heavy or PHP-heavy manifest target.
+
 ## Required Repo Fields
 
 Every active repo entry must include:
@@ -116,9 +127,11 @@ If an active repo remains in the manifest, keep its expected symbols and pattern
 Normal tests use temporary fixture manifests and do not require `test_repos/`. Ignored/manual checks validate local real repos:
 
 ```sh
-cargo test --test real_repos -- --ignored
+cargo test --test real_repos -- --ignored --nocapture
 cargo test --test quality_gates -- --ignored
 cargo test --test quality_loop -- --ignored
 ```
+
+Use `--nocapture` for the real-repo check when running it interactively. The test prints the selected manifest repos, per-repo parser coverage, expected-symbol counts, unsupported extension gaps, and aggregate coverage, but Cargo hides that progress without `--nocapture` on passing tests. A full local corpus can take several minutes because the test removes each repo's `.dev_index/` and rebuilds from scratch.
 
 Malformed manifests fail during loading. Active entries missing `name`, `path`, `kind`, `languages`, or non-empty `queries` fail clearly. Nested expected-symbol sections fail if required fields such as `name`, `name_regex`, `min_count`, or threshold `language` are missing.

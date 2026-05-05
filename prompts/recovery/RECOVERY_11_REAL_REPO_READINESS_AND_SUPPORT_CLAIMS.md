@@ -14,18 +14,18 @@ Current failure it addresses:
 RECOVERY_STATUS.md says the core product loop is usable, but old roadmap work should remain paused until real-repo readiness, skip reasons, and support-claim confidence are hardened. The known gaps are evidence quality gaps, not permission to resume broad roadmap execution.
 
 Phases:
-- [ ] Read RECOVERY_STATUS.md and record the real-repo/support recommendation.
-- [ ] Read the current parser support matrix and generated support docs.
-- [ ] Run or inspect `cargo test --test real_repos -- --ignored`.
-- [ ] Audit `test_repos/MANIFEST.toml` coverage, skip behavior, and local-only ergonomics.
-- [ ] Verify declared supported languages are not overclaimed.
-- [ ] Verify experimental, blocked, and extras-backed statuses are honest.
-- [ ] Classify Go/PHP real-repo coverage gaps without weakening fixture-backed support claims.
-- [ ] Add expected-symbol or expected-pattern checks for real repos where useful.
-- [ ] Classify exploratory side corpora that are not ready for expected-symbol checks.
-- [ ] Fix stale docs/support claims.
-- [ ] Run verification.
-- [ ] Commit.
+- [x] Read RECOVERY_STATUS.md and record the real-repo/support recommendation.
+- [x] Read the current parser support matrix and generated support docs.
+- [x] Run or inspect `cargo test --test real_repos -- --ignored`.
+- [x] Audit `test_repos/MANIFEST.toml` coverage, skip behavior, and local-only ergonomics.
+- [x] Verify declared supported languages are not overclaimed.
+- [x] Verify experimental, blocked, and extras-backed statuses are honest.
+- [x] Classify Go/PHP real-repo coverage gaps without weakening fixture-backed support claims.
+- [x] Add expected-symbol or expected-pattern checks for real repos where useful.
+- [x] Classify exploratory side corpora that are not ready for expected-symbol checks.
+- [x] Fix stale docs/support claims.
+- [x] Run verification.
+- [x] Commit.
 
 Initial classified gaps from RECOVERY_STATUS and current inspection:
 - Go and PHP are fixture-backed supported languages, but `docs/LANGUAGE_SUPPORT_AUDIT.md` records no Go-heavy or PHP-heavy local real-repo target in this checkout. Classify this as a real-repo hardening gap unless a practical local manifest target exists.

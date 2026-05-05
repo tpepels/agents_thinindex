@@ -42,7 +42,7 @@ const SUPPORTED_EXTRAS_EXTENSIONS: &[&str] = &[
 ];
 
 #[test]
-#[ignore = "rebuilds .dev_index for every repo under test_repos/; run with: cargo test --test real_repos -- --ignored"]
+#[ignore = "rebuilds .dev_index for every repo under test_repos/; run with: cargo test --test real_repos -- --ignored --nocapture"]
 fn real_repos_pass_shared_integrity_checks() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("test_repos");
 
@@ -77,7 +77,13 @@ fn real_repos_pass_shared_integrity_checks() {
 
     let mut aggregate = AggregateCoverage::default();
 
-    for repo in &repos {
+    for (index, repo) in repos.iter().enumerate() {
+        eprintln!(
+            "real_repos progress: {}/{} {}",
+            index + 1,
+            repos.len(),
+            repo.name
+        );
         let report = check_repo(repo);
         aggregate.add(&report);
     }

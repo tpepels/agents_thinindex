@@ -647,6 +647,10 @@ fn conformance_status(entry: &SupportEntry) -> &'static str {
 }
 
 fn real_repo_status(entry: &SupportEntry) -> &'static str {
+    if matches!(entry.name, "Go" | "PHP") {
+        return "fixture-backed; no Go/PHP-heavy local manifest target yet";
+    }
+
     match entry.support_level {
         SupportLevel::Supported => "checked by ignored real-repo gate when configured",
         SupportLevel::Experimental => "local real-repo hardening incomplete",
@@ -656,6 +660,10 @@ fn real_repo_status(entry: &SupportEntry) -> &'static str {
 }
 
 fn expected_symbol_status(entry: &SupportEntry) -> &'static str {
+    if matches!(entry.name, "Go" | "PHP") {
+        return "fixture-backed; add manifest expected symbols when local target exists";
+    }
+
     match entry.support_level {
         SupportLevel::Supported | SupportLevel::Experimental => {
             "manifest expected symbols/patterns checked when configured"

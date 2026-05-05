@@ -355,6 +355,60 @@ fn language_support_dashboard_contains_all_claim_safety_sections() {
     }
 }
 
+#[test]
+fn go_and_php_supported_rows_classify_real_repo_gap_without_downgrade() {
+    let dashboard = render_language_support_dashboard();
+
+    for name in ["Go", "PHP"] {
+        let lines = table_lines_for(&dashboard, name);
+        assert_eq!(lines.len(), 1, "dashboard should have one {name} row");
+        let row = lines[0];
+
+        assert!(
+            row.contains("| supported |") && row.contains("| tree_sitter |"),
+            "{name} should remain fixture-backed supported, got: {row}"
+        );
+        assert!(
+            row.contains("no Go/PHP-heavy local manifest target yet"),
+            "{name} should classify the real-repo hardening gap, got: {row}"
+        );
+        assert!(
+            row.contains("add manifest expected symbols when local target exists"),
+            "{name} should not imply expected-symbol manifest coverage already exists, got: {row}"
+        );
+    }
+}
+
+#[test]
+fn real_repo_manifest_docs_explain_readiness_and_progress() {
+    let manifest_docs = repo_file("docs/REAL_REPO_MANIFEST.md");
+    let language_audit = repo_file("docs/LANGUAGE_SUPPORT_AUDIT.md");
+
+    for required in [
+        "Readiness Classification",
+        "hardened",
+        "exploratory",
+        "skipped",
+        "out of scope",
+        "Go and PHP",
+        "cargo test --test real_repos -- --ignored --nocapture",
+        "can take several minutes",
+    ] {
+        assert!(
+            manifest_docs.contains(required),
+            "real-repo manifest docs should explain `{required}`"
+        );
+    }
+
+    assert!(
+        language_audit.contains("RECOVERY_11 Readiness Classification")
+            && language_audit.contains("real-repo hardening gaps")
+            && language_audit.contains("Go-heavy and PHP-heavy manifest targets")
+            && language_audit.contains("Do not commit third-party repository contents"),
+        "language support audit should record RECOVERY_11 claim classification"
+    );
+}
+
 fn assert_doc_row_matches_entry(contents: &str, entry: &thinindex::support::SupportEntry) {
     let lines = table_lines_for(contents, entry.name);
     assert!(
