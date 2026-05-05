@@ -40,6 +40,7 @@ wi --help
 wi <term>
 wi pack <term>
 wi impact <term>
+wi-scorecard --query <term>
 ```
 
 Example:
@@ -86,6 +87,7 @@ Installed commands:
 - `wi doctor`: checks index, schema, freshness, agent instruction files, ignore rules, parser support, optional quality state, license status, and binary path.
 - `wi bench`: measures build, search, context-command, size, count, latency, and integrity behavior.
 - `wi-stats`: shows local usage stats, hit/miss graphs, and advisory agent workflow audit counts.
+- `wi-scorecard`: reports compact pass/warn/fail evidence for the core product value loop.
 - `wi-init`: prepares a repository for agent use.
 - `wi-init --remove`: removes the repo-local index.
 

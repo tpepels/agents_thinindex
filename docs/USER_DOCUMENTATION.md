@@ -23,6 +23,7 @@ wi refs <term>
 wi pack <term>
 wi impact <term>
 wi-stats
+wi-scorecard --query <term>
 ```
 
 The canonical command syntax, filters, examples, and subcommands are in
@@ -40,6 +41,7 @@ Use the commands as a product workflow, not as isolated demos:
 - Diagnose repository state with `wi doctor`.
 - Run `wi-init` when a repository needs agent instructions or normalized
   `CLAUDE.md` guidance.
+- Measure the local product loop with `wi-scorecard --query <term>`.
 
 `wi <term>`, `wi refs`, `wi pack`, and `wi impact` auto-build or auto-rebuild a
 missing/stale index once before continuing, so the normal workflow starts with
@@ -53,6 +55,7 @@ Useful docs:
 - [Context packs](CONTEXT_PACKS.md): how `wi pack <term>` chooses a compact read set.
 - [Impact analysis](IMPACT_ANALYSIS.md): what `wi impact <term>` does and does not prove.
 - [Reference graph](REFERENCE_GRAPH.md): deterministic references behind `wi refs <term>`.
+- [Product value scorecard](SCORECARD.md): compact pass/warn/fail evidence for the core workflow.
 
 ## Local-first Model
 

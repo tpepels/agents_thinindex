@@ -38,6 +38,10 @@ pub fn wi_stats_bin() -> Command {
     Command::cargo_bin("wi-stats").expect("wi-stats binary")
 }
 
+pub fn wi_scorecard_bin() -> Command {
+    Command::cargo_bin("wi-scorecard").expect("wi-scorecard binary")
+}
+
 pub fn run_build(root: &Path) -> String {
     let output = build_index_bin()
         .current_dir(root)

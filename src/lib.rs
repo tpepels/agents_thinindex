@@ -11,6 +11,7 @@ pub mod model;
 pub mod privacy;
 pub mod quality;
 pub mod refs;
+pub mod scorecard;
 pub mod search;
 pub mod semantic;
 pub mod stats;

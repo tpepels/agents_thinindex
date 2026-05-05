@@ -14,13 +14,13 @@ Current failure it addresses:
 The project has many technical plans, but not enough evidence that the core product loop creates value.
 
 Phases:
-- [ ] Define scorecard dimensions.
-- [ ] Add fixture or scripted checks for each dimension where practical.
-- [ ] Add a local report command/script/test if useful.
-- [ ] Document how to interpret the scorecard.
-- [ ] Fix obvious wording/reporting issues found while implementing the scorecard.
-- [ ] Run verification.
-- [ ] Commit.
+- [x] Define scorecard dimensions.
+- [x] Add fixture or scripted checks for each dimension where practical.
+- [x] Add a local report command/script/test if useful.
+- [x] Document how to interpret the scorecard.
+- [x] Fix obvious wording/reporting issues found while implementing the scorecard.
+- [x] Run verification.
+- [x] Commit.
 
 Scorecard dimensions:
 - wi <term> gives useful file:line results.

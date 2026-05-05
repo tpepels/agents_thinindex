@@ -15,6 +15,7 @@ Start here when you know what kind of information you need.
 | Category | Documents | Purpose |
 | --- | --- | --- |
 | User-facing docs | [USER_DOCUMENTATION.md](USER_DOCUMENTATION.md), [GETTING_STARTED.md](GETTING_STARTED.md), [TROUBLESHOOTING.md](TROUBLESHOOTING.md), [AGENT_INTEGRATION.md](AGENT_INTEGRATION.md) | Help users set up a repo, run commands, and follow the agent-navigation workflow. |
+| Product value docs | [SCORECARD.md](SCORECARD.md), [PERFORMANCE.md](PERFORMANCE.md) | Interpret local pass/warn/fail product evidence and performance budgets. |
 | Developer/contributor docs | [DEVELOPER_DOCUMENTATION.md](DEVELOPER_DOCUMENTATION.md), [TECHNICAL_FINAL_AUDIT.md](TECHNICAL_FINAL_AUDIT.md), [PARSER_MAINTENANCE.md](PARSER_MAINTENANCE.md), [PERFORMANCE.md](PERFORMANCE.md) | Explain architecture, validation, parser maintenance, and performance constraints. |
 | Parser and support docs | [PARSER_SUPPORT.md](PARSER_SUPPORT.md), [LANGUAGE_SUPPORT.md](LANGUAGE_SUPPORT.md), [LANGUAGE_SUPPORT_AUDIT.md](LANGUAGE_SUPPORT_AUDIT.md), [SEMANTIC_ADAPTERS.md](SEMANTIC_ADAPTERS.md) | Track support levels, claim-vs-implementation evidence, and the boundary between syntax extraction and semantic/compiler/LSP claims. |
 | Relationship/navigation docs | [REFERENCE_GRAPH.md](REFERENCE_GRAPH.md), [DEPENDENCY_GRAPH.md](DEPENDENCY_GRAPH.md), [CONTEXT_PACKS.md](CONTEXT_PACKS.md), [IMPACT_ANALYSIS.md](IMPACT_ANALYSIS.md), [FILE_ROLES.md](FILE_ROLES.md) | Describe SQLite-backed refs, dependency evidence, context packs, impact output, and file-role mapping. |

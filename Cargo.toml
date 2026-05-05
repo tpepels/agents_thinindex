@@ -53,3 +53,7 @@ path = "src/bin/wi-init.rs"
 [[bin]]
 name = "wi-stats"
 path = "src/bin/wi-stats.rs"
+
+[[bin]]
+name = "wi-scorecard"
+path = "src/bin/wi-scorecard.rs"

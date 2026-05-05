@@ -60,11 +60,13 @@ Use context commands before reading broad files:
 wi refs PromptService
 wi pack PromptService
 wi impact PromptService
+wi-scorecard --query PromptService
 ```
 
 `wi refs` shows direct deterministic reference evidence. `wi pack` returns a
 compact read set for implementation. `wi impact` returns evidence-backed files
-to inspect before editing.
+to inspect before editing. `wi-scorecard` reports compact pass/warn/fail
+evidence for whether the local workflow is producing useful results.
 
 ## Agent Terminal Example
 
