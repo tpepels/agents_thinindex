@@ -9,7 +9,7 @@ use tempfile::TempDir;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
-const BINARIES: &[&str] = &["wi", "build_index", "wi-init", "wi-stats"];
+const BINARIES: &[&str] = &["wi", "build_index", "wi-init", "wi-stats", "wi-scorecard"];
 const FORBIDDEN_EXTERNAL_TOOL: &str = concat!("c", "tags");
 
 fn repo_root() -> &'static Path {
@@ -39,7 +39,8 @@ fn github_actions_workflows_cover_release_gates() {
                 && workflow.contains("cargo run --bin wi -- --version")
                 && workflow.contains("cargo run --bin build_index -- --version")
                 && workflow.contains("cargo run --bin wi-init -- --version")
-                && workflow.contains("cargo run --bin wi-stats -- --version"),
+                && workflow.contains("cargo run --bin wi-stats -- --version")
+                && workflow.contains("cargo run --bin wi-scorecard -- --version"),
             "workflow should smoke all commands"
         );
         assert!(
@@ -213,6 +214,7 @@ fn make_archive(options: &[&str]) -> PathBuf {
     fs::write(package.join("docs/RELEASING.md"), "releasing").expect("write releasing");
     fs::write(package.join("docs/INSTALLERS.md"), "installers").expect("write installers");
     fs::write(package.join("docs/LICENSING.md"), "licensing").expect("write licensing");
+    fs::write(package.join("docs/SCORECARD.md"), "scorecard").expect("write scorecard");
     fs::write(package.join("docs/SECURITY_PRIVACY.md"), "privacy").expect("write privacy");
     fs::write(package.join("docs/TEAM_CI_ROADMAP.md"), "team ci roadmap")
         .expect("write team ci roadmap");
@@ -287,6 +289,7 @@ payload and point to the authoritative dependency notices.
 - build_index{exe_suffix}
 - wi-init{exe_suffix}
 - wi-stats{exe_suffix}
+- wi-scorecard{exe_suffix}
 
 ## Bundled notices
 
@@ -374,6 +377,17 @@ if [ "${1:-}" = "--version" ]; then
   exit 0
 fi
 echo "stats"
+"#,
+    );
+    write_executable(
+        &package.join("wi-scorecard"),
+        r#"#!/usr/bin/env sh
+set -eu
+if [ "${1:-}" = "--version" ]; then
+  echo "wi-scorecard 9.9.9 (index schema 12)"
+  exit 0
+fi
+echo "scorecard"
 "#,
     );
 

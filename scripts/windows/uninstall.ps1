@@ -3,7 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Binaries = @("wi.exe", "build_index.exe", "wi-init.exe", "wi-stats.exe")
+$Binaries = @("wi.exe", "build_index.exe", "wi-init.exe", "wi-stats.exe", "wi-scorecard.exe")
 
 Write-Host "Uninstalling thinindex commands from: $DestinationDir"
 

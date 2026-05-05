@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-BINARIES="wi build_index wi-init wi-stats"
+BINARIES="wi build_index wi-init wi-stats wi-scorecard"
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 ARCHIVE_ROOT="${ARCHIVE_ROOT:-$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)}"
 PREFIX="${PREFIX:-$HOME/.local}"

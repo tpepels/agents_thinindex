@@ -92,6 +92,7 @@ is_allowed_entry() {
         "$PACKAGE_NAME/build_index$EXE_SUFFIX") return 0 ;;
         "$PACKAGE_NAME/wi-init$EXE_SUFFIX") return 0 ;;
         "$PACKAGE_NAME/wi-stats$EXE_SUFFIX") return 0 ;;
+        "$PACKAGE_NAME/wi-scorecard$EXE_SUFFIX") return 0 ;;
         "$PACKAGE_NAME/README.md") return 0 ;;
         "$PACKAGE_NAME/INSTALL.md") return 0 ;;
         "$PACKAGE_NAME/SBOM.md") return 0 ;;
@@ -103,6 +104,7 @@ is_allowed_entry() {
         "$PACKAGE_NAME/docs/RELEASING.md") return 0 ;;
         "$PACKAGE_NAME/docs/INSTALLERS.md") return 0 ;;
         "$PACKAGE_NAME/docs/LICENSING.md") return 0 ;;
+        "$PACKAGE_NAME/docs/SCORECARD.md") return 0 ;;
         "$PACKAGE_NAME/docs/SECURITY_PRIVACY.md") return 0 ;;
         "$PACKAGE_NAME/docs/TEAM_CI_ROADMAP.md") return 0 ;;
         "$PACKAGE_NAME/docs/TROUBLESHOOTING.md") return 0 ;;
@@ -145,6 +147,7 @@ require_entry '/wi(\.exe)?$' "wi binary"
 require_entry '/build_index(\.exe)?$' "build_index binary"
 require_entry '/wi-init(\.exe)?$' "wi-init binary"
 require_entry '/wi-stats(\.exe)?$' "wi-stats binary"
+require_entry '/wi-scorecard(\.exe)?$' "wi-scorecard binary"
 require_entry '/THIRD_PARTY_NOTICES$' "THIRD_PARTY_NOTICES"
 require_entry '/README\.md$' "README.md"
 require_entry '/INSTALL\.md$' "INSTALL.md"
@@ -154,6 +157,7 @@ require_entry '/docs/GETTING_STARTED\.md$' "docs/GETTING_STARTED.md"
 require_entry '/docs/RELEASING\.md$' "docs/RELEASING.md"
 require_entry '/docs/INSTALLERS\.md$' "docs/INSTALLERS.md"
 require_entry '/docs/LICENSING\.md$' "docs/LICENSING.md"
+require_entry '/docs/SCORECARD\.md$' "docs/SCORECARD.md"
 require_entry '/docs/SECURITY_PRIVACY\.md$' "docs/SECURITY_PRIVACY.md"
 require_entry '/docs/TEAM_CI_ROADMAP\.md$' "docs/TEAM_CI_ROADMAP.md"
 require_entry '/docs/TROUBLESHOOTING\.md$' "docs/TROUBLESHOOTING.md"
@@ -196,6 +200,7 @@ require_sbom_text "- wi$EXE_SUFFIX" "wi binary"
 require_sbom_text "- build_index$EXE_SUFFIX" "build_index binary"
 require_sbom_text "- wi-init$EXE_SUFFIX" "wi-init binary"
 require_sbom_text "- wi-stats$EXE_SUFFIX" "wi-stats binary"
+require_sbom_text "- wi-scorecard$EXE_SUFFIX" "wi-scorecard binary"
 require_sbom_text "## Bundled notices" "bundled notices section"
 require_sbom_text "\`THIRD_PARTY_NOTICES\`" "third-party notices"
 require_sbom_text "## Not bundled" "not bundled section"

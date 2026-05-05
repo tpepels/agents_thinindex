@@ -13,6 +13,7 @@ cargo run --bin wi -- --version
 cargo run --bin build_index -- --version
 cargo run --bin wi-init -- --version
 cargo run --bin wi-stats -- --version
+cargo run --bin wi-scorecard -- --version
 
 OUTPUT="$(scripts/package-release --out-dir "$OUT_DIR")"
 printf '%s\n' "$OUTPUT"

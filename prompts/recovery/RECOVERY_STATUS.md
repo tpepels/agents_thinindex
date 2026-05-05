@@ -5,9 +5,10 @@ Audit date: 2026-05-05.
 ## Status
 
 Recovery is complete for the current `prompts/recovery/PLAN_ORDER.md` cycle,
-the focused installed-binary follow-up, and the post-recovery PLAN_52
-file-reference real-repo hardening pass. A final audit after PLAN_52 found one
-focused docs/install mismatch to resolve before cutting a release candidate.
+the focused installed-binary follow-up, the post-recovery PLAN_52
+file-reference real-repo hardening pass, and the PLAN_53 scorecard install/docs
+alignment pass. No focused recovery blocker remains before the next
+release-candidate decision.
 
 `PLAN_ORDER.md` lists RECOVERY_00 through RECOVERY_11. All recovery plan
 checklists are complete, required commits exist, the source-built core product
@@ -41,6 +42,7 @@ The file-reference graph work landed after RECOVERY_11:
 | `1403da6` Add file reference graph | Added SQLite `file_references`, local extraction, deterministic resolution/unresolved reasons, docs, tests, and `wi refs`/`wi pack`/`wi impact` integration. |
 | `319caa0` Fix installed binary schema mismatch | Added schema-bearing version output, source/binary mismatch diagnosis, index-write guards, installer schema smoke checks, docs, and refreshed `/home/tom/.local/bin` binaries. |
 | `7a0c3b6` Harden file references on real repos | Hardened Markdown fragment/query resolution, HTML `srcset`, CSS/SCSS `@import`, Sass partials, `.csproj` project-file paths, and noisy config filtering; added fixture coverage, real-repo reporting, docs, and PLAN_52 execution notes. |
+| this commit Align scorecard install docs | `wi-scorecard` is installed, packaged, schema-version-smoked, listed in installer/release docs, included in archive package content checks, and shipped with `docs/SCORECARD.md`. |
 
 ## Current Core Touchpoint Evidence
 
@@ -88,6 +90,9 @@ Latest audit verification:
 - `cargo test --test local_index -- --ignored`: passed.
 - `cargo test --test real_repos -- --ignored`: passed, `1 passed, 3 filtered out`, because local `test_repos/` exists.
 - PATH/version/install verification: passed for `which wi`, `which build_index`, PATH/source `--version`, PATH `build_index`, PATH `wi build_index`, and source doctor/build after PATH build.
+- PLAN_53 install/archive verification: passed for `./install.sh`,
+  `which wi-scorecard`, `wi-scorecard --version`, `scripts/check-release`, and
+  standalone `scripts/smoke-release-archive dist/thinindex-0.1.4-x86_64-unknown-linux-gnu.tar.gz`.
 
 ## Remaining Caveats
 
@@ -96,11 +101,6 @@ Latest audit verification:
 - Go and PHP remain supported by fixture/conformance coverage, but this checkout still lacks Go-heavy and PHP-heavy local manifest targets. That is documented as future real-repo hardening, not a support-claim blocker.
 - Some local `test_repos/` side corpora remain exploratory until a future scoped plan adds stable expected-symbol or expected-pattern checks. Third-party repository contents must remain uncommitted.
 - File-reference extraction is explicit and best-effort. It resolves local evidence, preserves unresolved local-looking paths, and does not claim package-manager, compiler, framework alias, LSP, root-relative web-base, package export-map, or network semantics.
-- `wi-scorecard` is currently documented as a normal installed command in user
-  docs, but install/archive paths ship only `wi`, `build_index`, `wi-init`, and
-  `wi-stats`. This is not a core search/index blocker, but it is a release
-  candidate blocker because quickstart/install behavior and shipped commands
-  must agree.
 - If a future schema bump lands, users must refresh installed binaries with
   `make install` or the archive installer. Current binaries now expose schema in
   `--version` and refuse index writes from a mismatched thinindex source
@@ -108,20 +108,12 @@ Latest audit verification:
 
 ## Decision
 
-Recovery is complete enough to resume scoped product work, but not yet enough
-to cut a release candidate. Active roadmap prompt files are checked complete
-through PLAN_52; the only unchecked active plan after this audit is the newly
-created focused PLAN_53 scorecard install/docs alignment plan. No high-priority
-core search/index touchpoint is currently broken or slow.
+Recovery is complete enough to cut a release-candidate decision. Active
+roadmap prompt files are checked complete through PLAN_53, and no high-priority
+core search/index/install touchpoint is currently broken or slow.
 
-Decision: complete exactly one focused value-hardening plan before RC:
-
-`prompts/PLAN_53_SCORECARD_INSTALL_DOC_ALIGNMENT.md`
-
-This is higher value than starting broader roadmap work because it resolves a
-concrete user-facing install/docs contradiction. Old roadmap/product work may
-resume later only through a new scoped plan that respects the current
-guardrails:
+Decision: proceed to release-candidate preparation or resume future roadmap work
+only through a new scoped plan that respects the current guardrails:
 
 - do not reintroduce Universal Ctags as a production parser;
 - do not reintroduce `WI.md`;
@@ -133,6 +125,6 @@ guardrails:
 
 ## Next Recommended Action
 
-Implement `prompts/PLAN_53_SCORECARD_INSTALL_DOC_ALIGNMENT.md`, then rerun the
-release-candidate decision. Do not create a broad roadmap batch. Do not cut an
-RC until installed/archive command behavior and docs agree on `wi-scorecard`.
+Cut a release candidate using the current release checklist, or create one
+narrow follow-up plan only if RC smoke on a target platform finds a concrete
+blocker. Do not create a broad roadmap batch before the RC decision.

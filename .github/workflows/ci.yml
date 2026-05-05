@@ -64,6 +64,7 @@ jobs:
       - run: cargo run --bin build_index -- --version
       - run: cargo run --bin wi-init -- --version
       - run: cargo run --bin wi-stats -- --version
+      - run: cargo run --bin wi-scorecard -- --version
 
   package-smoke:
     name: package smoke

@@ -24,6 +24,7 @@ fn local_ci_script_runs_deterministic_gates_only() {
         "cargo deny check licenses",
         "cargo run --bin wi -- --help",
         "cargo run --bin wi-stats -- --version",
+        "cargo run --bin wi-scorecard -- --version",
     ] {
         assert!(
             script.contains(required),

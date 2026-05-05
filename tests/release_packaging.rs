@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-const BINARIES: &[&str] = &["wi", "build_index", "wi-init", "wi-stats"];
+const BINARIES: &[&str] = &["wi", "build_index", "wi-init", "wi-stats", "wi-scorecard"];
 
 fn repo_file(path: &str) -> String {
     fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(path))
@@ -37,6 +37,7 @@ fn release_package_script_stages_expected_payload() {
         "docs/RELEASING.md",
         "docs/INSTALLERS.md",
         "docs/LICENSING.md",
+        "docs/SCORECARD.md",
         "docs/SECURITY_PRIVACY.md",
         "docs/TEAM_CI_ROADMAP.md",
         "docs/TROUBLESHOOTING.md",
@@ -170,7 +171,8 @@ fn release_docs_describe_archive_install_and_boundaries() {
         releasing.contains("wi` or `wi.exe")
             && releasing.contains("build_index` or `build_index.exe")
             && releasing.contains("wi-init` or `wi-init.exe")
-            && releasing.contains("wi-stats` or `wi-stats.exe"),
+            && releasing.contains("wi-stats` or `wi-stats.exe")
+            && releasing.contains("wi-scorecard` or `wi-scorecard.exe"),
         "release docs should list every archive binary"
     );
     assert!(
@@ -178,6 +180,7 @@ fn release_docs_describe_archive_install_and_boundaries() {
             && releasing.contains("docs/CI_INTEGRATION.md")
             && releasing.contains("docs/GETTING_STARTED.md")
             && releasing.contains("docs/LICENSING.md")
+            && releasing.contains("docs/SCORECARD.md")
             && releasing.contains("docs/TEAM_CI_ROADMAP.md")
             && releasing.contains("docs/TROUBLESHOOTING.md")
             && releasing.contains("sign-release-artifact")

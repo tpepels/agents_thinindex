@@ -23,6 +23,7 @@ The current free/local core includes:
 - ability to remove `.dev_index`
 - local cache rebuilds
 - basic `wi-stats`
+- basic `wi-scorecard`
 - index integrity checks
 - no-network local operation
 

@@ -10,7 +10,7 @@ const UNIX_INSTALL: &str = "scripts/install-archive-unix";
 const UNIX_UNINSTALL: &str = "scripts/uninstall-archive-unix";
 const WINDOWS_INSTALL: &str = "scripts/windows/install.ps1";
 const WINDOWS_UNINSTALL: &str = "scripts/windows/uninstall.ps1";
-const BINARIES: &[&str] = &["wi", "build_index", "wi-init", "wi-stats"];
+const BINARIES: &[&str] = &["wi", "build_index", "wi-init", "wi-stats", "wi-scorecard"];
 
 fn repo_root() -> &'static Path {
     Path::new(env!("CARGO_MANIFEST_DIR"))

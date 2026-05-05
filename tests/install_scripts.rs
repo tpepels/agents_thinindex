@@ -4,7 +4,7 @@ use assert_cmd::prelude::*;
 use predicates::prelude::PredicateBooleanExt;
 use predicates::str::contains;
 
-const BINARIES: &[&str] = &["build_index", "wi", "wi-init", "wi-stats"];
+const BINARIES: &[&str] = &["build_index", "wi", "wi-init", "wi-stats", "wi-scorecard"];
 
 fn repo_file(name: &str) -> String {
     fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(name))

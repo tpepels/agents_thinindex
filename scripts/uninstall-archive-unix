@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-BINARIES="wi build_index wi-init wi-stats"
+BINARIES="wi build_index wi-init wi-stats wi-scorecard"
 PREFIX="${PREFIX:-$HOME/.local}"
 BIN_DIR="${BIN_DIR:-$PREFIX/bin}"
 

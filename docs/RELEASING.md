@@ -46,6 +46,7 @@ cargo run --bin wi -- --version
 cargo run --bin build_index -- --version
 cargo run --bin wi-init -- --version
 cargo run --bin wi-stats -- --version
+cargo run --bin wi-scorecard -- --version
 scripts/package-release
 scripts/check-package-contents <archive>
 scripts/smoke-release-archive <archive>
@@ -98,6 +99,7 @@ Each archive contains:
 - `build_index` or `build_index.exe`
 - `wi-init` or `wi-init.exe`
 - `wi-stats` or `wi-stats.exe`
+- `wi-scorecard` or `wi-scorecard.exe`
 - `README.md`
 - `INSTALL.md`
 - `SBOM.md`
@@ -106,6 +108,7 @@ Each archive contains:
 - `docs/RELEASING.md`
 - `docs/INSTALLERS.md`
 - `docs/LICENSING.md`
+- `docs/SCORECARD.md`
 - `docs/SECURITY_PRIVACY.md`
 - `docs/TEAM_CI_ROADMAP.md`
 - `docs/TROUBLESHOOTING.md`
@@ -200,9 +203,9 @@ scripts/check-package-contents dist/thinindex-<version>-<target>.tar.gz
 The check verifies that the archive:
 
 - contains only the expected release payload entries under the archive root and rejects unexpected payload entries such as source checkout files
-- includes `wi`, `build_index`, `wi-init`, and `wi-stats`
+- includes `wi`, `build_index`, `wi-init`, `wi-stats`, and `wi-scorecard`
 - includes `THIRD_PARTY_NOTICES`
-- includes `README.md`, `INSTALL.md`, `SBOM.md`, `docs/CI_INTEGRATION.md`, `docs/GETTING_STARTED.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, `docs/LICENSING.md`, `docs/SECURITY_PRIVACY.md`, `docs/TEAM_CI_ROADMAP.md`, and `docs/TROUBLESHOOTING.md`
+- includes `README.md`, `INSTALL.md`, `SBOM.md`, `docs/CI_INTEGRATION.md`, `docs/GETTING_STARTED.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, `docs/LICENSING.md`, `docs/SCORECARD.md`, `docs/SECURITY_PRIVACY.md`, `docs/TEAM_CI_ROADMAP.md`, and `docs/TROUBLESHOOTING.md`
 - validates `SBOM.md` fields for the archive basename, checksum sidecar, shipped binaries, notice file, license-audit command, and not-bundled local/secret/comparator boundaries
 - excludes `.dev_index/`
 - excludes `test_repos/`

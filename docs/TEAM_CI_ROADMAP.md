@@ -22,6 +22,7 @@ The free local core remains:
 - `wi doctor`
 - `wi refs`, `wi pack`, and `wi impact`
 - `wi-stats`
+- `wi-scorecard`
 - local cache rebuilds
 - no-network local operation
 

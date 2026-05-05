@@ -246,7 +246,7 @@ Known extraction gaps: Rust `use` records, Ruby `require` targets, Shell sourced
 
 thinindex is currently a local/free tool. There is no license enforcement, payment flow, account login, cloud sync, telemetry, remote indexing, or feature lockout. The inert local license status model is documented in [docs/LICENSING.md](docs/LICENSING.md). No current command is blocked by license status.
 
-The free/local core includes local indexing, `build_index`, `wi <term>`, basic filters, `wi --help`, `wi-init`, repo-local SQLite storage, `wi-stats`, AGENTS.md setup, existing CLAUDE.md normalization, local cache rebuilds, and no-network operation.
+The free/local core includes local indexing, `build_index`, `wi <term>`, basic filters, `wi --help`, `wi-init`, repo-local SQLite storage, `wi-stats`, `wi-scorecard`, AGENTS.md setup, existing CLAUDE.md normalization, local cache rebuilds, and no-network operation.
 
 Future Pro candidates are documented in [docs/PRODUCT_BOUNDARY.md](docs/PRODUCT_BOUNDARY.md). They are candidates, not current restrictions.
 
@@ -300,6 +300,7 @@ build_index --version
 wi --version
 wi-init --version
 wi-stats --version
+wi-scorecard --version
 ```
 
 Each version line includes the index schema, for example `index schema 12`.

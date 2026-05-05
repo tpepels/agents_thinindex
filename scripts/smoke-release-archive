@@ -105,6 +105,7 @@ require_packaged_binary wi
 require_packaged_binary build_index
 require_packaged_binary wi-init
 require_packaged_binary wi-stats
+require_packaged_binary wi-scorecard
 
 expected_schema="$("$PACKAGE_DIR/build_index$EXE_SUFFIX" --version | sed -n 's/.*index schema \([0-9][0-9]*\).*/\1/p')"
 if [ -z "$expected_schema" ]; then
@@ -112,7 +113,7 @@ if [ -z "$expected_schema" ]; then
     exit 1
 fi
 
-for binary in wi build_index wi-init wi-stats; do
+for binary in wi build_index wi-init wi-stats wi-scorecard; do
     version_output="$("$PACKAGE_DIR/$binary$EXE_SUFFIX" --version)"
     case "$version_output" in
         *"index schema $expected_schema"*) ;;

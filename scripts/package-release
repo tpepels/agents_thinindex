@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-BINARIES="wi build_index wi-init wi-stats"
+BINARIES="wi build_index wi-init wi-stats wi-scorecard"
 OUT_DIR="dist"
 TARGET=""
 VERSION=""
@@ -129,6 +129,7 @@ require_file "docs/GETTING_STARTED.md"
 require_file "docs/RELEASING.md"
 require_file "docs/INSTALLERS.md"
 require_file "docs/LICENSING.md"
+require_file "docs/SCORECARD.md"
 require_file "docs/SECURITY_PRIVACY.md"
 require_file "docs/TEAM_CI_ROADMAP.md"
 require_file "docs/TROUBLESHOOTING.md"
@@ -144,6 +145,7 @@ cp "docs/GETTING_STARTED.md" "$PACKAGE_DIR/docs/GETTING_STARTED.md"
 cp "docs/RELEASING.md" "$PACKAGE_DIR/docs/RELEASING.md"
 cp "docs/INSTALLERS.md" "$PACKAGE_DIR/docs/INSTALLERS.md"
 cp "docs/LICENSING.md" "$PACKAGE_DIR/docs/LICENSING.md"
+cp "docs/SCORECARD.md" "$PACKAGE_DIR/docs/SCORECARD.md"
 cp "docs/SECURITY_PRIVACY.md" "$PACKAGE_DIR/docs/SECURITY_PRIVACY.md"
 cp "docs/TEAM_CI_ROADMAP.md" "$PACKAGE_DIR/docs/TEAM_CI_ROADMAP.md"
 cp "docs/TROUBLESHOOTING.md" "$PACKAGE_DIR/docs/TROUBLESHOOTING.md"
@@ -165,7 +167,7 @@ Copy the binaries in this archive to a directory on your PATH.
 On Unix-like systems, make them executable if needed:
 
 ```bash
-chmod +x wi build_index wi-init wi-stats
+chmod +x wi build_index wi-init wi-stats wi-scorecard
 ```
 
 Then run:
@@ -205,6 +207,7 @@ payload and point to the authoritative dependency notices.
 - build_index$EXE_SUFFIX
 - wi-init$EXE_SUFFIX
 - wi-stats$EXE_SUFFIX
+- wi-scorecard$EXE_SUFFIX
 
 ## Bundled notices
 

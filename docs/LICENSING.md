@@ -16,7 +16,7 @@ features today.
 - The free local core remains available without a license file.
 
 The current free local core includes `wi-init`, `build_index`, `wi <term>`,
-`wi refs`, `wi pack`, `wi impact`, `wi bench`, `wi-stats`, local SQLite index
+`wi refs`, `wi pack`, `wi impact`, `wi bench`, `wi-stats`, `wi-scorecard`, local SQLite index
 storage, repository instruction generation, local cache rebuilds, and
 no-network operation.
 

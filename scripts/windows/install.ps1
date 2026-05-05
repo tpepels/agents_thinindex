@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Binaries = @("wi.exe", "build_index.exe", "wi-init.exe", "wi-stats.exe")
+$Binaries = @("wi.exe", "build_index.exe", "wi-init.exe", "wi-stats.exe", "wi-scorecard.exe")
 $NoticePath = Join-Path $SourceDir "THIRD_PARTY_NOTICES"
 
 if (!(Test-Path -Path $NoticePath -PathType Leaf)) {

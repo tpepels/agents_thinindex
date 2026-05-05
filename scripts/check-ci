@@ -15,5 +15,6 @@ cargo run --bin wi -- --version
 cargo run --bin build_index -- --version
 cargo run --bin wi-init -- --version
 cargo run --bin wi-stats -- --version
+cargo run --bin wi-scorecard -- --version
 
 echo "ci check ok"

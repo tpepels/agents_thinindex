@@ -45,16 +45,30 @@ Do not add:
   release flow.
 
 Phases:
-- [ ] Confirm PLAN_52 and recovery status identify this as the next focused
+- [x] Confirm PLAN_52 and recovery status identify this as the next focused
       blocker before RC.
-- [ ] Inventory every `wi-scorecard` reference in docs, help, installers,
+- [x] Inventory every `wi-scorecard` reference in docs, help, installers,
       package scripts, tests, and release checks.
-- [ ] Choose the product stance: installed command or source/developer-only.
-- [ ] Implement the smallest consistent change across docs/scripts/tests.
-- [ ] Verify PATH and source binaries still agree on version/schema.
-- [ ] Run release/archive smoke checks affected by the stance.
-- [ ] Run full verification.
-- [ ] Commit.
+- [x] Choose the product stance: installed command or source/developer-only.
+- [x] Implement the smallest consistent change across docs/scripts/tests.
+- [x] Verify PATH and source binaries still agree on version/schema.
+- [x] Run release/archive smoke checks affected by the stance.
+- [x] Run full verification.
+- [x] Commit.
+
+Execution notes:
+- Stance: install and package `wi-scorecard` with the other user-facing
+  thinindex commands.
+- Rationale: README, Getting Started, User Documentation, `docs/SCORECARD.md`,
+  and `wi --help` already present `wi-scorecard` as a normal local workflow
+  command; packaging it is the smallest consistent product fix.
+- Local installer evidence: `./install.sh` installed and schema-smoked
+  `build_index`, `wi`, `wi-init`, `wi-stats`, and `wi-scorecard` from the same
+  release build.
+- Archive evidence: `scripts/check-release` generated
+  `dist/thinindex-0.1.4-x86_64-unknown-linux-gnu.tar.gz`, validated package
+  contents and SBOM, and smoke-tested packaged commands; standalone
+  `scripts/smoke-release-archive` also passed.
 
 Acceptance:
 - Installed/archive users are not instructed to run a missing command.

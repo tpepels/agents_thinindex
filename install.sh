@@ -26,15 +26,16 @@ install -m 0755 target/release/build_index "$BIN_DIR/build_index"
 install -m 0755 target/release/wi "$BIN_DIR/wi"
 install -m 0755 target/release/wi-init "$BIN_DIR/wi-init"
 install -m 0755 target/release/wi-stats "$BIN_DIR/wi-stats"
+install -m 0755 target/release/wi-scorecard "$BIN_DIR/wi-scorecard"
 
-for bin in build_index wi wi-init wi-stats; do
+for bin in build_index wi wi-init wi-stats wi-scorecard; do
   if [[ ! -x "$BIN_DIR/$bin" ]]; then
     echo "error: install failed: $BIN_DIR/$bin is not executable" >&2
     exit 1
   fi
 done
 
-for bin in build_index wi wi-init wi-stats; do
+for bin in build_index wi wi-init wi-stats wi-scorecard; do
   version_output="$("$BIN_DIR/$bin" --version)"
   echo "$version_output"
   if [[ "$version_output" != *"index schema $EXPECTED_INDEX_SCHEMA"* ]]; then
@@ -43,7 +44,7 @@ for bin in build_index wi wi-init wi-stats; do
   fi
 done
 
-for bin in build_index wi wi-init wi-stats; do
+for bin in build_index wi wi-init wi-stats wi-scorecard; do
   active_path="$(command -v "$bin" 2>/dev/null || true)"
   if [[ -n "$active_path" && "$active_path" != "$BIN_DIR/$bin" ]]; then
     echo "warning: PATH resolves $bin to $active_path, not $BIN_DIR/$bin"
@@ -64,3 +65,4 @@ echo "  $BIN_DIR/build_index"
 echo "  $BIN_DIR/wi"
 echo "  $BIN_DIR/wi-init"
 echo "  $BIN_DIR/wi-stats"
+echo "  $BIN_DIR/wi-scorecard"
