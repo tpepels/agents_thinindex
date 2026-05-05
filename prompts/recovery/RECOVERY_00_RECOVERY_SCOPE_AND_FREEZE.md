@@ -12,13 +12,13 @@ Current failure it addresses:
 The roadmap expanded while basic product touchpoints were broken. The team needs a clear recovery boundary before more work continues.
 
 Phases:
-- [ ] Inventory old active plan files.
-- [ ] Confirm recovery plans supersede roadmap execution until RECOVERY_10 says otherwise.
-- [ ] Add or update recovery README/status note.
-- [ ] Ensure PLAN_ORDER.md references RECOVERY_00 through RECOVERY_10.
-- [ ] Verify old plans are not deleted or renumbered.
-- [ ] Run validation.
-- [ ] Commit.
+- [x] Inventory old active plan files.
+- [x] Confirm recovery plans supersede roadmap execution until RECOVERY_10 says otherwise.
+- [x] Add or update recovery README/status note.
+- [x] Ensure PLAN_ORDER.md references RECOVERY_00 through RECOVERY_10.
+- [x] Verify old plans are not deleted or renumbered.
+- [x] Run validation.
+- [x] Commit.
 
 Rules:
 - Do not delete old roadmap plans.
