@@ -102,6 +102,7 @@ fn print_sensitive_path_warnings(warnings: &[thinindex::privacy::SensitivePathWa
 fn print_stats(stats: &thinindex::indexer::BuildStats) {
     println!("refs: {}", stats.refs);
     println!("dependencies: {}", stats.dependencies);
+    println!("file references: {}", stats.file_references);
     println!("semantic facts: {}", stats.semantic_facts);
     println!("sensitive path warnings: {}", stats.sensitive_paths.len());
     println!("unchanged files: {}", stats.unchanged_files);
@@ -125,6 +126,10 @@ fn print_stats(stats: &thinindex::indexer::BuildStats) {
     println!(
         "  dependencies ms: {}",
         stats.timings.dependencies.as_millis()
+    );
+    println!(
+        "  file references ms: {}",
+        stats.timings.file_references.as_millis()
     );
     println!("  refs ms: {}", stats.timings.refs.as_millis());
     println!("  semantic ms: {}", stats.timings.semantic.as_millis());

@@ -9,8 +9,8 @@ use anyhow::{Context, Result, anyhow, bail};
 use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::model::{
-    DependencyEdge, FileMeta, INDEX_SCHEMA_VERSION, IndexRecord, Manifest, ReferenceRecord,
-    SemanticFact, SemanticFactKind,
+    DependencyEdge, FileMeta, FileReference, INDEX_SCHEMA_VERSION, IndexRecord, Manifest,
+    ReferenceRecord, SemanticFact, SemanticFactKind,
 };
 
 pub const DEV_INDEX_DIR: &str = ".dev_index";
@@ -97,6 +97,11 @@ pub fn load_dependencies(root: &Path) -> Result<Vec<DependencyEdge>> {
     load_dependencies_from_conn(&conn)
 }
 
+pub fn load_file_references(root: &Path) -> Result<Vec<FileReference>> {
+    let conn = open_ready_database(root)?;
+    load_file_references_from_conn(&conn)
+}
+
 pub fn load_semantic_facts(root: &Path) -> Result<Vec<SemanticFact>> {
     let conn = open_ready_database(root)?;
     load_semantic_facts_from_conn(&conn)
@@ -108,6 +113,7 @@ pub fn save_index_snapshot(
     records: &[IndexRecord],
     refs: &[ReferenceRecord],
     dependencies: &[DependencyEdge],
+    file_references: &[FileReference],
     semantic_facts: &[SemanticFact],
 ) -> Result<()> {
     let mut conn = open_ready_database(root)?;
@@ -124,6 +130,8 @@ pub fn save_index_snapshot(
         .context("failed to clear refs table")?;
     tx.execute("DELETE FROM dependencies", [])
         .context("failed to clear dependencies table")?;
+    tx.execute("DELETE FROM file_references", [])
+        .context("failed to clear file_references table")?;
     tx.execute("DELETE FROM semantic_facts", [])
         .context("failed to clear semantic facts table")?;
     tx.execute("DELETE FROM files", [])
@@ -144,6 +152,52 @@ pub fn save_index_snapshot(
                 i64_from_u64(meta.size, "size")?,
             ])
             .with_context(|| format!("failed to insert file metadata for {path}"))?;
+        }
+    }
+
+    {
+        let mut stmt = tx
+            .prepare(
+                "INSERT INTO file_references(
+                    source_path,
+                    source_line,
+                    source_col,
+                    raw_target,
+                    target_path,
+                    reference_kind,
+                    lang,
+                    confidence,
+                    unresolved_reason,
+                    evidence,
+                    source
+                 )
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            )
+            .context("failed to prepare file reference insert")?;
+
+        for reference in file_references {
+            stmt.execute(params![
+                &reference.source_path,
+                i64_from_usize(reference.source_line, "source_line")?,
+                i64_from_usize(reference.source_col, "source_col")?,
+                &reference.raw_target,
+                reference.target_path.as_deref(),
+                &reference.reference_kind,
+                &reference.lang,
+                &reference.confidence,
+                reference.unresolved_reason.as_deref(),
+                &reference.evidence,
+                &reference.source,
+            ])
+            .with_context(|| {
+                format!(
+                    "failed to insert file reference at {}:{}:{} to {}",
+                    reference.source_path,
+                    reference.source_line,
+                    reference.source_col,
+                    reference.raw_target
+                )
+            })?;
         }
     }
 
@@ -328,6 +382,7 @@ pub struct IndexCounts {
     pub records: usize,
     pub refs: usize,
     pub dependencies: usize,
+    pub file_references: usize,
     pub semantic_facts: usize,
 }
 
@@ -338,6 +393,7 @@ pub fn load_index_counts(root: &Path) -> Result<IndexCounts> {
         records: table_count(&conn, "records")?,
         refs: table_count(&conn, "refs")?,
         dependencies: table_count(&conn, "dependencies")?,
+        file_references: table_count(&conn, "file_references")?,
         semantic_facts: table_count(&conn, "semantic_facts")?,
     })
 }
@@ -461,6 +517,26 @@ fn initialize_schema(conn: &Connection) -> Result<()> {
         CREATE INDEX IF NOT EXISTS dependencies_kind_idx ON dependencies(dependency_kind);
         CREATE INDEX IF NOT EXISTS dependencies_lang_idx ON dependencies(lang);
         CREATE INDEX IF NOT EXISTS dependencies_confidence_idx ON dependencies(confidence);
+        CREATE TABLE IF NOT EXISTS file_references (
+            source_path TEXT NOT NULL,
+            source_line INTEGER NOT NULL,
+            source_col INTEGER NOT NULL,
+            raw_target TEXT NOT NULL,
+            target_path TEXT,
+            reference_kind TEXT NOT NULL,
+            lang TEXT NOT NULL,
+            confidence TEXT NOT NULL,
+            unresolved_reason TEXT,
+            evidence TEXT NOT NULL,
+            source TEXT NOT NULL,
+            UNIQUE(source_path, source_line, source_col, raw_target, reference_kind)
+        );
+        CREATE INDEX IF NOT EXISTS file_references_source_path_idx ON file_references(source_path);
+        CREATE INDEX IF NOT EXISTS file_references_target_path_idx ON file_references(target_path);
+        CREATE INDEX IF NOT EXISTS file_references_raw_target_idx ON file_references(raw_target);
+        CREATE INDEX IF NOT EXISTS file_references_kind_idx ON file_references(reference_kind);
+        CREATE INDEX IF NOT EXISTS file_references_lang_idx ON file_references(lang);
+        CREATE INDEX IF NOT EXISTS file_references_confidence_idx ON file_references(confidence);
         CREATE TABLE IF NOT EXISTS semantic_facts (
             source_path TEXT NOT NULL,
             source_line INTEGER NOT NULL,
@@ -779,6 +855,81 @@ fn load_dependencies_from_conn(conn: &Connection) -> Result<Vec<DependencyEdge>>
     Ok(dependencies)
 }
 
+fn load_file_references_from_conn(conn: &Connection) -> Result<Vec<FileReference>> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT
+                source_path,
+                source_line,
+                source_col,
+                raw_target,
+                target_path,
+                reference_kind,
+                lang,
+                confidence,
+                unresolved_reason,
+                evidence,
+                source
+             FROM file_references
+             ORDER BY source_path, source_line, source_col, raw_target, reference_kind, source",
+        )
+        .context("failed to prepare file reference query")?;
+
+    let rows = stmt
+        .query_map([], |row| {
+            let source_line: i64 = row.get(1)?;
+            let source_col: i64 = row.get(2)?;
+
+            Ok((
+                row.get::<_, String>(0)?,
+                source_line,
+                source_col,
+                row.get::<_, String>(3)?,
+                row.get::<_, Option<String>>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, String>(6)?,
+                row.get::<_, String>(7)?,
+                row.get::<_, Option<String>>(8)?,
+                row.get::<_, String>(9)?,
+                row.get::<_, String>(10)?,
+            ))
+        })
+        .context("failed to query file references")?;
+
+    let mut file_references = Vec::new();
+    for row in rows {
+        let (
+            source_path,
+            source_line,
+            source_col,
+            raw_target,
+            target_path,
+            reference_kind,
+            lang,
+            confidence,
+            unresolved_reason,
+            evidence,
+            source,
+        ) = row.context("failed to read file reference row")?;
+
+        file_references.push(FileReference {
+            source_path,
+            source_line: usize_from_i64(source_line, "source_line")?,
+            source_col: usize_from_i64(source_col, "source_col")?,
+            raw_target,
+            target_path,
+            reference_kind,
+            lang,
+            confidence,
+            unresolved_reason,
+            evidence,
+            source,
+        });
+    }
+
+    Ok(file_references)
+}
+
 fn load_semantic_facts_from_conn(conn: &Connection) -> Result<Vec<SemanticFact>> {
     let mut stmt = conn
         .prepare(
@@ -892,6 +1043,19 @@ pub fn sort_refs(refs: &mut [ReferenceRecord]) {
             .then(a.from_col.cmp(&b.from_col))
             .then(a.to_name.cmp(&b.to_name))
             .then(a.ref_kind.cmp(&b.ref_kind))
+            .then(a.source.cmp(&b.source))
+    });
+}
+
+pub fn sort_file_references(file_references: &mut [FileReference]) {
+    file_references.sort_by(|a, b| {
+        a.source_path
+            .cmp(&b.source_path)
+            .then(a.source_line.cmp(&b.source_line))
+            .then(a.source_col.cmp(&b.source_col))
+            .then(a.raw_target.cmp(&b.raw_target))
+            .then(a.reference_kind.cmp(&b.reference_kind))
+            .then(a.target_path.cmp(&b.target_path))
             .then(a.source.cmp(&b.source))
     });
 }

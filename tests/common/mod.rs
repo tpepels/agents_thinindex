@@ -4,7 +4,7 @@ use std::{collections::HashSet, fs, path::Path, process::Command};
 
 use assert_cmd::prelude::*;
 use tempfile::TempDir;
-use thinindex::model::{DependencyEdge, IndexRecord, ReferenceRecord};
+use thinindex::model::{DependencyEdge, FileReference, IndexRecord, ReferenceRecord};
 
 pub fn temp_repo() -> TempDir {
     let temp = tempfile::tempdir().expect("create tempdir");
@@ -115,6 +115,7 @@ pub struct IndexSnapshot {
     pub records: Vec<IndexRecord>,
     pub refs: Vec<ReferenceRecord>,
     pub dependencies: Vec<DependencyEdge>,
+    pub file_references: Vec<FileReference>,
 }
 
 pub fn load_index_snapshot_from_sqlite(root: &Path) -> IndexSnapshot {
@@ -134,6 +135,12 @@ pub fn load_index_snapshot_from_sqlite(root: &Path) -> IndexSnapshot {
         dependencies: thinindex::store::load_dependencies(root).unwrap_or_else(|error| {
             panic!(
                 "failed to load SQLite dependencies snapshot for {}\nerror: {error:#}",
+                root.display()
+            )
+        }),
+        file_references: thinindex::store::load_file_references(root).unwrap_or_else(|error| {
+            panic!(
+                "failed to load SQLite file references snapshot for {}\nerror: {error:#}",
                 root.display()
             )
         }),
@@ -433,6 +440,137 @@ pub fn run_named_dependency_integrity_checks(name: &str, dependencies: &[Depende
     assert_no_dev_index_dependency_paths(name, dependencies);
 }
 
+pub fn assert_required_file_reference_fields(name: &str, references: &[FileReference]) {
+    for reference in references {
+        assert!(
+            !reference.source_path.is_empty(),
+            "[{name}] file reference `source_path` must not be empty for {reference:?}"
+        );
+        assert!(
+            reference.source_line >= 1,
+            "[{name}] file reference `source_line` must be >= 1, got {} for {reference:?}",
+            reference.source_line
+        );
+        assert!(
+            reference.source_col >= 1,
+            "[{name}] file reference `source_col` must be >= 1, got {} for {reference:?}",
+            reference.source_col
+        );
+        assert!(
+            !reference.raw_target.is_empty(),
+            "[{name}] file reference `raw_target` must not be empty for {reference:?}"
+        );
+        assert!(
+            !reference.reference_kind.is_empty(),
+            "[{name}] file reference `reference_kind` must not be empty for {reference:?}"
+        );
+        assert!(
+            !reference.lang.is_empty(),
+            "[{name}] file reference `lang` must not be empty for {reference:?}"
+        );
+        assert!(
+            !reference.confidence.is_empty(),
+            "[{name}] file reference `confidence` must not be empty for {reference:?}"
+        );
+        assert!(
+            !reference.evidence.is_empty(),
+            "[{name}] file reference `evidence` must not be empty for {reference:?}"
+        );
+        assert!(
+            !reference.source.is_empty(),
+            "[{name}] file reference `source` must not be empty for {reference:?}"
+        );
+
+        if reference.target_path.is_none() {
+            assert!(
+                reference.unresolved_reason.is_some(),
+                "[{name}] unresolved file reference should include `unresolved_reason`: {reference:?}"
+            );
+        }
+    }
+}
+
+pub fn assert_allowed_file_reference_kinds(name: &str, references: &[FileReference]) {
+    let allowed = [
+        "import",
+        "include",
+        "require",
+        "source",
+        "link",
+        "asset",
+        "script",
+        "stylesheet",
+        "config_path",
+        "package_entry",
+        "fixture",
+        "unknown",
+    ];
+
+    for reference in references {
+        assert!(
+            allowed.contains(&reference.reference_kind.as_str()),
+            "[{name}] file reference kind `{}` is not allowed: {reference:?}",
+            reference.reference_kind
+        );
+    }
+}
+
+pub fn assert_allowed_file_reference_confidence(name: &str, references: &[FileReference]) {
+    for reference in references {
+        assert!(
+            matches!(
+                reference.confidence.as_str(),
+                "resolved" | "unresolved" | "ambiguous"
+            ),
+            "[{name}] file reference confidence `{}` is not allowed: {reference:?}",
+            reference.confidence
+        );
+    }
+}
+
+pub fn assert_no_duplicate_file_references(name: &str, references: &[FileReference]) {
+    let mut seen: HashSet<(String, String, Option<String>, String)> = HashSet::new();
+
+    for reference in references {
+        let key = (
+            reference.source_path.clone(),
+            reference.raw_target.clone(),
+            reference.target_path.clone(),
+            reference.reference_kind.clone(),
+        );
+
+        assert!(
+            seen.insert(key.clone()),
+            "[{name}] duplicate file reference: source_path={} raw_target={} target_path={:?} reference_kind={}",
+            key.0,
+            key.1,
+            key.2,
+            key.3,
+        );
+    }
+}
+
+pub fn assert_no_dev_index_file_reference_paths(name: &str, references: &[FileReference]) {
+    for reference in references {
+        assert!(
+            !reference.source_path.contains(".dev_index")
+                && reference
+                    .target_path
+                    .as_ref()
+                    .is_none_or(|target| !target.contains(".dev_index")),
+            "[{name}] file reference path contains `.dev_index`: {reference:?}",
+        );
+    }
+}
+
+pub fn run_named_file_reference_integrity_checks(name: &str, references: &[FileReference]) {
+    assert_required_file_reference_fields(name, references);
+    assert_allowed_file_reference_kinds(name, references);
+    assert_allowed_file_reference_confidence(name, references);
+    assert_no_duplicate_file_references(name, references);
+    assert_no_dev_index_file_reference_paths(name, references);
+}
+
 /// Run the full index-integrity check suite against loaded SQLite records.
 ///
 /// * `name` – a human-readable label (repo name, test name, …)
@@ -451,4 +589,5 @@ pub fn run_named_index_integrity_checks(
     assert_expected_paths_present(name, &snapshot.records, expected_paths);
     run_named_ref_integrity_checks(name, &snapshot.refs);
     run_named_dependency_integrity_checks(name, &snapshot.dependencies);
+    run_named_file_reference_integrity_checks(name, &snapshot.file_references);
 }

@@ -17,8 +17,8 @@ Repository search rules:
   Use `wi <term>` directly before grep/find/ls/Read for repository discovery.
   `wi` auto-builds or auto-rebuilds a missing/stale index once before searching.
   Use `wi refs <term>` before broad reference searches.
-  Use `wi pack <term>` before implementation.
-  Use `wi impact <term>` before edits.
+  Use `wi pack <term>` before implementation; it includes useful local file references.
+  Use `wi impact <term>` before edits; it includes reverse file references where available.
   `wi` returns repo-local file:line landmarks; Read only returned files unless insufficient.
   Run `build_index` manually for explicit rebuilds or if auto-build reports an indexing error.
   For terms starting with `-`, use `wi -- <term>`, e.g. `wi -- --css-variable`.

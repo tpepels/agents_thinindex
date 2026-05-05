@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-pub const INDEX_SCHEMA_VERSION: u32 = 11;
+pub const INDEX_SCHEMA_VERSION: u32 = 12;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IndexRecord {
@@ -37,6 +37,21 @@ pub struct DependencyEdge {
     pub import_path: String,
     pub target_path: Option<String>,
     pub dependency_kind: String,
+    pub lang: String,
+    pub confidence: String,
+    pub unresolved_reason: Option<String>,
+    pub evidence: String,
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct FileReference {
+    pub source_path: String,
+    pub source_line: usize,
+    pub source_col: usize,
+    pub raw_target: String,
+    pub target_path: Option<String>,
+    pub reference_kind: String,
     pub lang: String,
     pub confidence: String,
     pub unresolved_reason: Option<String>,
@@ -190,6 +205,37 @@ impl DependencyEdge {
             import_path: import_path.into(),
             target_path: target_path.map(Into::into),
             dependency_kind: dependency_kind.into(),
+            lang: lang.into(),
+            confidence: confidence.into(),
+            unresolved_reason: unresolved_reason.map(Into::into),
+            evidence: truncate(evidence.into(), 120),
+            source: source.into(),
+        }
+    }
+}
+
+impl FileReference {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        source_path: impl Into<String>,
+        source_line: usize,
+        source_col: usize,
+        raw_target: impl Into<String>,
+        target_path: Option<impl Into<String>>,
+        reference_kind: impl Into<String>,
+        lang: impl Into<String>,
+        confidence: impl Into<String>,
+        unresolved_reason: Option<impl Into<String>>,
+        evidence: impl Into<String>,
+        source: impl Into<String>,
+    ) -> Self {
+        Self {
+            source_path: source_path.into(),
+            source_line,
+            source_col,
+            raw_target: raw_target.into(),
+            target_path: target_path.map(Into::into),
+            reference_kind: reference_kind.into(),
             lang: lang.into(),
             confidence: confidence.into(),
             unresolved_reason: unresolved_reason.map(Into::into),

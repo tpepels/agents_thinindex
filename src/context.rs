@@ -7,10 +7,10 @@ use anyhow::Result;
 
 use crate::{
     file_roles::{FileRole, classify_path, is_operational_role, is_source_role},
-    model::{DependencyEdge, IndexRecord, ReferenceRecord},
+    model::{DependencyEdge, FileReference, IndexRecord, ReferenceRecord},
     privacy::redact_sensitive_text,
     search::{SearchOptions, SearchResult, search},
-    store::{load_dependencies, load_records, load_refs},
+    store::{load_dependencies, load_file_references, load_records, load_refs},
 };
 
 const DEFAULT_PRIMARY_LIMIT: usize = 3;
@@ -40,6 +40,12 @@ pub struct ContextOutput {
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct RefRow {
     reference: ReferenceRecord,
+    rank: RefRank,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct FileRefRow {
+    reference: FileReference,
     rank: RefRank,
 }
 
@@ -103,6 +109,8 @@ pub fn render_refs_command(
 
     let refs_limit = command_limit(options, DEFAULT_REFS_LIMIT);
     let refs = matching_refs(root, query, &primary, refs_limit)?;
+    let file_refs =
+        matching_file_references(root, query, &primary, refs_limit.saturating_sub(refs.len()))?;
     let mut out = String::new();
 
     out.push_str("Primary:\n");
@@ -112,7 +120,7 @@ pub fn render_refs_command(
 
     out.push('\n');
     out.push_str("References:\n");
-    if refs.is_empty() {
+    if refs.is_empty() && file_refs.is_empty() {
         out.push_str(&format!("no references found for {query}\n"));
     } else {
         for row in &refs {
@@ -122,11 +130,18 @@ pub fn render_refs_command(
                 redact_sensitive_text(&row.reference.evidence)
             ));
         }
+        for row in &file_refs {
+            out.push_str(&format!("- {}\n", file_ref_line(&row.reference)));
+            out.push_str(&format!(
+                "  reason: {}\n",
+                redact_sensitive_text(&file_ref_reason(&row.reference))
+            ));
+        }
     }
 
     Ok(ContextOutput {
         text: out,
-        result_count: primary.len() + refs.len(),
+        result_count: primary.len() + refs.len() + file_refs.len(),
     })
 }
 
@@ -147,12 +162,14 @@ pub fn render_pack_command(
     let refs = matching_refs(root, query, &primary, usize::MAX)?;
     let records = load_records(root)?;
     let dependencies = load_dependencies(root)?;
+    let file_references = load_file_references(root)?;
     let primary_paths = primary_paths(&primary);
     let primary_names = primary_names(query, &primary);
     let ref_counts = reference_counts(&refs);
     let mut impact_groups = build_impact_groups(
         &refs,
         &dependencies,
+        &file_references,
         &records,
         &primary_paths,
         &primary_names,
@@ -185,7 +202,7 @@ pub fn render_pack_command(
 
     let remaining = total_limit.saturating_sub(count);
     let primary_dependencies = take_pack_rows(
-        pack_dependency_rows(&dependencies, &records, &primary_paths),
+        pack_dependency_rows(&dependencies, &file_references, &records, &primary_paths),
         PACK_DEPENDENCY_LIMIT,
         remaining,
         &mut used_paths,
@@ -288,11 +305,13 @@ pub fn render_impact_command(
     let refs = matching_refs(root, query, &primary, usize::MAX)?;
     let records = load_records(root)?;
     let dependencies = load_dependencies(root)?;
+    let file_references = load_file_references(root)?;
     let primary_paths = primary_paths(&primary);
     let primary_names = primary_names(query, &primary);
     let mut groups = build_impact_groups(
         &refs,
         &dependencies,
+        &file_references,
         &records,
         &primary_paths,
         &primary_names,
@@ -451,6 +470,42 @@ fn matching_refs(
     Ok(refs)
 }
 
+fn matching_file_references(
+    root: &Path,
+    query: &str,
+    primary: &[SearchResult],
+    limit: usize,
+) -> Result<Vec<FileRefRow>> {
+    if limit == 0 {
+        return Ok(Vec::new());
+    }
+
+    let direct_primary = direct_primary_matches(primary.to_vec());
+    let primary_paths = primary_paths(&direct_primary);
+    let query_lower = query.to_ascii_lowercase();
+    let query_is_pathish = query.contains('/') || query.contains('.');
+    let mut rows: Vec<FileRefRow> = load_file_references(root)?
+        .into_iter()
+        .filter(|reference| {
+            reference
+                .target_path
+                .as_ref()
+                .is_some_and(|target| primary_paths.contains(target))
+                || primary_paths.contains(&reference.source_path)
+                || (query_is_pathish && file_reference_matches_query(reference, &query_lower))
+        })
+        .filter(|reference| !primary_paths.contains(&reference.source_path))
+        .map(|reference| {
+            let rank = file_ref_rank(&reference);
+            FileRefRow { reference, rank }
+        })
+        .collect();
+
+    rows.sort_by_key(file_ref_row_key);
+    rows.truncate(limit);
+    Ok(rows)
+}
+
 fn primary_locations(primary: &[SearchResult]) -> BTreeSet<(String, usize, String)> {
     primary
         .iter()
@@ -503,6 +558,39 @@ fn ref_line(reference: &ReferenceRecord) -> String {
     )
 }
 
+fn file_ref_line(reference: &FileReference) -> String {
+    let target = reference
+        .target_path
+        .as_deref()
+        .or(reference.unresolved_reason.as_deref())
+        .unwrap_or("unresolved");
+
+    format!(
+        "{}:{} file_{} {} -> {}",
+        redact_sensitive_text(&reference.source_path),
+        reference.source_line,
+        redact_sensitive_text(&reference.reference_kind),
+        redact_sensitive_text(&reference.raw_target),
+        redact_sensitive_text(target)
+    )
+}
+
+fn file_ref_reason(reference: &FileReference) -> String {
+    if let Some(target) = reference.target_path.as_deref() {
+        format!(
+            "{} resolves to {target}: {}",
+            reference.reference_kind, reference.evidence
+        )
+    } else {
+        format!(
+            "unresolved {}: {} ({})",
+            reference.reference_kind,
+            reference.unresolved_reason.as_deref().unwrap_or("unknown"),
+            reference.evidence
+        )
+    }
+}
+
 fn ref_row_key(row: &RefRow) -> (RefRank, usize, String, usize, usize, String, String) {
     (
         row.rank,
@@ -512,6 +600,18 @@ fn ref_row_key(row: &RefRow) -> (RefRank, usize, String, usize, usize, String, S
         row.reference.from_col,
         row.reference.ref_kind.clone(),
         row.reference.to_name.clone(),
+    )
+}
+
+fn file_ref_row_key(row: &FileRefRow) -> (RefRank, usize, String, usize, usize, String, String) {
+    (
+        row.rank,
+        path_penalty(&row.reference.source_path),
+        row.reference.source_path.clone(),
+        row.reference.source_line,
+        row.reference.source_col,
+        row.reference.reference_kind.clone(),
+        row.reference.raw_target.clone(),
     )
 }
 
@@ -530,6 +630,35 @@ fn ref_rank(reference: &ReferenceRecord) -> RefRank {
     }
 }
 
+fn file_ref_rank(reference: &FileReference) -> RefRank {
+    if is_fixture_path(&reference.source_path) || reference.reference_kind == "fixture" {
+        return RefRank::Fixture;
+    }
+
+    match reference.reference_kind.as_str() {
+        "import" | "include" | "require" | "source" => RefRank::Import,
+        "link" => RefRank::Docs,
+        "asset" | "script" | "stylesheet" => RefRank::Ui,
+        _ if is_test_path(&reference.source_path) => RefRank::Test,
+        _ => RefRank::Production,
+    }
+}
+
+fn file_reference_matches_query(reference: &FileReference, query_lower: &str) -> bool {
+    reference
+        .target_path
+        .as_ref()
+        .is_some_and(|target| target.to_ascii_lowercase().contains(query_lower))
+        || reference
+            .source_path
+            .to_ascii_lowercase()
+            .contains(query_lower)
+        || reference
+            .raw_target
+            .to_ascii_lowercase()
+            .contains(query_lower)
+}
+
 fn reference_counts(refs: &[RefRow]) -> BTreeMap<String, usize> {
     let mut counts = BTreeMap::new();
 
@@ -544,6 +673,7 @@ fn reference_counts(refs: &[RefRow]) -> BTreeMap<String, usize> {
 
 fn pack_dependency_rows(
     dependencies: &[DependencyEdge],
+    file_references: &[FileReference],
     records: &[IndexRecord],
     primary_paths: &BTreeSet<String>,
 ) -> Vec<PackRow> {
@@ -578,6 +708,39 @@ fn pack_dependency_rows(
                 dependency.from_path, dependency.from_line
             ),
             priority: 0,
+            ref_count: 0,
+        });
+    }
+
+    for reference in file_references {
+        if !primary_paths.contains(&reference.source_path) {
+            continue;
+        }
+
+        let Some(target_path) = reference.target_path.as_deref() else {
+            continue;
+        };
+
+        if primary_paths.contains(target_path) {
+            continue;
+        }
+
+        let (line, col, target) = first_record_location(records, target_path)
+            .map(|record| (record.line, record.col, record.name.clone()))
+            .unwrap_or((1, 1, reference.raw_target.clone()));
+
+        rows.push(PackRow {
+            path: target_path.to_string(),
+            line,
+            col,
+            kind: format!("file_{}", reference.reference_kind),
+            target,
+            confidence: file_reference_confidence(reference),
+            reason: format!(
+                "primary file {} at {}:{}",
+                reference.reference_kind, reference.source_path, reference.source_line
+            ),
+            priority: file_reference_priority(reference),
             ref_count: 0,
         });
     }
@@ -738,12 +901,12 @@ fn append_pack_rows(out: &mut String, heading: &str, rows: &[PackRow]) {
 fn build_impact_groups(
     refs: &[RefRow],
     dependencies: &[DependencyEdge],
+    file_references: &[FileReference],
     records: &[IndexRecord],
     primary_paths: &BTreeSet<String>,
     primary_names: &BTreeSet<String>,
 ) -> BTreeMap<ImpactGroup, Vec<ImpactRow>> {
     let mut groups: BTreeMap<ImpactGroup, Vec<ImpactRow>> = BTreeMap::new();
-
     for row in refs {
         let group = impact_group_for_ref(&row.reference);
         groups.entry(group).or_default().push(ImpactRow {
@@ -759,6 +922,7 @@ fn build_impact_groups(
     }
 
     add_dependency_impact_rows(&mut groups, dependencies, primary_paths);
+    add_file_reference_impact_rows(&mut groups, file_references, primary_paths);
     add_test_mapping_rows(&mut groups, records, primary_paths, primary_names);
     add_build_config_mapping_rows(&mut groups, records, primary_paths);
 
@@ -767,6 +931,139 @@ fn build_impact_groups(
     }
 
     groups
+}
+
+fn add_file_reference_impact_rows(
+    groups: &mut BTreeMap<ImpactGroup, Vec<ImpactRow>>,
+    file_references: &[FileReference],
+    primary_paths: &BTreeSet<String>,
+) {
+    let mut source_paths_with_primary_targets = BTreeSet::new();
+
+    for reference in file_references {
+        if reference
+            .target_path
+            .as_ref()
+            .is_some_and(|target| primary_paths.contains(target))
+        {
+            source_paths_with_primary_targets.insert(reference.source_path.clone());
+            let group = impact_group_for_file_reference(reference);
+            groups.entry(group).or_default().push(ImpactRow {
+                path: reference.source_path.clone(),
+                line: reference.source_line,
+                col: reference.source_col,
+                kind: format!("file_{}", reference.reference_kind),
+                target: reference.target_path.clone().unwrap_or_default(),
+                confidence: file_reference_confidence(reference),
+                reason: format!(
+                    "{} file reference to {}",
+                    reference.reference_kind,
+                    reference
+                        .target_path
+                        .as_deref()
+                        .unwrap_or(&reference.raw_target)
+                ),
+                priority: file_reference_priority(reference),
+            });
+        }
+
+        if primary_paths.contains(&reference.source_path)
+            && reference.target_path.is_none()
+            && reference.unresolved_reason.is_some()
+        {
+            groups
+                .entry(ImpactGroup::Unknown)
+                .or_default()
+                .push(ImpactRow {
+                    path: reference.source_path.clone(),
+                    line: reference.source_line,
+                    col: reference.source_col,
+                    kind: format!("file_{}", reference.reference_kind),
+                    target: reference.raw_target.clone(),
+                    confidence: "heuristic",
+                    reason: format!(
+                        "unresolved file reference: {}",
+                        reference.unresolved_reason.as_deref().unwrap_or("unknown")
+                    ),
+                    priority: 10,
+                });
+        }
+    }
+
+    for reference in file_references {
+        if source_paths_with_primary_targets.contains(&reference.source_path)
+            && reference.target_path.is_none()
+            && reference.unresolved_reason.is_some()
+        {
+            groups
+                .entry(ImpactGroup::Unknown)
+                .or_default()
+                .push(ImpactRow {
+                    path: reference.source_path.clone(),
+                    line: reference.source_line,
+                    col: reference.source_col,
+                    kind: format!("file_{}", reference.reference_kind),
+                    target: reference.raw_target.clone(),
+                    confidence: "heuristic",
+                    reason: format!(
+                        "dependent file has unresolved file reference: {}",
+                        reference.unresolved_reason.as_deref().unwrap_or("unknown")
+                    ),
+                    priority: 20,
+                });
+        }
+    }
+}
+
+fn impact_group_for_file_reference(reference: &FileReference) -> ImpactGroup {
+    let role = classify_path(&reference.source_path);
+
+    if is_fixture_path(&reference.source_path) {
+        ImpactGroup::Unknown
+    } else if reference.reference_kind == "fixture" || role == FileRole::Test {
+        ImpactGroup::Tests
+    } else if matches!(
+        reference.reference_kind.as_str(),
+        "import" | "include" | "require" | "source"
+    ) {
+        ImpactGroup::Dependents
+    } else if reference.reference_kind == "link" || role == FileRole::Docs {
+        ImpactGroup::Docs
+    } else if matches!(
+        reference.reference_kind.as_str(),
+        "config_path" | "package_entry"
+    ) || is_operational_role(role)
+    {
+        ImpactGroup::Config
+    } else {
+        ImpactGroup::References
+    }
+}
+
+fn file_reference_confidence(reference: &FileReference) -> &'static str {
+    if is_test_path(&reference.source_path) || reference.reference_kind == "fixture" {
+        return "test-related";
+    }
+
+    match reference.reference_kind.as_str() {
+        "import" | "include" | "require" | "source" if reference.confidence == "resolved" => {
+            "dependency"
+        }
+        "fixture" => "test-related",
+        _ => "heuristic",
+    }
+}
+
+fn file_reference_priority(reference: &FileReference) -> usize {
+    match reference.reference_kind.as_str() {
+        "import" | "include" | "require" | "source" => 0,
+        "script" | "stylesheet" => 1,
+        "asset" => 2,
+        "fixture" => 2,
+        "config_path" | "package_entry" => 3,
+        "link" => 4,
+        _ => 8,
+    }
 }
 
 fn add_dependency_impact_rows(

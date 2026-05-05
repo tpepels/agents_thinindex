@@ -12,18 +12,20 @@ use ignore::WalkBuilder;
 use crate::{
     deps::extract_dependencies,
     extras::index_extras,
+    file_refs::extract_file_references,
     model::{FileMeta, IndexRecord},
     privacy::{SENSITIVE_PATH_WARNING_LIMIT, SensitivePathWarning, sensitive_path_reason},
     refs::{ReferenceIndex, extract_refs_with_index, finalize_refs, refs_from_dependencies},
     semantic::SemanticAdapterRegistry,
     store::{
         load_index_counts, load_manifest, load_records, prepare_for_build,
-        remove_records_for_paths, save_index_snapshot, sort_records, sort_refs,
+        remove_records_for_paths, save_index_snapshot, sort_file_references, sort_records,
+        sort_refs,
     },
     tree_sitter_extraction::TreeSitterExtractionEngine,
 };
 
-const IGNORE_DIRS: &[&str] = &[".git", ".dev_index"];
+const IGNORE_DIRS: &[&str] = &[".git", ".dev_index", "test_repos"];
 pub const MAX_RECORDS_PER_FILE: usize = 50_000;
 pub const MAX_INDEXED_FILE_BYTES: u64 = 2 * 1024 * 1024;
 pub const LARGE_FILE_WARNING_BYTES: u64 = 512 * 1024;
@@ -49,6 +51,7 @@ pub struct BuildTimings {
     pub change_detection: Duration,
     pub parse: Duration,
     pub dependencies: Duration,
+    pub file_references: Duration,
     pub refs: Duration,
     pub semantic: Duration,
     pub save: Duration,
@@ -73,6 +76,7 @@ pub struct BuildStats {
     pub records: usize,
     pub refs: usize,
     pub dependencies: usize,
+    pub file_references: usize,
     pub semantic_facts: usize,
     pub total_file_bytes: u64,
     pub large_files: Vec<FileSizeWarning>,
@@ -230,6 +234,7 @@ pub fn build_index_with_semantic_adapters(
             records: counts.records,
             refs: counts.refs,
             dependencies: counts.dependencies,
+            file_references: counts.file_references,
             semantic_facts: counts.semantic_facts,
             total_file_bytes,
             large_files,
@@ -279,6 +284,11 @@ pub fn build_index_with_semantic_adapters(
     let dependencies = extract_dependencies(&root, &indexable_files, &records)?;
     let dependencies_elapsed = dependencies_start.elapsed();
 
+    let file_references_start = Instant::now();
+    let mut file_references = extract_file_references(&root, &indexable_files, &dependencies)?;
+    sort_file_references(&mut file_references);
+    let file_references_elapsed = file_references_start.elapsed();
+
     let refs_start = Instant::now();
     let mut refs = extract_all_refs(&root, &indexable_files, &records, &dependencies)?;
     dedupe_refs_by_location(&mut refs);
@@ -297,6 +307,7 @@ pub fn build_index_with_semantic_adapters(
         &records,
         &refs,
         &dependencies,
+        &file_references,
         &semantic_facts,
     )?;
     let save_elapsed = save_start.elapsed();
@@ -310,6 +321,7 @@ pub fn build_index_with_semantic_adapters(
         records: records.len(),
         refs: refs.len(),
         dependencies: dependencies.len(),
+        file_references: file_references.len(),
         semantic_facts: semantic_facts.len(),
         total_file_bytes,
         large_files,
@@ -319,6 +331,7 @@ pub fn build_index_with_semantic_adapters(
             change_detection: change_elapsed,
             parse: parse_elapsed,
             dependencies: dependencies_elapsed,
+            file_references: file_references_elapsed,
             refs: refs_elapsed,
             semantic: semantic_elapsed,
             save: save_elapsed,

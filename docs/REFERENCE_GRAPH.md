@@ -1,6 +1,6 @@
 # Reference Graph
 
-thinindex stores references in SQLite `refs` as evidence-backed relationships from a source location to a target name or file.
+thinindex stores symbol/name references in SQLite `refs` and file-to-file relationships in SQLite `file_references`. Both are evidence-backed and local, but they answer different questions: `refs` points at names, while `file_references` points at files and path strings.
 
 Reference extraction is intentionally conservative. It combines Tree-sitter reference captures, dependency graph edges, structured document/style references, and a capped broad text fallback. It does not claim full semantic type, call, overload, inheritance, or runtime module resolution.
 
@@ -43,6 +43,12 @@ The dependency graph contributes `module_dependency` rows:
 
 These rows give future context and impact commands a relationship-backed way to reason about file/module connections without hiding unresolved imports.
 
+## File References
+
+The `file_references` table records local imports/includes, docs links, HTML scripts/styles/assets, CSS assets, config paths, package entrypoints, and fixtures. Rows keep the raw target string even when resolution fails, with an explicit unresolved reason.
+
+See [FILE_REFERENCES.md](FILE_REFERENCES.md) for supported file-reference kinds and resolution behavior.
+
 ## Fallback Behavior
 
 The broad text fallback remains capped by per-target, per-file, and total-reference limits. Its rows use `confidence = "heuristic"` and a reason that makes the fallback explicit. This keeps compatibility for docs/tests/simple usage while preventing the graph from pretending text matches are semantic references.
@@ -53,3 +59,4 @@ The broad text fallback remains capped by per-target, per-file, and total-refere
 - Method calls, dynamic calls, overloads, inheritance, traits/interfaces, generated code, aliases, and re-exports are not semantically resolved.
 - Tree-sitter call/type coverage depends on each language query pack and is deliberately conservative.
 - `module_dependency` rows identify module/file relationships, not the exact imported symbol inside the file.
+- File-reference scanning is best-effort and only resolves explicit local path evidence.
