@@ -14,18 +14,18 @@ Current failure it addresses:
 build_index became slow on a small repo and agents will avoid thinindex if commands feel slow.
 
 Phases:
-- [ ] Add or use low-noise timing instrumentation.
-- [ ] Measure cold/stale build_index.
-- [ ] Measure immediate no-change build_index.
-- [ ] Measure stale wi <query> that auto-rebuilds.
-- [ ] Measure warm wi <query>.
-- [ ] Measure wi refs, wi pack, and wi impact.
-- [ ] Identify measured bottleneck.
-- [ ] Fix measured bottleneck.
-- [ ] Add performance regression tests or checks where practical.
-- [ ] Document budgets and troubleshooting.
-- [ ] Run verification.
-- [ ] Commit.
+- [x] Add or use low-noise timing instrumentation.
+- [x] Measure cold/stale build_index.
+- [x] Measure immediate no-change build_index.
+- [x] Measure stale wi <query> that auto-rebuilds.
+- [x] Measure warm wi <query>.
+- [x] Measure wi refs, wi pack, and wi impact.
+- [x] Identify measured bottleneck.
+- [x] Fix measured bottleneck.
+- [x] Add performance regression tests or checks where practical.
+- [x] Document budgets and troubleshooting.
+- [x] Run verification.
+- [x] Commit.
 
 Profile phases:
 - CLI startup

@@ -14,11 +14,11 @@ use crate::{
     extras::index_extras,
     model::{FileMeta, IndexRecord},
     privacy::{SENSITIVE_PATH_WARNING_LIMIT, SensitivePathWarning, sensitive_path_reason},
-    refs::{extract_refs, finalize_refs, refs_from_dependencies},
+    refs::{ReferenceIndex, extract_refs_with_index, finalize_refs, refs_from_dependencies},
     semantic::SemanticAdapterRegistry,
     store::{
-        load_manifest, load_records, prepare_for_build, remove_records_for_paths,
-        save_index_snapshot, sort_records, sort_refs,
+        load_index_counts, load_manifest, load_records, prepare_for_build,
+        remove_records_for_paths, save_index_snapshot, sort_records, sort_refs,
     },
     tree_sitter_extraction::TreeSitterExtractionEngine,
 };
@@ -109,8 +109,6 @@ pub fn build_index_with_semantic_adapters(
     let root = find_repo_root(start)?;
 
     let (mut manifest, reset_message) = prepare_for_build(&root)?;
-
-    let existing_records = load_records(&root)?;
 
     let discover_start = Instant::now();
     let files = discover_files(&root)?;
@@ -218,6 +216,32 @@ pub fn build_index_with_semantic_adapters(
     let mut stale_paths = deleted_paths.clone();
     stale_paths.extend(changed_paths.clone());
 
+    if stale_paths.is_empty() && reset_message.is_none() && semantic_adapters.is_empty() {
+        let counts = load_index_counts(&root)?;
+        return Ok(BuildStats {
+            root,
+            scanned_files: current_paths.len(),
+            changed_files: 0,
+            unchanged_files,
+            deleted_files: 0,
+            records: counts.records,
+            refs: counts.refs,
+            dependencies: counts.dependencies,
+            semantic_facts: counts.semantic_facts,
+            total_file_bytes,
+            large_files,
+            sensitive_paths,
+            timings: BuildTimings {
+                discover: discover_elapsed,
+                change_detection: change_elapsed,
+                total: total_start.elapsed(),
+                ..BuildTimings::default()
+            },
+            reset_message,
+        });
+    }
+
+    let existing_records = load_records(&root)?;
     let mut records = remove_records_for_paths(existing_records, &stale_paths);
 
     let parse_start = Instant::now();
@@ -422,6 +446,7 @@ fn extract_all_refs(
     dependencies: &[crate::model::DependencyEdge],
 ) -> Result<Vec<crate::model::ReferenceRecord>> {
     let mut refs = Vec::new();
+    let reference_index = ReferenceIndex::new(records);
 
     for path in files {
         let rel = relpath(root, path)?;
@@ -429,7 +454,7 @@ fn extract_all_refs(
             continue;
         };
 
-        let mut file_refs = extract_refs(&rel, &text, records);
+        let mut file_refs = extract_refs_with_index(&rel, &text, &reference_index);
         refs.append(&mut file_refs);
     }
 

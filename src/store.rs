@@ -323,6 +323,25 @@ pub fn indexed_file_count(root: &Path) -> Result<usize> {
     usize_from_i64(count, "file count")
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct IndexCounts {
+    pub records: usize,
+    pub refs: usize,
+    pub dependencies: usize,
+    pub semantic_facts: usize,
+}
+
+pub fn load_index_counts(root: &Path) -> Result<IndexCounts> {
+    let conn = open_ready_database(root)?;
+
+    Ok(IndexCounts {
+        records: table_count(&conn, "records")?,
+        refs: table_count(&conn, "refs")?,
+        dependencies: table_count(&conn, "dependencies")?,
+        semantic_facts: table_count(&conn, "semantic_facts")?,
+    })
+}
+
 pub fn open_ready_database(root: &Path) -> Result<Connection> {
     let conn = open_existing_database(root)?;
     validate_schema_version(&conn)?;
@@ -518,6 +537,15 @@ fn validate_schema_version(conn: &Connection) -> Result<()> {
 fn schema_version_mismatch(error: &anyhow::Error) -> bool {
     let text = format!("{error:#}");
     text.contains("does not match")
+}
+
+fn table_count(conn: &Connection, table: &str) -> Result<usize> {
+    let sql = format!("SELECT COUNT(*) FROM {table}");
+    let count: i64 = conn
+        .query_row(&sql, [], |row| row.get(0))
+        .with_context(|| format!("failed to count {table} rows"))?;
+
+    usize_from_i64(count, table)
 }
 
 fn upsert_meta(conn: &Connection, key: &str, value: &str) -> Result<()> {

@@ -176,10 +176,57 @@ class PromptService:
 
     run_build(root);
     let second = run_build(root);
+    let no_change_stats = thinindex::indexer::build_index(root).expect("run no-change build");
 
     assert!(
         second.contains("changed files: 0"),
         "expected unchanged second build, got:\n{second}"
+    );
+    assert_eq!(no_change_stats.changed_files, 0);
+    assert_eq!(
+        no_change_stats.timings.refs.as_millis(),
+        0,
+        "no-change build should use the metadata fast path instead of recomputing refs"
+    );
+    assert_eq!(
+        no_change_stats.timings.save.as_millis(),
+        0,
+        "no-change build should not rewrite SQLite tables"
+    );
+}
+
+#[test]
+fn normal_build_does_not_index_dev_index_or_ignored_test_repos() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, ".gitignore", "test_repos/\n");
+    write_file(root, "src/service.py", "class RealService: pass\n");
+    write_file(root, ".dev_index/quality/report.md", "# ShouldNotIndex\n");
+    write_file(
+        root,
+        "test_repos/fixture/src/ignored.py",
+        "class IgnoredTestRepoService: pass\n",
+    );
+
+    run_build(root);
+
+    let records = thinindex::store::load_records(root).expect("load records");
+    assert!(
+        records.iter().any(|record| record.name == "RealService"),
+        "normal source should be indexed"
+    );
+    assert!(
+        records
+            .iter()
+            .all(|record| !record.path.contains(".dev_index")),
+        ".dev_index must not be indexed by normal builds, got:\n{records:#?}"
+    );
+    assert!(
+        records
+            .iter()
+            .all(|record| !record.path.starts_with("test_repos/")),
+        "ignored test_repos corpus must not be indexed by normal builds, got:\n{records:#?}"
     );
 }
 

@@ -35,6 +35,10 @@ impl SemanticAdapterRegistry {
         Self::default()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.adapters.is_empty()
+    }
+
     pub fn collect_facts(
         &self,
         root: &Path,

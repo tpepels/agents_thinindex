@@ -25,6 +25,21 @@ struct TargetSymbol {
     definitions: BTreeSet<(String, usize, usize)>,
 }
 
+#[derive(Debug, Clone)]
+pub struct ReferenceIndex {
+    targets: BTreeMap<String, TargetSymbol>,
+    local_symbols: BTreeSet<String>,
+}
+
+impl ReferenceIndex {
+    pub fn new(records: &[IndexRecord]) -> Self {
+        Self {
+            targets: target_symbols(records),
+            local_symbols: local_symbols(records),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 struct LineContext<'a> {
     path: &'a str,
@@ -42,7 +57,15 @@ struct RefSpec<'a> {
 }
 
 pub fn extract_refs(path: &str, text: &str, records: &[IndexRecord]) -> Vec<ReferenceRecord> {
-    let targets = target_symbols(records);
+    let index = ReferenceIndex::new(records);
+    extract_refs_with_index(path, text, &index)
+}
+
+pub fn extract_refs_with_index(
+    path: &str,
+    text: &str,
+    index: &ReferenceIndex,
+) -> Vec<ReferenceRecord> {
     let lang = lang_from_path(path);
     let mut refs = TreeSitterExtractionEngine::default()
         .parse_reference_records(path, text)
@@ -57,7 +80,7 @@ pub fn extract_refs(path: &str, text: &str, records: &[IndexRecord]) -> Vec<Refe
         };
 
         extract_imports(&ctx, &mut refs);
-        extract_text_references(&ctx, &targets, &mut refs);
+        extract_text_references(&ctx, &index.targets, &mut refs);
 
         match lang {
             "md" | "markdown" => extract_markdown_links(&ctx, &mut refs),
@@ -68,7 +91,7 @@ pub fn extract_refs(path: &str, text: &str, records: &[IndexRecord]) -> Vec<Refe
         }
     }
 
-    enrich_reference_confidence(&mut refs, records);
+    enrich_reference_confidence(&mut refs, &index.local_symbols);
     finalize_refs(refs)
 }
 
@@ -146,18 +169,20 @@ fn target_symbols(records: &[IndexRecord]) -> BTreeMap<String, TargetSymbol> {
     targets
 }
 
-fn enrich_reference_confidence(refs: &mut [ReferenceRecord], records: &[IndexRecord]) {
-    let local_symbols: BTreeSet<&str> = records
+fn local_symbols(records: &[IndexRecord]) -> BTreeSet<String> {
+    records
         .iter()
         .filter(|record| is_dependency_reference_target(record))
-        .map(|record| record.name.as_str())
-        .collect();
+        .map(|record| record.name.clone())
+        .collect()
+}
 
+fn enrich_reference_confidence(refs: &mut [ReferenceRecord], local_symbols: &BTreeSet<String>) {
     for reference in refs {
         if matches!(
             reference.ref_kind.as_str(),
             "import" | "export" | "call" | "type_reference"
-        ) && local_symbols.contains(reference.to_name.as_str())
+        ) && local_symbols.contains(&reference.to_name)
         {
             reference.confidence = "exact_local".to_string();
             reference.reason = Some("local_symbol_match".to_string());
@@ -230,41 +255,72 @@ fn extract_text_references(
     targets: &BTreeMap<String, TargetSymbol>,
     refs: &mut Vec<ReferenceRecord>,
 ) {
-    for target in targets.values() {
-        let mut search_start = 0;
+    for (index, name) in identifier_spans(ctx.text) {
+        let Some(target) = targets.get(name) else {
+            continue;
+        };
+        let col = index + 1;
 
-        while let Some(relative_index) = ctx.text[search_start..].find(&target.name) {
-            let index = search_start + relative_index;
-            let col = index + 1;
+        if target
+            .definitions
+            .contains(&(ctx.path.to_string(), ctx.line_no, col))
+        {
+            continue;
+        }
 
-            if is_word_boundary_match(ctx.text, index, target.name.len())
-                && !target
-                    .definitions
-                    .contains(&(ctx.path.to_string(), ctx.line_no, col))
-            {
-                let ref_kind = if is_test_path(ctx.path) {
-                    "test_reference"
-                } else {
-                    "text_reference"
-                };
+        let ref_kind = if is_test_path(ctx.path) {
+            "test_reference"
+        } else {
+            "text_reference"
+        };
 
-                push_ref(
-                    refs,
-                    ctx,
-                    col,
-                    target.name.as_str(),
-                    RefSpec {
-                        to_kind: Some(target.kind.as_str()),
-                        ref_kind,
-                        evidence: ctx.text.trim().to_string(),
-                        source: SOURCE_TEXT,
-                    },
-                );
+        push_ref(
+            refs,
+            ctx,
+            col,
+            target.name.as_str(),
+            RefSpec {
+                to_kind: Some(target.kind.as_str()),
+                ref_kind,
+                evidence: ctx.text.trim().to_string(),
+                source: SOURCE_TEXT,
+            },
+        );
+    }
+}
+
+fn identifier_spans(text: &str) -> Vec<(usize, &str)> {
+    let mut spans = Vec::new();
+    let mut start = None;
+
+    for (index, ch) in text.char_indices() {
+        if ch.is_ascii_alphanumeric() || ch == '_' {
+            if start.is_none() {
+                start = Some(index);
             }
+            continue;
+        }
 
-            search_start = index + target.name.len();
+        if let Some(span_start) = start.take()
+            && text[span_start..index]
+                .chars()
+                .next()
+                .is_some_and(|first| first.is_ascii_alphabetic() || first == '_')
+        {
+            spans.push((span_start, &text[span_start..index]));
         }
     }
+
+    if let Some(span_start) = start
+        && text[span_start..]
+            .chars()
+            .next()
+            .is_some_and(|first| first.is_ascii_alphabetic() || first == '_')
+    {
+        spans.push((span_start, &text[span_start..]));
+    }
+
+    spans
 }
 
 fn extract_imports(ctx: &LineContext<'_>, refs: &mut Vec<ReferenceRecord>) {
@@ -756,17 +812,6 @@ fn ref_sort_key(reference: &ReferenceRecord) -> (String, usize, usize, String, S
         reference.ref_kind.clone(),
         reference.source.clone(),
     )
-}
-
-fn is_word_boundary_match(line: &str, start: usize, len: usize) -> bool {
-    let before = line[..start].chars().next_back();
-    let after = line[start + len..].chars().next();
-
-    before.is_none_or(|ch| !is_word_char(ch)) && after.is_none_or(|ch| !is_word_char(ch))
-}
-
-fn is_word_char(ch: char) -> bool {
-    ch.is_ascii_alphanumeric() || ch == '_'
 }
 
 fn is_identifier(value: &str) -> bool {
