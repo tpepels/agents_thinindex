@@ -107,6 +107,43 @@ fn sqlite_schema_version_mismatch_triggers_rebuild() {
 }
 
 #[test]
+fn wi_schema_version_mismatch_auto_rebuilds_and_continues_query() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "src/main.py", "class FreshService: pass\n");
+    run_build(root);
+    force_schema_version(root, 999);
+
+    let output = wi_bin()
+        .current_dir(root)
+        .arg("FreshService")
+        .output()
+        .expect("run wi with schema-stale index");
+
+    assert!(
+        output.status.success(),
+        "wi should auto-rebuild schema-stale index\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stdout.contains("src/main.py:1 class FreshService"),
+        "original query should continue after schema rebuild, got:\n{stdout}"
+    );
+    assert_eq!(schema_version(root), thinindex::model::INDEX_SCHEMA_VERSION);
+    assert!(
+        stderr.contains("index schema version 999 does not match")
+            && stderr.contains("running `build_index` once")
+            && stderr.contains("index schema changed; rebuilding .dev_index"),
+        "schema-stale wi should explain one-shot auto-rebuild, got:\n{stderr}"
+    );
+}
+
+#[test]
 fn sqlite_schema_version_reset_removes_usage_events() {
     let repo = temp_repo();
     let root = repo.path();

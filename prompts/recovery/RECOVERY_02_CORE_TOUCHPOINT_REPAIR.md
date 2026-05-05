@@ -14,18 +14,18 @@ Current failure it addresses:
 wi currently tells users to manually run build_index when the index is stale. Intended behavior is automatic one-shot rebuild followed by the original query.
 
 Phases:
-- [ ] Reproduce missing/stale/schema-stale index behavior.
-- [ ] Implement one-shot auto-build for missing index in wi <query>.
-- [ ] Implement one-shot auto-rebuild for stale index in wi <query>.
-- [ ] Implement one-shot auto-rebuild for schema-stale index in wi <query>.
-- [ ] Ensure original query continues after rebuild.
-- [ ] Ensure rebuild failure reports clearly.
-- [ ] Ensure no rebuild loop is possible.
-- [ ] Repair wi doctor state reporting.
-- [ ] Align wi --help and generated instructions with actual behavior.
-- [ ] Add tests.
-- [ ] Run verification.
-- [ ] Commit.
+- [x] Reproduce missing/stale/schema-stale index behavior.
+- [x] Implement one-shot auto-build for missing index in wi <query>.
+- [x] Implement one-shot auto-rebuild for stale index in wi <query>.
+- [x] Implement one-shot auto-rebuild for schema-stale index in wi <query>.
+- [x] Ensure original query continues after rebuild.
+- [x] Ensure rebuild failure reports clearly.
+- [x] Ensure no rebuild loop is possible.
+- [x] Repair wi doctor state reporting.
+- [x] Align wi --help and generated instructions with actual behavior.
+- [x] Add tests.
+- [x] Run verification.
+- [x] Commit.
 
 Required behavior:
 - wi <query> with missing index builds once and continues.

@@ -14,36 +14,39 @@ includes the next command or file to inspect.
 Symptom:
 
 ```text
-index database missing; run `build_index`
+wi: index database missing; run `build_index`
+wi: running `build_index` once, then continuing the command
 ```
 
 Fix:
 
 ```bash
-build_index
-wi doctor
+wi <term>
 ```
 
 The index lives at `.dev_index/index.sqlite`. It is a local disposable cache and
-is not created implicitly by `wi <term>`.
+is created automatically once by `wi <term>` when missing. If that auto-build
+fails, fix the reported indexing error or run `build_index` manually for the
+full build output.
 
 ## Stale Index
 
 Symptom:
 
 ```text
-index is stale; run `build_index`
+wi: index is stale; repository files changed since the last build
+wi: running `build_index` once, then continuing the command
 ```
 
 Fix:
 
 ```bash
-build_index
 wi <term>
 ```
 
-`wi` does not silently rebuild because indexing should be explicit before broad
-agent discovery or after structural changes.
+`wi` rebuilds a stale or schema-stale index once and continues the original
+query. Rebuild notices go to stderr; search results stay on stdout. If the
+one-shot rebuild fails, run `build_index` manually and fix the reported error.
 
 ## Stale AGENTS.md Or CLAUDE.md
 

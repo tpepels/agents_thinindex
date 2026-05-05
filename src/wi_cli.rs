@@ -14,10 +14,10 @@ use clap::Parser;
 # WI
 
 Repository search rules:
-  Run `build_index` before broad discovery and after structural changes.
   Use `wi <term>` before grep/find/ls/Read to locate code.
+  `wi` auto-builds or auto-rebuilds a missing/stale index once before searching.
   `wi` returns repo-local file:line landmarks; Read only returned files unless insufficient.
-  If `wi` misses, rerun `build_index` once and retry before falling back.
+  Run `build_index` manually for explicit rebuilds or if auto-build reports an indexing error.
   For terms starting with `-`, use `wi -- <term>`, e.g. `wi -- --css-variable`.
 
 Examples:

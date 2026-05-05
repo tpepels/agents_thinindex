@@ -1,13 +1,12 @@
 use std::env;
 
-use anyhow::Result;
-use anyhow::bail;
+use anyhow::{Context, Result, bail};
 use clap::Parser;
 use thinindex::{
     bench::{BenchmarkRunOptions, render_benchmark_report, run_benchmark},
     context::{render_impact_command, render_pack_command, render_refs_command},
     doctor::{render_doctor_report, run_doctor},
-    indexer::{find_repo_root, index_is_fresh},
+    indexer::{build_index, find_repo_root, index_is_fresh},
     search::{SearchOptions, format_result, search},
     stats::{self, UsageEvent},
     wi_cli::{WiArgs, WiCommand},
@@ -37,17 +36,7 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
-    match index_is_fresh(&root) {
-        Ok(false) => bail!(
-            "index is stale; run `build_index`\nnext: run `build_index` in {}\nwhy: indexed files changed since the last build\nhelp: run `wi doctor` to inspect setup",
-            root.display()
-        ),
-        Ok(true) => {}
-        Err(error) => bail!(
-            "{error:#}\nnext: run `build_index` in {}\nhelp: run `wi doctor` to inspect setup",
-            root.display()
-        ),
-    }
+    ensure_index_ready_once(&root)?;
 
     let used_type = args.kind.is_some();
     let used_lang = args.lang.is_some();
@@ -143,4 +132,38 @@ fn run() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn ensure_index_ready_once(root: &std::path::Path) -> Result<()> {
+    let rebuild_reason = match index_is_fresh(root) {
+        Ok(true) => return Ok(()),
+        Ok(false) => "index is stale; repository files changed since the last build".to_string(),
+        Err(error) => format!("{error:#}"),
+    };
+
+    eprintln!("wi: {rebuild_reason}");
+    eprintln!("wi: running `build_index` once, then continuing the command");
+
+    let stats = build_index(root).with_context(|| {
+        format!(
+            "failed to auto-build index for {}\nwhy: {rebuild_reason}\nnext: fix the indexing error or run `build_index` manually, then retry `wi`\nhelp: run `wi doctor` to inspect setup",
+            root.display()
+        )
+    })?;
+
+    if let Some(message) = stats.reset_message {
+        eprintln!("wi: {message}");
+    }
+
+    match index_is_fresh(root) {
+        Ok(true) => Ok(()),
+        Ok(false) => bail!(
+            "index is still stale after one auto-build\nnext: run `build_index` manually in {}, inspect changed files, then retry `wi`\nhelp: run `wi doctor` to inspect setup",
+            root.display()
+        ),
+        Err(error) => bail!(
+            "index is not usable after one auto-build: {error:#}\nnext: run `build_index` manually in {}, then retry `wi`\nhelp: run `wi doctor` to inspect setup",
+            root.display()
+        ),
+    }
 }

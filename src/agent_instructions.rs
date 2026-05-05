@@ -1,13 +1,12 @@
 pub const REPOSITORY_SEARCH_HEADING: &str = "## Repository search";
 pub const REPOSITORY_SEARCH_BLOCK: &str = "## Repository search
 
-- Before broad repository discovery, run `build_index`.
+- Use `wi <term>` before grep/find/ls/Read to locate code; `wi` auto-builds or auto-rebuilds a missing/stale index once before searching.
 - Run `wi --help` if you need search filters, examples, or subcommands.
-- Use `wi <term>` before grep/find/ls/Read to locate code.
 - For implementation work, prefer `wi pack <term>` to get a compact read set.
 - Before editing a symbol or feature area, run `wi impact <term>` to find related tests/docs/callers.
 - Read only files returned by `wi` unless the result is insufficient.
-- If `wi` returns no useful result, rerun `build_index` once and retry.
+- Run `build_index` manually only when you want an explicit rebuild or when `wi` reports that auto-build failed.
 - Fall back to grep/find/Read only after that retry fails.";
 
 pub fn normalize_repository_search_block(existing: &str, empty_base_prefix: &str) -> String {
@@ -68,6 +67,8 @@ fn is_legacy_repository_search_line(line: &str) -> bool {
         || trimmed.contains("Run `wi --help` before your first repository search")
         || trimmed.contains("If `wi` misses a name you expect to exist")
         || trimmed.contains("If results look stale, run `build_index`.")
+        || trimmed.contains("Before broad repository discovery, run `build_index`.")
+        || trimmed.contains("If `wi` returns no useful result, rerun `build_index` once and retry.")
 }
 
 fn is_markdown_h1_or_h2(line: &str) -> bool {

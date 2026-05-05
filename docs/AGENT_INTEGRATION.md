@@ -8,12 +8,11 @@ thinindex provides local guidance and audit surfaces for repository-search behav
 
 The workflow is intentionally direct:
 
-1. Run `build_index` before broad repository discovery.
-2. Use `wi <term>` before grep, find, ls, or file reads.
-3. Prefer `wi pack <term>` for implementation work.
-4. Run `wi impact <term>` before editing a symbol or feature area.
-5. Read only files returned by `wi` unless the result is insufficient.
-6. If results are missing or stale, rerun `build_index` once before falling back.
+1. Use `wi <term>` before grep, find, ls, or file reads; `wi` auto-builds or auto-rebuilds a missing/stale index once before searching.
+2. Prefer `wi pack <term>` for implementation work.
+3. Run `wi impact <term>` before editing a symbol or feature area.
+4. Read only files returned by `wi` unless the result is insufficient.
+5. Run `build_index` manually only when you want an explicit rebuild or when `wi` reports that auto-build failed.
 
 ## Integration Packs
 

@@ -29,7 +29,6 @@ Run these commands inside the repository you want agents to work in:
 
 ```bash
 wi-init
-build_index
 wi doctor
 wi --help
 ```
@@ -37,7 +36,7 @@ wi --help
 `wi-init` writes `.thinindexignore`, creates or updates `AGENTS.md`, normalizes
 an existing `CLAUDE.md` when present, and builds the first local index.
 
-`build_index` writes `.dev_index/index.sqlite`. The index is local,
+`wi-init` builds the first `.dev_index/index.sqlite`. The index is local,
 disposable, and should not be committed.
 
 `wi doctor` checks whether the index, schema, freshness, instruction files,
@@ -79,8 +78,10 @@ wi pack <feature-or-symbol>
 wi impact <feature-or-symbol>
 ```
 
-Read the returned file:line rows first. Fall back to grep/find only when `wi`
-does not return useful results after one explicit `build_index` retry.
+Read the returned file:line rows first. `wi` auto-builds or auto-rebuilds a
+missing/stale index once before searching. Fall back to grep/find only when
+`wi` does not return useful results after that self-healing query path or after
+fixing any explicit auto-build failure.
 
 ## Unsupported Files
 

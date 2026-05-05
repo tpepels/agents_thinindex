@@ -305,6 +305,7 @@ fn wi_help_mentions_context_commands() {
         .arg("--help")
         .assert()
         .success()
+        .stdout(predicates::str::contains("auto-builds or auto-rebuilds"))
         .stdout(predicates::str::contains("wi refs PromptService"))
         .stdout(predicates::str::contains("wi pack PromptService"))
         .stdout(predicates::str::contains("wi impact PromptService"))
@@ -346,7 +347,7 @@ fn wi_doctor_reports_missing_index() {
 
     assert!(output.contains("overall: issues found"));
     assert!(output.contains("[fail] index: .dev_index/index.sqlite is missing"));
-    assert!(output.contains("next: run `build_index`"));
+    assert!(output.contains("next: run `wi <term>` to auto-build once"));
 }
 
 #[test]
@@ -363,7 +364,7 @@ fn wi_doctor_reports_stale_index() {
 
     assert!(output.contains("overall: issues found"));
     assert!(output.contains("[fail] freshness: index is stale"));
-    assert!(output.contains("next: run `build_index`"));
+    assert!(output.contains("next: run `wi <term>` to auto-rebuild once"));
 }
 
 #[test]
@@ -388,7 +389,7 @@ fn wi_doctor_reports_stale_agent_instruction_blocks() {
 }
 
 #[test]
-fn wi_missing_index_message_is_actionable() {
+fn wi_missing_index_auto_builds_and_continues_query() {
     let repo = temp_repo();
     let root = repo.path();
     write_doctor_ready_files(root);
@@ -400,11 +401,54 @@ fn wi_missing_index_message_is_actionable() {
         .output()
         .expect("run wi without index");
 
+    assert!(
+        output.status.success(),
+        "wi should auto-build missing index\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stdout.contains("src/service.py:1 class Service"),
+        "original query should continue after auto-build, got:\n{stdout}"
+    );
+    assert!(stderr.contains("index database missing"));
+    assert!(stderr.contains("running `build_index` once"));
+}
+
+#[test]
+fn wi_auto_build_failure_is_clear_and_one_shot() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_doctor_ready_files(root);
+    write_file(root, "src/service.py", "class Service: pass\n");
+    write_file(root, ".dev_index", "not a directory\n");
+
+    let output = wi_bin()
+        .current_dir(root)
+        .arg("Service")
+        .output()
+        .expect("run wi with blocked index dir");
+
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("index database missing"));
-    assert!(stderr.contains("next: run `build_index`"));
-    assert!(stderr.contains("help: run `wi doctor`"));
+    assert!(
+        stderr.matches("running `build_index` once").count() == 1,
+        "auto-build failure should not loop, got:\n{stderr}"
+    );
+    assert!(
+        stderr.contains("failed to auto-build index"),
+        "failure should identify auto-build, got:\n{stderr}"
+    );
+    assert!(
+        stderr.contains("next: fix the indexing error or run `build_index` manually"),
+        "failure should give next action, got:\n{stderr}"
+    );
+    assert!(
+        stderr.contains("help: run `wi doctor`"),
+        "failure should point to doctor, got:\n{stderr}"
+    );
 }
 
 #[test]
@@ -1513,7 +1557,7 @@ class PromptService:
 }
 
 #[test]
-fn wi_reports_stale_index_when_a_file_changes_after_initial_build() {
+fn wi_stale_index_auto_rebuilds_and_continues_query() {
     let repo = temp_repo();
     let root = repo.path();
 
@@ -1534,8 +1578,8 @@ class OldName:
         "OldName should be found before edit, got:\n{before}"
     );
 
-    // Edit the file in-place, replacing the symbol. wi should not rebuild
-    // automatically; it should tell the user to run build_index.
+    // Edit the file in-place, replacing the symbol. wi should rebuild once and
+    // continue the original query against the fresh index.
     write_file(
         root,
         "src/foo.py",
@@ -1547,26 +1591,46 @@ class NewName:
 
     let output = wi_bin()
         .current_dir(root)
-        .arg("OldName")
+        .arg("NewName")
         .output()
         .expect("run stale wi");
     assert!(
-        !output.status.success(),
-        "stale wi should fail\nstdout:\n{}\nstderr:\n{}",
+        output.status.success(),
+        "stale wi should auto-rebuild\nstdout:\n{}\nstderr:\n{}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
+    let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("run `build_index`"),
-        "stale wi should tell user to run build_index, got:\n{stderr}"
+        stdout.contains("src/foo.py") && stdout.contains("NewName"),
+        "NewName must appear after auto-rebuild, got:\n{stdout}"
+    );
+    assert!(
+        stderr.contains("index is stale") && stderr.contains("running `build_index` once"),
+        "stale wi should explain one-shot auto-rebuild, got:\n{stderr}"
     );
 
-    run_build(root);
-    let after_new = run_wi(root, &["NewName"]);
+    let second = wi_bin()
+        .current_dir(root)
+        .arg("NewName")
+        .output()
+        .expect("run warm wi");
+    assert!(
+        second.status.success(),
+        "second wi should succeed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&second.stdout),
+        String::from_utf8_lossy(&second.stderr)
+    );
+    let after_new = String::from_utf8_lossy(&second.stdout);
+    let second_stderr = String::from_utf8_lossy(&second.stderr);
     assert!(
         after_new.contains("src/foo.py"),
-        "NewName must appear after explicit rebuild, got:\n{after_new}"
+        "NewName must appear on immediate second query, got:\n{after_new}"
+    );
+    assert!(
+        !second_stderr.contains("running `build_index` once"),
+        "immediate second query should not rebuild, got:\n{second_stderr}"
     );
 }
 

@@ -109,7 +109,10 @@ pub fn render_doctor_report(report: &DoctorReport) -> String {
     out.push_str("\nNext steps:\n");
     if report.has_failures() || report.has_warnings() {
         out.push_str("- Fix any `fail` rows first, then rerun `wi doctor`.\n");
-        out.push_str("- Run `build_index` after changing files or repository setup.\n");
+        out.push_str(
+            "- `wi <term>` auto-builds or auto-rebuilds a missing/stale index once before searching.\n",
+        );
+        out.push_str("- Run `build_index` manually if auto-build reports an indexing error.\n");
         out.push_str("- Run `wi --help` for filters, examples, and subcommands.\n");
     } else {
         out.push_str("- Search with `wi <term>`.\n");
@@ -128,7 +131,7 @@ fn check_index_exists(root: &Path) -> DoctorCheck {
         DoctorCheck::fail(
             "index",
             format!("{DEV_INDEX_DIR}/{SQLITE_FILE} is missing"),
-            "run `build_index` from the repository root",
+            "run `wi <term>` to auto-build once, or run `wi-init` to set up instructions",
         )
     }
 }
@@ -139,7 +142,7 @@ fn check_schema_current(root: &Path) -> DoctorCheck {
         return DoctorCheck::fail(
             "schema",
             "schema cannot be checked because the SQLite index is missing",
-            "run `build_index` to create the current schema",
+            "run `wi <term>` to auto-build the current schema once",
         );
     }
 
@@ -150,12 +153,12 @@ fn check_schema_current(root: &Path) -> DoctorCheck {
         Ok(Some(version)) => DoctorCheck::fail(
             "schema",
             format!("schema version {version} does not match {INDEX_SCHEMA_VERSION}"),
-            "run `build_index` to rebuild the disposable local index",
+            "run `wi <term>` to auto-rebuild the disposable local index once",
         ),
         Ok(None) => DoctorCheck::fail(
             "schema",
             "schema version is missing from the SQLite meta table",
-            "run `build_index` to rebuild the disposable local index",
+            "run `wi <term>` to auto-rebuild the disposable local index once",
         ),
         Err(error) => DoctorCheck::fail(
             "schema",
@@ -171,12 +174,12 @@ fn check_index_fresh(root: &Path) -> DoctorCheck {
         Ok(false) => DoctorCheck::fail(
             "freshness",
             "index is stale; repository files changed since the last build",
-            "run `build_index`, then retry the `wi` command",
+            "run `wi <term>` to auto-rebuild once and continue the query",
         ),
         Err(error) => DoctorCheck::fail(
             "freshness",
             format!("freshness check could not run: {error:#}"),
-            "run `build_index`, then rerun `wi doctor`",
+            "run `wi <term>` to auto-build once, then rerun `wi doctor`",
         ),
     }
 }

@@ -35,7 +35,6 @@ Install the binaries, then run these commands inside a repository:
 
 ```bash
 wi-init
-build_index
 wi doctor
 wi --help
 wi <term>
@@ -51,7 +50,7 @@ wi pack build_index
 wi impact build_index
 ```
 
-Run `wi doctor` when setup looks wrong or results are missing/stale. Run `wi --help` for the current command syntax, filters, examples, and subcommands. Keep that help output as the source of truth for CLI details. See [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+Run `wi doctor` when setup looks wrong. Run `wi --help` for the current command syntax, filters, examples, and subcommands. Keep that help output as the source of truth for CLI details. See [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ## Documentation Map
 
@@ -63,14 +62,13 @@ Run `wi doctor` when setup looks wrong or results are missing/stale. Run `wi --h
 
 The canonical agent workflow is:
 
-1. Before broad repository discovery, run `build_index`.
+1. Use `wi <term>` before grep/find/ls/Read to locate code; `wi` auto-builds or auto-rebuilds a missing/stale index once before searching.
 2. Run `wi --help` if search filters, examples, or subcommands are needed.
-3. Use `wi <term>` before grep/find/ls/Read to locate code.
-4. For implementation work, prefer `wi pack <term>` to get a compact read set.
-5. Before editing a symbol or feature area, run `wi impact <term>` to find related tests/docs/callers.
-6. Read only files returned by `wi` unless the result is insufficient.
-7. If `wi` returns no useful result, rerun `build_index` once and retry.
-8. Fall back to grep/find/Read only after that retry fails.
+3. For implementation work, prefer `wi pack <term>` to get a compact read set.
+4. Before editing a symbol or feature area, run `wi impact <term>` to find related tests/docs/callers.
+5. Read only files returned by `wi` unless the result is insufficient.
+6. Run `build_index` manually only when you want an explicit rebuild or when `wi` reports that auto-build failed.
+7. Fall back to grep/find/Read only after that retry fails.
 
 `wi-init` creates or normalizes this workflow in `AGENTS.md` and normalizes an existing `CLAUDE.md` when present. It does not generate a `WI.md` instruction file.
 
@@ -107,7 +105,7 @@ The canonical index path is:
 
 Pre-alpha JSONL `.dev_index` caches are also disposable. `build_index` detects the old cache shape and rebuilds `.dev_index/index.sqlite`.
 
-`wi` does not silently rebuild a missing or stale index. It tells users to run `build_index` so rebuilds are explicit.
+`wi <term>`, `wi refs <term>`, `wi pack <term>`, and `wi impact <term>` auto-build or auto-rebuild a missing, stale, or schema-stale index once, then continue the original command. Rebuild notices are printed to stderr so stdout stays usable as command output. `build_index` remains available for explicit rebuilds and diagnostics.
 
 Usage stats are stored in the same SQLite database. `make uninstall` removes installed binaries only; it does not remove repo-local caches.
 
