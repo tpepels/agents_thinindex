@@ -3,10 +3,11 @@ use std::{fs, path::Path};
 const REPOSITORY_SEARCH_BLOCK: &str = "\
 ## Repository search
 
-- Use `wi <term>` before grep/find/ls/Read to locate code; `wi` auto-builds or auto-rebuilds a missing/stale index once before searching.
-- Run `wi --help` if you need search filters, examples, or subcommands.
-- For implementation work, prefer `wi pack <term>` to get a compact read set.
-- Before editing a symbol or feature area, run `wi impact <term>` to find related tests/docs/callers.
+- Use `wi <term>` directly before grep/find/ls/Read for repository discovery; `wi` auto-builds or auto-rebuilds a missing/stale index once before searching.
+- Use `wi refs <term>` before broad reference searches.
+- Use `wi pack <term>` before implementation to get a compact read set.
+- Use `wi impact <term>` before edits to find related tests/docs/callers.
+- Use `wi --help` for filters, examples, subcommands, and command details.
 - Read only files returned by `wi` unless the result is insufficient.
 - Run `build_index` manually only when you want an explicit rebuild or when `wi` reports that auto-build failed.
 - Fall back to grep/find/Read only after that retry fails.";
@@ -21,6 +22,8 @@ fn integration_packs_include_canonical_repository_search_block() {
     for path in [
         "integrations/agents/codex/AGENTS.md",
         "integrations/agents/claude/CLAUDE.md",
+        "integrations/agents/cursor/thinindex.mdc",
+        "integrations/agents/copilot/copilot-instructions.md",
     ] {
         let text = repo_file(path);
         assert!(
@@ -35,6 +38,8 @@ fn agent_integration_docs_are_local_and_advisory() {
     for path in [
         "docs/AGENT_INTEGRATION.md",
         "integrations/agents/generic/README.md",
+        "integrations/agents/cursor/README.md",
+        "integrations/agents/copilot/README.md",
         "integrations/agents/mcp/README.md",
     ] {
         let text = repo_file(path);

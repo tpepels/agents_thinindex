@@ -1,4 +1,4 @@
-# AGENTS
+# GitHub Copilot instructions
 
 ## Repository search
 

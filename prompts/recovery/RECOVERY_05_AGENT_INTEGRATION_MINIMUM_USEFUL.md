@@ -14,16 +14,16 @@ Current failure it addresses:
 Agents are not reliably using thinindex. AGENTS.md alone may be too weak or too vague.
 
 Phases:
-- [ ] Audit existing AGENTS.md generation.
-- [ ] Audit existing CLAUDE.md normalization behavior.
-- [ ] Add or update Cursor rule generation if in scope.
-- [ ] Add or update GitHub Copilot instruction generation if in scope.
-- [ ] Add OpenCode guidance through AGENTS.md.
-- [ ] Add Codex guidance/config snippet docs.
-- [ ] Ensure all wording matches actual auto-rebuild behavior.
-- [ ] Add idempotency tests.
-- [ ] Run verification.
-- [ ] Commit.
+- [x] Audit existing AGENTS.md generation.
+- [x] Audit existing CLAUDE.md normalization behavior.
+- [x] Add or update Cursor rule generation if in scope.
+- [x] Add or update GitHub Copilot instruction generation if in scope.
+- [x] Add OpenCode guidance through AGENTS.md.
+- [x] Add Codex guidance/config snippet docs.
+- [x] Ensure all wording matches actual auto-rebuild behavior.
+- [x] Add idempotency tests.
+- [x] Run verification.
+- [x] Commit.
 
 Instruction targets:
 - AGENTS.md

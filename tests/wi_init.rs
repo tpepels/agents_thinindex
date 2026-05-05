@@ -9,10 +9,11 @@ const AGENTS_REPOSITORY_SEARCH_HEADING: &str = "## Repository search";
 const AGENTS_REPOSITORY_SEARCH_BLOCK: &str = "\
 ## Repository search
 
-- Use `wi <term>` before grep/find/ls/Read to locate code; `wi` auto-builds or auto-rebuilds a missing/stale index once before searching.
-- Run `wi --help` if you need search filters, examples, or subcommands.
-- For implementation work, prefer `wi pack <term>` to get a compact read set.
-- Before editing a symbol or feature area, run `wi impact <term>` to find related tests/docs/callers.
+- Use `wi <term>` directly before grep/find/ls/Read for repository discovery; `wi` auto-builds or auto-rebuilds a missing/stale index once before searching.
+- Use `wi refs <term>` before broad reference searches.
+- Use `wi pack <term>` before implementation to get a compact read set.
+- Use `wi impact <term>` before edits to find related tests/docs/callers.
+- Use `wi --help` for filters, examples, subcommands, and command details.
 - Read only files returned by `wi` unless the result is insufficient.
 - Run `build_index` manually only when you want an explicit rebuild or when `wi` reports that auto-build failed.
 - Fall back to grep/find/Read only after that retry fails.";
@@ -80,6 +81,95 @@ fn wi_init_creates_agents_md_when_absent() {
 
     let agents = fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
     assert_agents_has_canonical_repository_search_block(&agents);
+}
+
+#[test]
+fn wi_init_creates_cursor_and_copilot_instruction_files() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    let cursor = fs::read_to_string(root.join(".cursor/rules/thinindex.mdc"))
+        .expect("read Cursor thinindex rule");
+    assert!(
+        cursor.starts_with("# thinindex\n\n"),
+        "Cursor rule should have a local thinindex heading, got:\n{cursor}"
+    );
+    assert_agents_has_canonical_repository_search_block(&cursor);
+
+    let copilot = fs::read_to_string(root.join(".github/copilot-instructions.md"))
+        .expect("read Copilot instructions");
+    assert!(
+        copilot.starts_with("# GitHub Copilot instructions\n\n"),
+        "Copilot instructions should have a local heading, got:\n{copilot}"
+    );
+    assert_agents_has_canonical_repository_search_block(&copilot);
+}
+
+#[test]
+fn wi_init_normalizes_cursor_and_copilot_instruction_files_once() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        ".cursor/rules/thinindex.mdc",
+        "# Cursor rules\n\n## Repository search\n\nSee WI.md for repository search/index usage.\n",
+    );
+    write_file(
+        root,
+        ".github/copilot-instructions.md",
+        "# Copilot\n\n@WI.md\n\nProject note.\n",
+    );
+
+    wi_init_bin().current_dir(root).assert().success();
+    wi_init_bin().current_dir(root).assert().success();
+
+    let cursor = fs::read_to_string(root.join(".cursor/rules/thinindex.mdc"))
+        .expect("read Cursor thinindex rule");
+    assert!(cursor.contains("# Cursor rules"));
+    assert!(!cursor.contains("See WI.md"));
+    assert_agents_has_canonical_repository_search_block(&cursor);
+    assert_eq!(
+        cursor.matches(AGENTS_REPOSITORY_SEARCH_BLOCK).count(),
+        1,
+        "Cursor rule should contain the canonical block exactly once, got:\n{cursor}"
+    );
+
+    let copilot = fs::read_to_string(root.join(".github/copilot-instructions.md"))
+        .expect("read Copilot instructions");
+    assert!(copilot.contains("# Copilot"));
+    assert!(copilot.contains("Project note."));
+    assert!(!copilot.contains("@WI.md"));
+    assert_agents_has_canonical_repository_search_block(&copilot);
+    assert_eq!(
+        copilot.matches(AGENTS_REPOSITORY_SEARCH_BLOCK).count(),
+        1,
+        "Copilot instructions should contain the canonical block exactly once, got:\n{copilot}"
+    );
+}
+
+#[test]
+fn generated_agent_wording_includes_direct_auto_rebuild_workflow() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    wi_init_bin().current_dir(root).assert().success();
+
+    for name in [
+        "AGENTS.md",
+        ".cursor/rules/thinindex.mdc",
+        ".github/copilot-instructions.md",
+    ] {
+        let contents = fs::read_to_string(root.join(name)).expect("read generated instructions");
+        assert!(contents.contains("Use `wi <term>` directly"));
+        assert!(contents.contains("auto-builds or auto-rebuilds a missing/stale index once"));
+        assert!(contents.contains("Use `wi refs <term>` before broad reference searches."));
+        assert!(contents.contains("Use `wi pack <term>` before implementation"));
+        assert!(contents.contains("Use `wi impact <term>` before edits"));
+        assert!(contents.contains("Use `wi --help`"));
+    }
 }
 
 #[test]
@@ -459,6 +549,12 @@ fn wi_init_rolls_back_existing_files_on_failure() {
     write_file(root, "AGENTS.md", "original AGENTS\n");
     write_file(root, "CLAUDE.md", "original CLAUDE\n");
     write_file(root, ".gitignore", "original .gitignore\n");
+    write_file(root, ".cursor/rules/thinindex.mdc", "original Cursor\n");
+    write_file(
+        root,
+        ".github/copilot-instructions.md",
+        "original Copilot\n",
+    );
 
     let dev_index = root.join(".dev_index");
     if dev_index.exists() {
@@ -490,6 +586,14 @@ fn wi_init_rolls_back_existing_files_on_failure() {
         fs::read_to_string(root.join(".gitignore")).unwrap(),
         "original .gitignore\n"
     );
+    assert_eq!(
+        fs::read_to_string(root.join(".cursor/rules/thinindex.mdc")).unwrap(),
+        "original Cursor\n"
+    );
+    assert_eq!(
+        fs::read_to_string(root.join(".github/copilot-instructions.md")).unwrap(),
+        "original Copilot\n"
+    );
 
     assert!(
         !dev_index.exists(),
@@ -508,6 +612,8 @@ fn wi_init_rolls_back_new_files_on_failure() {
         "AGENTS.md",
         "CLAUDE.md",
         ".gitignore",
+        ".cursor/rules/thinindex.mdc",
+        ".github/copilot-instructions.md",
     ] {
         let path = root.join(name);
         if path.exists() {
@@ -533,6 +639,8 @@ fn wi_init_rolls_back_new_files_on_failure() {
     assert!(!root.join("AGENTS.md").exists());
     assert!(!root.join("CLAUDE.md").exists());
     assert!(!root.join(".gitignore").exists());
+    assert!(!root.join(".cursor/rules/thinindex.mdc").exists());
+    assert!(!root.join(".github/copilot-instructions.md").exists());
     assert!(!dev_index.exists());
 }
 

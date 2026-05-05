@@ -13,6 +13,8 @@ use thinindex::{
 };
 
 const THININDEXIGNORE_TEMPLATE: &str = include_str!("../../templates/.thinindexignore");
+const CURSOR_RULE_PATH: &str = ".cursor/rules/thinindex.mdc";
+const COPILOT_INSTRUCTIONS_PATH: &str = ".github/copilot-instructions.md";
 
 #[derive(Debug, Parser)]
 #[command(
@@ -66,6 +68,8 @@ fn run() -> Result<()> {
     update_gitignore(&root)?;
     update_agents_md(&root)?;
     update_claude_md(&root)?;
+    update_cursor_rule(&root)?;
+    update_copilot_instructions(&root)?;
 
     if env::var_os("THININDEX_TEST_FAIL_WI_INIT_AFTER_WRITES").is_some() {
         anyhow::bail!("test failure after wi-init writes");
@@ -138,10 +142,17 @@ struct InitRollback {
 
 impl InitRollback {
     fn capture(root: &Path) -> Result<Self> {
-        let paths = [".thinindexignore", "AGENTS.md", "CLAUDE.md", ".gitignore"]
-            .iter()
-            .map(|name| root.join(name))
-            .collect::<Vec<_>>();
+        let paths = [
+            ".thinindexignore",
+            "AGENTS.md",
+            "CLAUDE.md",
+            ".gitignore",
+            CURSOR_RULE_PATH,
+            COPILOT_INSTRUCTIONS_PATH,
+        ]
+        .iter()
+        .map(|name| root.join(name))
+        .collect::<Vec<_>>();
 
         let mut snapshots = Vec::new();
 
@@ -309,6 +320,61 @@ fn update_claude_md(root: &Path) -> Result<()> {
 
     fs::write(&path, updated).with_context(|| format!("failed to write {}", path.display()))?;
     println!("updated: {}", path.display());
+
+    Ok(())
+}
+
+fn update_cursor_rule(root: &Path) -> Result<()> {
+    update_optional_instruction_file(
+        root,
+        CURSOR_RULE_PATH,
+        "# thinindex\n\n",
+        "thinindex repository search",
+    )
+}
+
+fn update_copilot_instructions(root: &Path) -> Result<()> {
+    update_optional_instruction_file(
+        root,
+        COPILOT_INSTRUCTIONS_PATH,
+        "# GitHub Copilot instructions\n\n",
+        "thinindex repository search",
+    )
+}
+
+fn update_optional_instruction_file(
+    root: &Path,
+    relative_path: &str,
+    empty_base_prefix: &str,
+    description: &str,
+) -> Result<()> {
+    let path = root.join(relative_path);
+
+    let existing = if path.exists() {
+        Some(
+            fs::read_to_string(&path)
+                .with_context(|| format!("failed to read {}", path.display()))?,
+        )
+    } else {
+        None
+    };
+
+    let updated = existing.as_ref().map_or_else(
+        || format!("{empty_base_prefix}{REPOSITORY_SEARCH_BLOCK}\n"),
+        |text| normalize_repository_search_block(text, empty_base_prefix),
+    );
+
+    if existing.as_deref() == Some(updated.as_str()) {
+        return Ok(());
+    }
+
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create {}", parent.display()))?;
+    }
+
+    fs::write(&path, updated).with_context(|| format!("failed to write {}", path.display()))?;
+    println!("updated {description}: {}", path.display());
 
     Ok(())
 }
