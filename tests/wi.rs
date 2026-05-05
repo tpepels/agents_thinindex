@@ -143,6 +143,178 @@ fn assert_impact_rows_have_reasons_and_confidence(output: &str) {
     }
 }
 
+fn workflow_row_count(output: &str) -> usize {
+    output.lines().filter(|line| line.starts_with("- ")).count()
+}
+
+#[test]
+fn core_value_workflows_are_useful_bounded_and_self_healing() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_doctor_ready_files(root);
+    write_file(
+        root,
+        "src/checkout_service.py",
+        r#"
+from payment_gateway import PaymentGateway
+
+class CheckoutService:
+    def checkout_flow(self):
+        return PaymentGateway().authorize()
+"#,
+    );
+    write_file(
+        root,
+        "src/payment_gateway.py",
+        r#"
+class PaymentGateway:
+    def authorize(self):
+        return True
+"#,
+    );
+    write_file(
+        root,
+        "src/checkout_consumer.py",
+        r#"
+from checkout_service import CheckoutService
+
+def run_checkout():
+    return CheckoutService().checkout_flow()
+"#,
+    );
+    write_file(
+        root,
+        "tests/test_checkout_service.py",
+        r#"
+from checkout_service import CheckoutService
+
+def test_checkout_flow():
+    assert CheckoutService().checkout_flow()
+"#,
+    );
+    write_file(
+        root,
+        "docs/checkout.md",
+        "# Checkout workflow\n\nCheckoutService owns payment authorization.\n",
+    );
+    write_file(root, "config/checkout.toml", "checkout_enabled = true\n");
+
+    let missing_index = wi_bin()
+        .current_dir(root)
+        .arg("CheckoutService")
+        .output()
+        .expect("run missing-index workflow search");
+    assert!(
+        missing_index.status.success(),
+        "missing-index symbol workflow should self-heal\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&missing_index.stdout),
+        String::from_utf8_lossy(&missing_index.stderr)
+    );
+    let symbol = String::from_utf8_lossy(&missing_index.stdout);
+    let stderr = String::from_utf8_lossy(&missing_index.stderr);
+    assert!(
+        symbol.contains("src/checkout_service.py") && symbol.contains("class CheckoutService"),
+        "symbol workflow should find the owning file:line, got:\n{symbol}"
+    );
+    assert!(
+        stderr.contains("running `build_index` once"),
+        "missing-index workflow should show one-shot auto-build on stderr, got:\n{stderr}"
+    );
+
+    let broad = run_wi(root, &["checkout"]);
+    assert!(
+        broad.contains("src/checkout_service.py")
+            || broad.contains("src/checkout_consumer.py")
+            || broad.contains("docs/checkout.md"),
+        "broad concept workflow should return useful checkout candidates, got:\n{broad}"
+    );
+    assert!(
+        broad.lines().count() <= 30,
+        "broad concept workflow should stay bounded, got:\n{broad}"
+    );
+
+    let refs = run_wi(root, &["refs", "CheckoutService"]);
+    assert!(
+        refs.contains("Primary:"),
+        "refs should include primary:\n{refs}"
+    );
+    assert!(
+        refs.contains("src/checkout_consumer.py")
+            && refs.contains("tests/test_checkout_service.py")
+            && refs.contains("reason:"),
+        "refs workflow should show useful reference evidence, got:\n{refs}"
+    );
+    assert!(
+        workflow_row_count(&refs) <= 25,
+        "refs workflow should stay bounded, got:\n{refs}"
+    );
+
+    let pack = run_wi(root, &["pack", "CheckoutService"]);
+    for expected in [
+        "src/checkout_service.py",
+        "src/payment_gateway.py",
+        "src/checkout_consumer.py",
+        "tests/test_checkout_service.py",
+        "docs/checkout.md",
+        "config/checkout.toml",
+    ] {
+        assert!(
+            pack.contains(expected),
+            "pack workflow should include {expected}, got:\n{pack}"
+        );
+    }
+    assert_impact_rows_have_reasons_and_confidence(&pack);
+    assert!(
+        workflow_row_count(&pack) <= 20,
+        "pack workflow should stay bounded, got:\n{pack}"
+    );
+
+    let impact = run_wi(root, &["impact", "CheckoutService"]);
+    assert!(
+        impact.contains("src/checkout_consumer.py")
+            && impact.contains("tests/test_checkout_service.py")
+            && impact.contains("reason:")
+            && impact.contains("confidence:"),
+        "impact workflow should show plausible affected files with reasons, got:\n{impact}"
+    );
+    assert!(
+        workflow_row_count(&impact) <= 25,
+        "impact workflow should stay bounded, got:\n{impact}"
+    );
+
+    let doctor = run_wi(root, &["doctor"]);
+    assert!(
+        doctor.contains("overall: ok") && doctor.contains("[ok] freshness: index is fresh"),
+        "doctor workflow should explain current state, got:\n{doctor}"
+    );
+
+    write_file(
+        root,
+        "CLAUDE.md",
+        "See WI.md for repository search/index usage.\n",
+    );
+    wi_init_bin().current_dir(root).assert().success();
+    let agents = std::fs::read_to_string(root.join("AGENTS.md")).expect("read AGENTS.md");
+    let claude = std::fs::read_to_string(root.join("CLAUDE.md")).expect("read CLAUDE.md");
+    assert!(
+        agents.contains("## Repository search")
+            && agents.contains("wi pack <term>")
+            && !agents.contains("WI.md"),
+        "wi-init workflow should create useful AGENTS.md, got:\n{agents}"
+    );
+    assert!(
+        claude.contains("## Repository search")
+            && claude.contains("wi impact <term>")
+            && !claude.contains("See WI.md"),
+        "wi-init workflow should normalize existing CLAUDE.md, got:\n{claude}"
+    );
+    assert!(
+        !root.join("WI.md").exists(),
+        "wi-init workflow must not reintroduce WI.md"
+    );
+}
+
 #[test]
 fn wi_finds_python_symbol() {
     let repo = temp_repo();

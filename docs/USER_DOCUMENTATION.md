@@ -29,6 +29,23 @@ The canonical command syntax, filters, examples, and subcommands are in
 `wi --help`. Documentation should route you there rather than duplicate every
 CLI option.
 
+Use the commands as a product workflow, not as isolated demos:
+
+- Find the owner of a named symbol with `wi <symbol>`.
+- Search a broader concept with `wi <term>` when you do not know the exact
+  symbol name.
+- Inspect reference evidence with `wi refs <term>`.
+- Build a bounded read set before implementation with `wi pack <term>`.
+- Check likely affected files before editing with `wi impact <term>`.
+- Diagnose repository state with `wi doctor`.
+- Run `wi-init` when a repository needs agent instructions or normalized
+  `CLAUDE.md` guidance.
+
+`wi <term>`, `wi refs`, `wi pack`, and `wi impact` auto-build or auto-rebuild a
+missing/stale index once before continuing, so the normal workflow starts with
+the command that answers the question. Run `build_index` manually when you want
+an explicit rebuild or when auto-build reports an indexing error.
+
 Useful docs:
 
 - [Getting started](GETTING_STARTED.md): first index and first searches.

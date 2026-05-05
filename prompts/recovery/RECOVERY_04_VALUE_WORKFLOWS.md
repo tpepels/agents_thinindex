@@ -14,13 +14,13 @@ Current failure it addresses:
 The project has architecture, but not enough proof that the actual workflows are useful.
 
 Phases:
-- [ ] Define core value workflows.
-- [ ] Add fixture or scripted checks for each workflow.
-- [ ] Run workflows on a real repo if available.
-- [ ] Fix obvious workflow failures.
-- [ ] Document workflows.
-- [ ] Run verification.
-- [ ] Commit.
+- [x] Define core value workflows.
+- [x] Add fixture or scripted checks for each workflow.
+- [x] Run workflows on a real repo if available.
+- [x] Fix obvious workflow failures.
+- [x] Document workflows.
+- [x] Run verification.
+- [x] Commit.
 
 Core workflows:
 1. find symbol:
