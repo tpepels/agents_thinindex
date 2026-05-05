@@ -31,6 +31,26 @@ All installer helpers install only the thinindex commands:
 
 They do not run `wi-init`, create `.dev_index`, mutate user repositories, delete repo-local `.dev_index`, or remove project files. Uninstall helpers remove only installed thinindex command files from the selected bin directory.
 
+Installer helpers smoke-test each installed command with `--version`. Version
+output includes the index schema, so an install/update should show lines such as
+`wi 0.1.4 (index schema 12)`. After installing from a source checkout or
+release archive, run:
+
+```bash
+which wi
+which build_index
+wi doctor
+```
+
+If `wi doctor` reports a schema or `binary/source` mismatch, PATH is resolving
+to stale or mismatched thinindex commands. Re-run the installer from the source
+checkout or archive you intend to use, or adjust PATH so all thinindex commands
+come from the same bin directory.
+
+If `wi --version` or `build_index --version` omits `index schema`, the installed
+binary predates schema diagnostics and should be refreshed before it writes a
+repo-local index.
+
 `THIRD_PARTY_NOTICES` ships with release artifacts and must stay with distributed archives or installers.
 
 `SBOM.md` ships with release archives. It identifies the thinindex package

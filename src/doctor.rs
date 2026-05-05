@@ -8,6 +8,9 @@ use rusqlite::{Connection, OptionalExtension};
 
 use crate::{
     agent_instructions::repository_search_block_is_current,
+    binary_state::{
+        PACKAGE_VERSION, ensure_binary_matches_source, source_binary_mismatch, source_checkout_info,
+    },
     indexer::index_is_fresh,
     licensing,
     model::INDEX_SCHEMA_VERSION,
@@ -73,6 +76,7 @@ pub fn run_doctor(root: &Path) -> DoctorReport {
             check_dev_index_ignored(root),
             check_quality_state(root),
             check_license_state(),
+            check_source_checkout_state(root),
             check_package_install_state(),
         ],
     }
@@ -297,11 +301,56 @@ fn check_license_state() -> DoctorCheck {
 
 fn check_package_install_state() -> DoctorCheck {
     match env::current_exe() {
-        Ok(path) => DoctorCheck::ok("binary", format!("running wi from {}", path.display())),
+        Ok(path) => DoctorCheck::ok(
+            "binary",
+            format!(
+                "running wi {PACKAGE_VERSION} schema {INDEX_SCHEMA_VERSION} from {}",
+                path.display()
+            ),
+        ),
         Err(error) => DoctorCheck::warn(
             "binary",
             format!("could not determine current executable path: {error}"),
             "verify `wi --version` works from your shell",
+        ),
+    }
+}
+
+fn check_source_checkout_state(root: &Path) -> DoctorCheck {
+    if let Some(mismatch) = source_binary_mismatch(root, "wi") {
+        return DoctorCheck::fail(
+            "binary/source",
+            mismatch.doctor_message(),
+            format!(
+                "run `./install.sh` from {} or use `cargo run --bin wi -- doctor` from this checkout",
+                root.display()
+            ),
+        );
+    }
+
+    if let Some(source) = source_checkout_info(root) {
+        return DoctorCheck::ok(
+            "binary/source",
+            format!(
+                "binary matches source checkout version {} schema {}",
+                source.version.as_deref().unwrap_or("unknown"),
+                source
+                    .schema_version
+                    .map(|version| version.to_string())
+                    .unwrap_or_else(|| "unknown".to_string())
+            ),
+        );
+    }
+
+    match ensure_binary_matches_source(root, "wi") {
+        Ok(()) => DoctorCheck::ok(
+            "binary/source",
+            "not running inside a thinindex source checkout; no source/binary comparison needed",
+        ),
+        Err(error) => DoctorCheck::fail(
+            "binary/source",
+            format!("{error:#}"),
+            "run the matching installed `wi`, or reinstall from the intended thinindex source checkout",
         ),
     }
 }

@@ -302,6 +302,28 @@ wi-init --version
 wi-stats --version
 ```
 
+Each version line includes the index schema, for example `index schema 12`.
+If `wi --version` or `build_index --version` does not include `index schema`,
+the PATH binary is stale and must be refreshed.
+After updating thinindex or pulling a schema bump from source, refresh installed
+PATH binaries with:
+
+```bash
+make install
+```
+
+Then verify the active binary and source checkout agree:
+
+```bash
+which wi
+which build_index
+wi doctor
+```
+
+If `wi doctor` reports a `binary/source` or schema mismatch, reinstall from the
+checkout you intend to use or run the matching source command with
+`cargo run --bin wi -- doctor`.
+
 Uninstall installed binaries:
 
 ```bash

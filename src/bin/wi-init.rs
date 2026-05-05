@@ -9,6 +9,7 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use thinindex::{
     agent_instructions::{REPOSITORY_SEARCH_BLOCK, normalize_repository_search_block},
+    binary_state::{ensure_binary_matches_source, print_version_if_requested},
     indexer::{build_index, find_repo_root},
 };
 
@@ -47,6 +48,10 @@ struct Args {
 }
 
 fn main() {
+    if print_version_if_requested("wi-init") {
+        return;
+    }
+
     if let Err(error) = run() {
         eprintln!("error: {error:#}");
         std::process::exit(1);
@@ -63,6 +68,7 @@ fn run() -> Result<()> {
     };
 
     let root = find_repo_root(&start)?;
+    ensure_binary_matches_source(&root, "wi-init")?;
 
     if args.remove {
         remove_repo(&root, args.keep_index)?;

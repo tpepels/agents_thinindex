@@ -25,10 +25,20 @@ fn install_script_installs_all_expected_binaries() {
             "install.sh should verify or print {binary}"
         );
         assert!(
-            contents.contains(&format!("\"$BIN_DIR/{binary}\" --version")),
+            contents.contains(&format!("target/release/{binary}"))
+                && contents.contains("\"$BIN_DIR/$bin\" --version"),
             "install.sh should smoke-test {binary} --version"
         );
     }
+
+    assert!(
+        contents.contains("index schema"),
+        "install.sh should verify installed binaries report their index schema"
+    );
+    assert!(
+        contents.contains("PATH resolves"),
+        "install.sh should warn when PATH resolves a different binary"
+    );
 }
 
 #[test]
@@ -126,6 +136,10 @@ fn docs_describe_current_agent_navigation_storage_and_commands() {
     assert!(
         readme.contains("SQLite engine is bundled"),
         "README should document bundled SQLite behavior"
+    );
+    assert!(
+        readme.contains("index schema") && readme.contains("make install"),
+        "README should tell users how to refresh installed binaries after schema bumps"
     );
 }
 
@@ -293,7 +307,7 @@ fn all_binaries_support_version() {
             .arg("--version")
             .assert()
             .success()
-            .stdout(contains("thinindex").or(contains(*binary)));
+            .stdout(contains(*binary).and(contains("index schema")));
     }
 }
 

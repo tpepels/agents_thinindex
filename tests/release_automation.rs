@@ -318,6 +318,9 @@ fn make_smoke_archive() -> PathBuf {
         r#"#!/usr/bin/env sh
 set -eu
 case "${1:-}" in
+  --version)
+    echo "wi 9.9.9 (index schema 12)"
+    ;;
   --help)
     echo "fake wi help"
     ;;
@@ -337,6 +340,10 @@ esac
         &package.join("build_index"),
         r#"#!/usr/bin/env sh
 set -eu
+if [ "${1:-}" = "--version" ]; then
+  echo "build_index 9.9.9 (index schema 12)"
+  exit 0
+fi
 mkdir -p .dev_index
 : > .dev_index/index.sqlite
 echo "indexed"
@@ -346,6 +353,10 @@ echo "indexed"
         &package.join("wi-init"),
         r#"#!/usr/bin/env sh
 set -eu
+if [ "${1:-}" = "--version" ]; then
+  echo "wi-init 9.9.9 (index schema 12)"
+  exit 0
+fi
 cat > AGENTS.md <<'AGENTS'
 # AGENTS
 
@@ -358,6 +369,10 @@ echo "initialized"
         &package.join("wi-stats"),
         r#"#!/usr/bin/env sh
 set -eu
+if [ "${1:-}" = "--version" ]; then
+  echo "wi-stats 9.9.9 (index schema 12)"
+  exit 0
+fi
 echo "stats"
 "#,
     );

@@ -106,6 +106,23 @@ require_packaged_binary build_index
 require_packaged_binary wi-init
 require_packaged_binary wi-stats
 
+expected_schema="$("$PACKAGE_DIR/build_index$EXE_SUFFIX" --version | sed -n 's/.*index schema \([0-9][0-9]*\).*/\1/p')"
+if [ -z "$expected_schema" ]; then
+    echo "error: packaged build_index did not report a parseable index schema" >&2
+    exit 1
+fi
+
+for binary in wi build_index wi-init wi-stats; do
+    version_output="$("$PACKAGE_DIR/$binary$EXE_SUFFIX" --version)"
+    case "$version_output" in
+        *"index schema $expected_schema"*) ;;
+        *)
+            echo "error: packaged $binary$EXE_SUFFIX did not report expected index schema $expected_schema" >&2
+            exit 1
+            ;;
+    esac
+done
+
 "$PACKAGE_DIR/wi$EXE_SUFFIX" --help >/dev/null
 
 SMOKE_REPO="$WORK_DIR/repo"

@@ -1,5 +1,6 @@
 pub mod agent_instructions;
 pub mod bench;
+pub mod binary_state;
 pub mod context;
 pub mod deps;
 pub mod doctor;

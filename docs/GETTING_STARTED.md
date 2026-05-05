@@ -10,6 +10,12 @@ Build locally with Cargo:
 cargo build --release
 ```
 
+From a source checkout, install or refresh the PATH binaries with:
+
+```bash
+make install
+```
+
 Or install from a release archive by extracting it and running the archive
 installer:
 
@@ -41,7 +47,21 @@ disposable, and should not be committed.
 
 `wi doctor` checks whether the index, schema, freshness, instruction files,
 ignore rules, parser support matrix, optional quality state, license status,
-and binary path look sane.
+binary path, and source/binary schema agreement look sane.
+
+If `wi doctor` reports that an installed binary does not match the source
+checkout, run `make install` from the checkout you intend to use and rerun
+`wi doctor`. Version output includes the index schema so stale PATH binaries are
+visible:
+
+```bash
+wi --version
+build_index --version
+```
+
+If either version command omits `index schema`, the PATH binary predates schema
+diagnostics and should be refreshed with `make install` or the archive
+installer.
 
 ## First Searches
 

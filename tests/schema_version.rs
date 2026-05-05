@@ -243,6 +243,88 @@ fn index_schema_version_no_rebuild_when_same() {
 }
 
 #[test]
+fn source_checkout_schema_newer_than_binary_blocks_index_writes() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "Cargo.toml",
+        r#"[package]
+name = "thinindex"
+version = "0.1.4"
+"#,
+    );
+    write_file(
+        root,
+        "src/model.rs",
+        "pub const INDEX_SCHEMA_VERSION: u32 = 999;\n",
+    );
+    write_file(root, "src/main.py", "class FreshService: pass\n");
+
+    let output = build_index_bin()
+        .current_dir(root)
+        .output()
+        .expect("run build_index from source-like mismatch repo");
+
+    assert!(
+        !output.status.success(),
+        "build_index should refuse source/binary schema mismatch"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("does not match this thinindex source checkout")
+            && stderr.contains("binary: version")
+            && stderr.contains("schema")
+            && stderr.contains("source: version 0.1.4 schema 999")
+            && stderr.contains("./install.sh"),
+        "schema mismatch should give clear reinstall guidance, got:\n{stderr}"
+    );
+    assert!(
+        !sqlite_path(root).exists(),
+        "mismatched binary should not write an old-schema index"
+    );
+}
+
+#[test]
+fn wi_doctor_reports_source_binary_schema_mismatch() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "Cargo.toml",
+        r#"[package]
+name = "thinindex"
+version = "0.1.4"
+"#,
+    );
+    write_file(
+        root,
+        "src/model.rs",
+        "pub const INDEX_SCHEMA_VERSION: u32 = 999;\n",
+    );
+
+    let output = wi_bin()
+        .current_dir(root)
+        .arg("doctor")
+        .output()
+        .expect("run wi doctor from source-like mismatch repo");
+
+    assert!(
+        output.status.success(),
+        "doctor renders mismatch reports without process failure"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("[fail] binary/source:")
+            && stdout.contains("source checkout declares version 0.1.4 schema 999")
+            && stdout.contains("run `./install.sh`"),
+        "doctor should diagnose source/binary mismatch, got:\n{stdout}"
+    );
+}
+
+#[test]
 fn malformed_sqlite_rebuilds_cleanly() {
     let repo = temp_repo();
     let root = repo.path();

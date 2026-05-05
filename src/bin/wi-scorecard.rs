@@ -3,6 +3,7 @@ use std::{env, path::PathBuf};
 use anyhow::Result;
 use clap::Parser;
 use thinindex::{
+    binary_state::print_version_if_requested,
     indexer::find_repo_root,
     scorecard::{ScorecardOptions, render_scorecard, run_scorecard},
 };
@@ -30,6 +31,10 @@ struct Args {
 }
 
 fn main() {
+    if print_version_if_requested("wi-scorecard") {
+        return;
+    }
+
     if let Err(error) = run() {
         eprintln!("error: {error:#}");
         std::process::exit(1);

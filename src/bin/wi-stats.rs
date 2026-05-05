@@ -3,6 +3,7 @@ use std::{env, path::PathBuf};
 use anyhow::Result;
 use clap::Parser;
 use thinindex::{
+    binary_state::print_version_if_requested,
     indexer::find_repo_root,
     stats::{
         compute_agent_workflow_audit, compute_windows, current_unix_seconds, read_usage_events,
@@ -32,6 +33,10 @@ struct Args {
 }
 
 fn main() {
+    if print_version_if_requested("wi-stats") {
+        return;
+    }
+
     if let Err(error) = run() {
         eprintln!("error: {error:#}");
         std::process::exit(1);

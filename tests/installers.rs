@@ -74,6 +74,12 @@ fn archive_installers_cover_all_binaries_without_repo_mutation() {
             "{path} must not delete repo-local .dev_index"
         );
     }
+
+    assert!(
+        unix_install.contains("expected index schema")
+            && windows_install.contains("expected index schema"),
+        "archive installers should verify all installed binaries agree on index schema"
+    );
 }
 
 #[test]
@@ -139,6 +145,11 @@ fn installer_docs_are_honest_about_platform_status_and_signing() {
             && !installers.contains("notarization is complete")
             && !readme.contains("signing is complete"),
         "docs must not overclaim installer signing readiness"
+    );
+    assert!(
+        installers.contains("index schema")
+            && installers.contains("schema or `binary/source` mismatch"),
+        "installer docs should explain schema-bearing versions and stale binary recovery"
     );
 }
 

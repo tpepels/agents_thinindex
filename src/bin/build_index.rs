@@ -2,7 +2,10 @@ use std::{env, path::PathBuf};
 
 use anyhow::Result;
 use clap::Parser;
-use thinindex::indexer::{FileSizeAction, build_index};
+use thinindex::{
+    binary_state::{ensure_binary_matches_source, print_version_if_requested},
+    indexer::{FileSizeAction, build_index},
+};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -25,6 +28,10 @@ struct Args {
 }
 
 fn main() {
+    if print_version_if_requested("build_index") {
+        return;
+    }
+
     if let Err(error) = run() {
         eprintln!("error: {error:#}");
         std::process::exit(1);
@@ -39,8 +46,10 @@ fn run() -> Result<()> {
     } else {
         env::current_dir()?.join(args.path)
     };
+    let root = thinindex::indexer::find_repo_root(&start)?;
+    ensure_binary_matches_source(&root, "build_index")?;
 
-    let stats = build_index(&start)?;
+    let stats = build_index(&root)?;
 
     if let Some(message) = stats.reset_message {
         println!("{message}");

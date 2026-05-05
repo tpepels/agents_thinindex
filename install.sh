@@ -10,6 +10,12 @@ fi
 
 PREFIX="${PREFIX:-$HOME/.local}"
 BIN_DIR="${BIN_DIR:-$PREFIX/bin}"
+EXPECTED_INDEX_SCHEMA="$(sed -n 's/^pub const INDEX_SCHEMA_VERSION: u32 = \([0-9][0-9]*\);$/\1/p' "$ROOT/src/model.rs")"
+
+if [[ -z "$EXPECTED_INDEX_SCHEMA" ]]; then
+  echo "error: failed to read expected index schema from $ROOT/src/model.rs" >&2
+  exit 1
+fi
 
 mkdir -p "$BIN_DIR"
 
@@ -28,10 +34,21 @@ for bin in build_index wi wi-init wi-stats; do
   fi
 done
 
-"$BIN_DIR/build_index" --version
-"$BIN_DIR/wi" --version
-"$BIN_DIR/wi-init" --version
-"$BIN_DIR/wi-stats" --version
+for bin in build_index wi wi-init wi-stats; do
+  version_output="$("$BIN_DIR/$bin" --version)"
+  echo "$version_output"
+  if [[ "$version_output" != *"index schema $EXPECTED_INDEX_SCHEMA"* ]]; then
+    echo "error: installed $BIN_DIR/$bin did not report expected index schema $EXPECTED_INDEX_SCHEMA" >&2
+    exit 1
+  fi
+done
+
+for bin in build_index wi wi-init wi-stats; do
+  active_path="$(command -v "$bin" 2>/dev/null || true)"
+  if [[ -n "$active_path" && "$active_path" != "$BIN_DIR/$bin" ]]; then
+    echo "warning: PATH resolves $bin to $active_path, not $BIN_DIR/$bin"
+  fi
+done
 
 case ":$PATH:" in
   *":$BIN_DIR:"*) ;;

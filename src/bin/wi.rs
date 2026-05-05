@@ -4,6 +4,7 @@ use anyhow::{Context, Result, bail};
 use clap::Parser;
 use thinindex::{
     bench::{BenchmarkRunOptions, render_benchmark_report, run_benchmark},
+    binary_state::{ensure_binary_matches_source, print_version_if_requested},
     context::{render_impact_command, render_pack_command, render_refs_command},
     doctor::{render_doctor_report, run_doctor},
     indexer::{build_index, find_repo_root, index_is_fresh},
@@ -13,6 +14,10 @@ use thinindex::{
 };
 
 fn main() {
+    if print_version_if_requested("wi") {
+        return;
+    }
+
     if let Err(error) = run() {
         eprintln!("error: {error:#}");
         std::process::exit(1);
@@ -36,6 +41,7 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
+    ensure_binary_matches_source(&root, "wi")?;
     ensure_index_ready_once(&root)?;
 
     let used_type = args.kind.is_some();
