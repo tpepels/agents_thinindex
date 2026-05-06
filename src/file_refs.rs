@@ -12,10 +12,14 @@ use crate::model::{DependencyEdge, FileReference};
 
 const SOURCE_DEPENDENCY_GRAPH: &str = "dependency_graph";
 const SOURCE_FILE_SCAN: &str = "file_reference_scan";
+pub const MAX_FILE_REFERENCES_PER_FILE: usize = 96;
+pub const MAX_FILE_REFERENCES_PER_FILE_KIND: usize = 64;
 
 const REASON_ABSOLUTE_PATH: &str = "absolute_path";
 const REASON_AMBIGUOUS_MATCH: &str = "ambiguous_match";
+const REASON_EXTERNAL_PACKAGE: &str = "external_package";
 const REASON_EXTERNAL_URL: &str = "external_url";
+const REASON_SYSTEM_INCLUDE: &str = "system_include";
 const REASON_TARGET_NOT_FOUND: &str = "target_not_found";
 
 const COMMON_EXTENSIONS: &[&str] = &[
@@ -57,15 +61,34 @@ struct Resolution {
     unresolved_reason: Option<&'static str>,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct FileReferenceExtraction {
+    pub references: Vec<FileReference>,
+    pub warnings: Vec<FileReferenceCapWarning>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileReferenceCapWarning {
+    pub source_path: String,
+    pub reference_kind: Option<String>,
+    pub kept: usize,
+    pub dropped: usize,
+    pub cap: usize,
+}
+
 pub fn extract_file_references(
     root: &Path,
     files: &[PathBuf],
     dependencies: &[DependencyEdge],
-) -> Result<Vec<FileReference>> {
+) -> Result<FileReferenceExtraction> {
     let resolver = FileResolver::new(root, files)?;
     let mut references = Vec::new();
 
-    references.extend(dependencies.iter().map(file_reference_from_dependency));
+    references.extend(
+        dependencies
+            .iter()
+            .filter_map(file_reference_from_dependency),
+    );
 
     for path in files {
         let rel = relpath(root, path)?;
@@ -98,7 +121,7 @@ pub fn extract_file_references(
     Ok(finalize_file_references(references))
 }
 
-pub fn finalize_file_references(mut references: Vec<FileReference>) -> Vec<FileReference> {
+pub fn finalize_file_references(mut references: Vec<FileReference>) -> FileReferenceExtraction {
     references.sort_by(|a, b| {
         a.source_path
             .cmp(&b.source_path)
@@ -106,25 +129,52 @@ pub fn finalize_file_references(mut references: Vec<FileReference>) -> Vec<FileR
             .then(a.source_col.cmp(&b.source_col))
             .then(a.raw_target.cmp(&b.raw_target))
             .then(a.reference_kind.cmp(&b.reference_kind))
-            .then(a.target_path.cmp(&b.target_path))
+            .then(
+                file_reference_confidence_rank(&a.confidence)
+                    .cmp(&file_reference_confidence_rank(&b.confidence)),
+            )
             .then(a.source.cmp(&b.source))
+            .then(a.target_path.cmp(&b.target_path))
     });
 
     let mut seen = BTreeSet::new();
-    references.retain(|reference| {
-        seen.insert((
-            reference.source_path.clone(),
-            reference.raw_target.clone(),
-            reference.target_path.clone(),
-            reference.reference_kind.clone(),
-        ))
-    });
+    let mut deduped: Vec<FileReference> = references
+        .into_iter()
+        .filter(|reference| {
+            seen.insert((
+                reference.source_path.clone(),
+                reference.raw_target.clone(),
+                reference.reference_kind.clone(),
+            ))
+        })
+        .collect();
 
-    references
+    let warnings = apply_reference_caps(&mut deduped);
+
+    FileReferenceExtraction {
+        references: deduped,
+        warnings,
+    }
 }
 
-fn file_reference_from_dependency(dependency: &DependencyEdge) -> FileReference {
-    FileReference::new(
+fn file_reference_confidence_rank(confidence: &str) -> usize {
+    match confidence {
+        "resolved" => 0,
+        "ambiguous" => 1,
+        "unresolved" => 2,
+        _ => 3,
+    }
+}
+
+fn file_reference_from_dependency(dependency: &DependencyEdge) -> Option<FileReference> {
+    if matches!(
+        dependency.unresolved_reason.as_deref(),
+        Some(REASON_EXTERNAL_PACKAGE | REASON_SYSTEM_INCLUDE)
+    ) {
+        return None;
+    }
+
+    Some(FileReference::new(
         dependency.from_path.clone(),
         dependency.from_line,
         dependency.from_col,
@@ -136,12 +186,75 @@ fn file_reference_from_dependency(dependency: &DependencyEdge) -> FileReference 
         dependency.unresolved_reason.clone(),
         dependency.evidence.clone(),
         SOURCE_DEPENDENCY_GRAPH,
-    )
+    ))
+}
+
+fn apply_reference_caps(references: &mut Vec<FileReference>) -> Vec<FileReferenceCapWarning> {
+    let mut kept_by_file: BTreeMap<String, usize> = BTreeMap::new();
+    let mut kept_by_file_kind: BTreeMap<(String, String), usize> = BTreeMap::new();
+    let mut dropped_by_file: BTreeMap<String, usize> = BTreeMap::new();
+    let mut dropped_by_file_kind: BTreeMap<(String, String), usize> = BTreeMap::new();
+
+    references.retain(|reference| {
+        let file_count = kept_by_file
+            .entry(reference.source_path.clone())
+            .or_insert(0usize);
+        let kind_key = (
+            reference.source_path.clone(),
+            reference.reference_kind.clone(),
+        );
+        let kind_count = kept_by_file_kind.entry(kind_key.clone()).or_insert(0usize);
+
+        if *file_count >= MAX_FILE_REFERENCES_PER_FILE {
+            *dropped_by_file
+                .entry(reference.source_path.clone())
+                .or_insert(0usize) += 1;
+            return false;
+        }
+
+        if *kind_count >= MAX_FILE_REFERENCES_PER_FILE_KIND {
+            *dropped_by_file_kind.entry(kind_key).or_insert(0usize) += 1;
+            return false;
+        }
+
+        *file_count += 1;
+        *kind_count += 1;
+        true
+    });
+
+    let mut warnings = Vec::new();
+    for (source_path, dropped) in dropped_by_file {
+        warnings.push(FileReferenceCapWarning {
+            kept: MAX_FILE_REFERENCES_PER_FILE,
+            source_path,
+            reference_kind: None,
+            dropped,
+            cap: MAX_FILE_REFERENCES_PER_FILE,
+        });
+    }
+    for ((source_path, reference_kind), dropped) in dropped_by_file_kind {
+        warnings.push(FileReferenceCapWarning {
+            kept: MAX_FILE_REFERENCES_PER_FILE_KIND,
+            source_path,
+            reference_kind: Some(reference_kind),
+            dropped,
+            cap: MAX_FILE_REFERENCES_PER_FILE_KIND,
+        });
+    }
+
+    warnings.sort_by(|a, b| {
+        a.source_path
+            .cmp(&b.source_path)
+            .then(a.reference_kind.cmp(&b.reference_kind))
+    });
+    warnings
 }
 
 fn reference_kind_from_dependency(kind: &str) -> &'static str {
     if kind.contains("include") {
         "include"
+    } else if kind.contains("export") {
+        "export"
     } else if kind.contains("require") {
         "require"
     } else if kind.contains("source") {
@@ -153,6 +266,8 @@ fn reference_kind_from_dependency(kind: &str) -> &'static str {
 
 fn scan_file_candidates(rel: &str, text: &str) -> Vec<Candidate> {
     match lang_from_path(rel) {
+        "js" | "jsx" | "ts" | "tsx" | "mjs" | "cjs" => scan_js_import_exports(text),
+        "py" => scan_python_imports(text),
         "md" | "markdown" => scan_markdown(text),
         "html" | "htm" => scan_html(text),
         "css" | "scss" | "sass" => scan_css(text),
@@ -161,6 +276,106 @@ fn scan_file_candidates(rel: &str, text: &str) -> Vec<Candidate> {
         _ if is_package_or_build_file(rel) => scan_config(rel, text),
         _ => Vec::new(),
     }
+}
+
+fn scan_js_import_exports(text: &str) -> Vec<Candidate> {
+    let import_re = Regex::new(r#"\bimport\s+(?:[^"'`;\n]*?\s+from\s*)?["'`]([^"'`]+)["'`]"#)
+        .expect("valid regex");
+    let export_re = Regex::new(
+        r#"\bexport\s+(?:type\s+)?(?:\*(?:\s+as\s+\w+)?|\{[^}\n]*\})\s+from\s*["'`]([^"'`]+)["'`]"#,
+    )
+    .expect("valid regex");
+    let dynamic_re =
+        Regex::new(r#"\bimport\s*\(\s*["'`]([^"'`]+)["'`]\s*\)"#).expect("valid regex");
+    let mut candidates = Vec::new();
+
+    for (line_no, line) in text.lines().enumerate() {
+        push_regex_path_candidates(&mut candidates, line_no + 1, line, &import_re, "import");
+        push_regex_path_candidates(&mut candidates, line_no + 1, line, &export_re, "export");
+        push_regex_path_candidates(&mut candidates, line_no + 1, line, &dynamic_re, "import");
+    }
+
+    candidates
+}
+
+fn scan_python_imports(text: &str) -> Vec<Candidate> {
+    let from_module_re =
+        Regex::new(r#"^\s*from\s+([.]+[A-Za-z_][A-Za-z0-9_.]*)\s+import\s+"#).expect("valid regex");
+    let from_current_re = Regex::new(r#"^\s*from\s+([.]+)\s+import\s+([A-Za-z_][A-Za-z0-9_]*)"#)
+        .expect("valid regex");
+    let mut candidates = Vec::new();
+
+    for (line_no, line) in text.lines().enumerate() {
+        if let Some(caps) = from_module_re.captures(line) {
+            let target = caps.get(1).expect("target match");
+            let raw = python_relative_module_to_path(target.as_str());
+            candidates.push(Candidate {
+                raw,
+                line: line_no + 1,
+                col: target.start() + 1,
+                kind: "import",
+                evidence: line.trim().to_string(),
+            });
+            continue;
+        }
+
+        if let Some(caps) = from_current_re.captures(line) {
+            let dots = caps.get(1).expect("dots match");
+            let target = caps.get(2).expect("target match");
+            let raw =
+                python_relative_module_to_path(&format!("{}{}", dots.as_str(), target.as_str()));
+            candidates.push(Candidate {
+                raw,
+                line: line_no + 1,
+                col: target.start() + 1,
+                kind: "import",
+                evidence: line.trim().to_string(),
+            });
+        }
+    }
+
+    candidates
+}
+
+fn push_regex_path_candidates(
+    candidates: &mut Vec<Candidate>,
+    line_no: usize,
+    line: &str,
+    regex: &Regex,
+    kind: &'static str,
+) {
+    for caps in regex.captures_iter(line) {
+        let target = caps.get(1).expect("target match");
+        let raw = target.as_str().trim();
+        if !is_js_local_module_target(raw) {
+            continue;
+        }
+
+        candidates.push(Candidate {
+            raw: raw.to_string(),
+            line: line_no,
+            col: target.start() + 1,
+            kind,
+            evidence: line.trim().to_string(),
+        });
+    }
+}
+
+fn is_js_local_module_target(raw: &str) -> bool {
+    (raw.starts_with("./") || raw.starts_with("../") || raw.starts_with('/'))
+        && !is_template_or_variable_target(raw)
+}
+
+fn python_relative_module_to_path(module: &str) -> String {
+    let dots = module.chars().take_while(|ch| *ch == '.').count();
+    let rest = module[dots..].replace('.', "/");
+    let mut prefix = if dots <= 1 {
+        "./".to_string()
+    } else {
+        "../".repeat(dots - 1)
+    };
+    prefix.push_str(&rest);
+    prefix
 }
 
 fn scan_markdown(text: &str) -> Vec<Candidate> {

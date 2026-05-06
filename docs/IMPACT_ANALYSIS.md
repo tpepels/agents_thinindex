@@ -34,7 +34,7 @@ Test mapping combines:
 
 - explicit references from files under common test paths or test-like filenames;
 - dependency edges from test files to primary definition files;
-- file references from tests, docs, config, packages, and assets to primary files;
+- resolved import/export/include file references plus tests, docs, config, packages, and assets to primary files;
 - same-name conventions between primary file/symbol names and test file paths.
 
 This catches common repository layouts without invoking a test runner, package manager, language server, or network service.
@@ -44,6 +44,7 @@ This catches common repository layouts without invoking a test runner, package m
 Impact quality improves when the index has better local evidence:
 
 - keep imports/includes/requires resolvable through local files;
+- prefer explicit local import/export/include paths over package aliases when possible;
 - keep tests near conventional `tests/`, `test/`, `__tests__/`, `*_test`, `.test.`, or `.spec.` paths;
 - add or improve deterministic Tree-sitter query captures for precise references;
 - add future manifest or semantic-adapter data only when it can produce concrete file:line evidence and clear confidence labels.

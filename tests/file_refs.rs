@@ -3,7 +3,10 @@ mod common;
 use std::fs;
 
 use common::*;
-use thinindex::model::FileReference;
+use thinindex::{
+    file_refs::{MAX_FILE_REFERENCES_PER_FILE_KIND, finalize_file_references},
+    model::FileReference,
+};
 
 fn assert_file_ref(
     references: &[FileReference],
@@ -371,5 +374,287 @@ fn refs_pack_and_impact_surface_file_reference_evidence() {
     assert!(
         impact.contains("web/app.ts") && impact.contains("file_import"),
         "impact should include reverse file references:\n{impact}"
+    );
+}
+
+#[test]
+fn import_export_file_references_cover_high_value_local_forms() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "web/widget.ts", "export const widget = 1;\n");
+    write_file(root, "web/side_effect.ts", "console.log('side effect');\n");
+    write_file(root, "web/dynamic.ts", "export const dynamic = 1;\n");
+    write_file(root, "web/types.ts", "export type WidgetType = string;\n");
+    write_file(root, "web/namespaced.ts", "export const namespaced = 1;\n");
+    write_file(
+        root,
+        "web/app.ts",
+        r#"
+import widget from "./widget";
+import "./side_effect";
+export * from "./widget";
+export { widget } from "./widget";
+export type { WidgetType } from "./types";
+export * as namespaced from "./namespaced";
+const lazy = () => import("./dynamic");
+const ignoredTemplate = () => import(`./${name}`);
+import React from "react";
+export * from "@acme/pkg";
+"#,
+    );
+    write_file(root, "pkg/__init__.py", "");
+    write_file(root, "pkg/foo.py", "class Foo: pass\n");
+    write_file(root, "pkg/bar.py", "class Bar: pass\n");
+    write_file(
+        root,
+        "pkg/app.py",
+        "from .foo import Foo\nfrom . import bar\nimport requests\n",
+    );
+    write_file(root, "src/lib.rs", "pub mod local_mod;\n");
+    write_file(root, "src/local_mod.rs", "pub struct LocalMod;\n");
+    write_file(root, "go.mod", "module example.com/project\n");
+    write_file(
+        root,
+        "go/main.go",
+        "package main\n\nimport \"example.com/project/pkg/helper\"\nimport \"fmt\"\n",
+    );
+    write_file(root, "pkg/helper/helper.go", "package helper\n");
+    write_file(
+        root,
+        "c/main.c",
+        "#include \"defs.h\"\n#include <stdio.h>\n",
+    );
+    write_file(root, "c/defs.h", "#define ANSWER 42\n");
+    write_file(
+        root,
+        "ruby/app.rb",
+        "require_relative \"lib/tool\"\nrequire \"json\"\n",
+    );
+    write_file(root, "ruby/lib/tool.rb", "class Tool\nend\n");
+    write_file(root, "php/app.php", "<?php\ninclude \"lib/tool.php\";\n");
+    write_file(root, "php/lib/tool.php", "<?php\nclass Tool {}\n");
+    write_file(root, "scripts/run.sh", "source ./lib.sh\n. ./missing.sh\n");
+    write_file(root, "scripts/lib.sh", "run_helper() { echo ok; }\n");
+
+    run_build(root);
+    let references = thinindex::store::load_file_references(root).expect("load file references");
+
+    assert_file_ref(
+        &references,
+        "web/app.ts",
+        "./widget",
+        Some("web/widget.ts"),
+        "import",
+    );
+    assert_file_ref(
+        &references,
+        "web/app.ts",
+        "./side_effect",
+        Some("web/side_effect.ts"),
+        "import",
+    );
+    assert_file_ref(
+        &references,
+        "web/app.ts",
+        "./widget",
+        Some("web/widget.ts"),
+        "export",
+    );
+    assert_file_ref(
+        &references,
+        "web/app.ts",
+        "./types",
+        Some("web/types.ts"),
+        "export",
+    );
+    assert_file_ref(
+        &references,
+        "web/app.ts",
+        "./namespaced",
+        Some("web/namespaced.ts"),
+        "export",
+    );
+    assert_file_ref(
+        &references,
+        "web/app.ts",
+        "./dynamic",
+        Some("web/dynamic.ts"),
+        "import",
+    );
+    assert_file_ref(
+        &references,
+        "pkg/app.py",
+        "./foo",
+        Some("pkg/foo.py"),
+        "import",
+    );
+    assert_file_ref(
+        &references,
+        "pkg/app.py",
+        "./bar",
+        Some("pkg/bar.py"),
+        "import",
+    );
+    assert_file_ref(
+        &references,
+        "src/lib.rs",
+        "local_mod",
+        Some("src/local_mod.rs"),
+        "import",
+    );
+    assert_file_ref(
+        &references,
+        "go/main.go",
+        "example.com/project/pkg/helper",
+        Some("pkg/helper/helper.go"),
+        "import",
+    );
+    assert_file_ref(
+        &references,
+        "c/main.c",
+        "defs.h",
+        Some("c/defs.h"),
+        "include",
+    );
+    assert_file_ref(
+        &references,
+        "ruby/app.rb",
+        "lib/tool",
+        Some("ruby/lib/tool.rb"),
+        "require",
+    );
+    assert_file_ref(
+        &references,
+        "php/app.php",
+        "lib/tool.php",
+        Some("php/lib/tool.php"),
+        "include",
+    );
+    assert_file_ref(
+        &references,
+        "scripts/run.sh",
+        "./lib.sh",
+        Some("scripts/lib.sh"),
+        "source",
+    );
+
+    assert!(
+        references.iter().all(|reference| {
+            !matches!(
+                reference.raw_target.as_str(),
+                "react" | "@acme/pkg" | "requests" | "fmt" | "stdio.h" | "json"
+            ) && !reference.raw_target.contains("${")
+        }),
+        "external packages and system includes should not become file references:\n{references:#?}"
+    );
+    run_named_file_reference_integrity_checks("import/export fixture", &references);
+}
+
+#[test]
+fn file_reference_dedupe_prefers_resolved_edge_for_same_statement() {
+    let unresolved = FileReference::new(
+        "web/app.ts",
+        1,
+        8,
+        "./widget",
+        None::<String>,
+        "import",
+        "ts",
+        "unresolved",
+        Some("target_not_found"),
+        "import './widget';",
+        "file_reference_scan",
+    );
+    let resolved = FileReference::new(
+        "web/app.ts",
+        1,
+        8,
+        "./widget",
+        Some("web/widget.ts"),
+        "import",
+        "ts",
+        "resolved",
+        None::<String>,
+        "import './widget';",
+        "dependency_graph",
+    );
+
+    let extraction = finalize_file_references(vec![unresolved, resolved]);
+
+    assert_eq!(extraction.references.len(), 1);
+    assert_eq!(
+        extraction.references[0].target_path.as_deref(),
+        Some("web/widget.ts"),
+        "same-statement dedupe should retain the resolved local edge"
+    );
+    assert!(extraction.warnings.is_empty());
+}
+
+#[test]
+fn file_reference_caps_keep_noisy_import_files_bounded() {
+    let repo = temp_repo();
+    let root = repo.path();
+    let mut imports = String::new();
+
+    for index in 0..(MAX_FILE_REFERENCES_PER_FILE_KIND + 8) {
+        write_file(
+            root,
+            &format!("web/module_{index}.ts"),
+            &format!("export const value{index} = {index};\n"),
+        );
+        imports.push_str(&format!("export * from \"./module_{index}\";\n"));
+    }
+    write_file(root, "web/noisy.ts", &imports);
+
+    let output = build_index_bin()
+        .current_dir(root)
+        .arg("--stats")
+        .output()
+        .expect("run build_index --stats");
+    assert!(
+        output.status.success(),
+        "build_index --stats failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("file reference cap warnings: 1")
+            && stdout.contains("web/noisy.ts kind=export")
+            && stdout.contains("dropped=8"),
+        "expected clear cap warning, got:\n{stdout}"
+    );
+
+    let references = thinindex::store::load_file_references(root).expect("load file references");
+    let noisy_exports = references
+        .iter()
+        .filter(|reference| {
+            reference.source_path == "web/noisy.ts" && reference.reference_kind == "export"
+        })
+        .count();
+    assert_eq!(
+        noisy_exports, MAX_FILE_REFERENCES_PER_FILE_KIND,
+        "noisy export refs should be capped:\n{references:#?}"
+    );
+
+    let second = build_index_bin()
+        .current_dir(root)
+        .arg("--stats")
+        .output()
+        .expect("run no-change build_index --stats");
+    assert!(
+        second.status.success(),
+        "second build_index --stats failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&second.stdout),
+        String::from_utf8_lossy(&second.stderr)
+    );
+    let second_stdout = String::from_utf8_lossy(&second.stdout);
+    assert!(
+        second_stdout.contains("changed files: 0")
+            && second_stdout.contains("parsed files: 0")
+            && second_stdout.contains("  file references ms: 0"),
+        "no-change build should stay incremental, got:\n{second_stdout}"
     );
 }

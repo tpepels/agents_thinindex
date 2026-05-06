@@ -298,6 +298,10 @@ fn build_index_stats_reports_scale_metrics_without_large_snapshots() {
     for needle in [
         "refs:",
         "dependencies:",
+        "file reference cap warnings:",
+        "file references by kind:",
+        "unresolved file reference reasons:",
+        "top file-reference files:",
         "parsed files:",
         "relationship recomputations:",
         "quality/comparator phases:",
@@ -312,6 +316,7 @@ fn build_index_stats_reports_scale_metrics_without_large_snapshots() {
         "sqlite tuning:",
         "sensitive path warnings:",
         "sensitive-looking paths:",
+        "file reference cap warnings:",
     ] {
         assert!(
             stdout.contains(needle),

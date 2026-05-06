@@ -38,7 +38,7 @@ internal parser metadata by default.
 Every ref row stores both `confidence` and `reason`. The reason is compact evidence for why the confidence label was assigned, such as `tree_sitter_reference_capture`, `local_symbol_match`, `dependency_graph_resolved_file`, or `broad_text_fallback`.
 
 File-reference rows are printed as `file_<kind>` rows, for example
-`file_import`, and use the `file_references` confidence labels such as
+`file_import` or `file_export`, and use the `file_references` confidence labels such as
 `resolved`, `ambiguous`, or `unresolved`. Resolved local file references rank
 above broad heuristic text references, while still remaining distinguishable
 from symbol/name references.
@@ -61,7 +61,7 @@ These rows give future context and impact commands a relationship-backed way to 
 
 ## File References
 
-The `file_references` table records local imports/includes, docs links, HTML scripts/styles/assets, CSS assets, config paths, package entrypoints, and fixtures. Rows keep the raw target string even when resolution fails, with an explicit unresolved reason.
+The `file_references` table records local imports/exports/includes, docs links, HTML scripts/styles/assets, CSS assets, config paths, package entrypoints, and fixtures. Rows keep the raw target string even when resolution fails, with an explicit unresolved reason. External packages and system includes are not copied into `file_references` as local file edges.
 
 See [FILE_REFERENCES.md](FILE_REFERENCES.md) for supported file-reference kinds and resolution behavior.
 

@@ -704,7 +704,7 @@ fn ref_evidence_priority(reference: &ReferenceRecord) -> usize {
 fn file_ref_evidence_priority(reference: &FileReference) -> usize {
     if reference.target_path.is_some() {
         match reference.reference_kind.as_str() {
-            "import" | "include" | "require" | "source" => 1,
+            "import" | "export" | "include" | "require" | "source" => 1,
             "script" | "stylesheet" => 2,
             "asset" | "fixture" => 3,
             "link" => 4,
@@ -748,7 +748,7 @@ fn file_ref_rank(reference: &FileReference) -> RefRank {
     }
 
     match reference.reference_kind.as_str() {
-        "import" | "include" | "require" | "source" => RefRank::Import,
+        "import" | "export" | "include" | "require" | "source" => RefRank::Import,
         "link" => RefRank::Docs,
         "asset" | "script" | "stylesheet" => RefRank::Ui,
         _ if is_test_path(&reference.source_path) => RefRank::Test,
@@ -1139,7 +1139,7 @@ fn impact_group_for_file_reference(reference: &FileReference) -> ImpactGroup {
         ImpactGroup::Tests
     } else if matches!(
         reference.reference_kind.as_str(),
-        "import" | "include" | "require" | "source"
+        "import" | "export" | "include" | "require" | "source"
     ) {
         ImpactGroup::Dependents
     } else if reference.reference_kind == "link" || role == FileRole::Docs {
@@ -1161,7 +1161,9 @@ fn file_reference_confidence(reference: &FileReference) -> &'static str {
     }
 
     match reference.reference_kind.as_str() {
-        "import" | "include" | "require" | "source" if reference.confidence == "resolved" => {
+        "import" | "export" | "include" | "require" | "source"
+            if reference.confidence == "resolved" =>
+        {
             "dependency"
         }
         "fixture" => "test-related",
@@ -1171,7 +1173,7 @@ fn file_reference_confidence(reference: &FileReference) -> &'static str {
 
 fn file_reference_priority(reference: &FileReference) -> usize {
     match reference.reference_kind.as_str() {
-        "import" | "include" | "require" | "source" => 0,
+        "import" | "export" | "include" | "require" | "source" => 0,
         "script" | "stylesheet" => 1,
         "asset" => 2,
         "fixture" => 2,

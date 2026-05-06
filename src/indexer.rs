@@ -12,7 +12,7 @@ use ignore::WalkBuilder;
 use crate::{
     deps::extract_dependencies,
     extras::index_extras,
-    file_refs::extract_file_references,
+    file_refs::{FileReferenceCapWarning, extract_file_references},
     model::{FileMeta, IndexRecord},
     privacy::{SENSITIVE_PATH_WARNING_LIMIT, SensitivePathWarning, sensitive_path_reason},
     refs::{ReferenceIndex, extract_refs_with_index, finalize_refs, refs_from_dependencies},
@@ -88,6 +88,7 @@ pub struct BuildStats {
     pub total_file_bytes: u64,
     pub large_files: Vec<FileSizeWarning>,
     pub sensitive_paths: Vec<SensitivePathWarning>,
+    pub file_reference_warnings: Vec<FileReferenceCapWarning>,
     pub timings: BuildTimings,
     /// Populated when an existing index was reset (schema bump or corrupted
     /// manifest). Callers may surface this; library code stays silent.
@@ -252,6 +253,7 @@ pub fn build_index_with_semantic_adapters(
             total_file_bytes,
             large_files,
             sensitive_paths,
+            file_reference_warnings: Vec::new(),
             timings: BuildTimings {
                 discover: discover_elapsed,
                 ignore_matching: discover_elapsed,
@@ -305,7 +307,10 @@ pub fn build_index_with_semantic_adapters(
     let dependencies_elapsed = dependencies_start.elapsed();
 
     let file_references_start = Instant::now();
-    let mut file_references = extract_file_references(&root, &indexable_files, &dependencies)?;
+    let file_reference_extraction =
+        extract_file_references(&root, &indexable_files, &dependencies)?;
+    let file_reference_warnings = file_reference_extraction.warnings;
+    let mut file_references = file_reference_extraction.references;
     sort_file_references(&mut file_references);
     let file_references_elapsed = file_references_start.elapsed();
 
@@ -350,6 +355,7 @@ pub fn build_index_with_semantic_adapters(
         total_file_bytes,
         large_files,
         sensitive_paths,
+        file_reference_warnings,
         timings: BuildTimings {
             discover: discover_elapsed,
             ignore_matching: discover_elapsed,

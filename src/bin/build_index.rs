@@ -1,10 +1,11 @@
-use std::{env, path::PathBuf};
+use std::{collections::BTreeMap, env, path::PathBuf};
 
 use anyhow::Result;
 use clap::Parser;
 use thinindex::{
     binary_state::{ensure_binary_matches_source, print_version_if_requested},
     indexer::{FileSizeAction, build_index},
+    model::FileReference,
 };
 
 #[derive(Debug, Parser)]
@@ -112,6 +113,11 @@ fn print_stats(stats: &thinindex::indexer::BuildStats) {
     println!("refs: {}", stats.refs);
     println!("dependencies: {}", stats.dependencies);
     println!("file references: {}", stats.file_references);
+    println!(
+        "file reference cap warnings: {}",
+        stats.file_reference_warnings.len()
+    );
+    print_file_reference_breakdown(stats);
     println!("semantic facts: {}", stats.semantic_facts);
     println!("parsed files: {}", stats.parsed_files);
     println!(
@@ -191,7 +197,101 @@ fn print_stats(stats: &thinindex::indexer::BuildStats) {
         }
     }
 
+    println!("file reference cap warnings:");
+    if stats.file_reference_warnings.is_empty() {
+        println!("  none");
+    } else {
+        for warning in &stats.file_reference_warnings {
+            match warning.reference_kind.as_deref() {
+                Some(kind) => println!(
+                    "  {} kind={} kept={} dropped={} cap={}",
+                    warning.source_path, kind, warning.kept, warning.dropped, warning.cap
+                ),
+                None => println!(
+                    "  {} kept={} dropped={} cap={}",
+                    warning.source_path, warning.kept, warning.dropped, warning.cap
+                ),
+            }
+        }
+    }
+
     println!(
         "sqlite tuning: journal_mode=WAL synchronous=NORMAL temp_store=MEMORY cache_size=-20000"
     );
+}
+
+fn print_file_reference_breakdown(stats: &thinindex::indexer::BuildStats) {
+    let Ok(references) = thinindex::store::load_file_references(&stats.root) else {
+        println!("file references by kind: unavailable");
+        println!("unresolved file reference reasons: unavailable");
+        println!("top file-reference files:");
+        println!("  unavailable");
+        return;
+    };
+
+    println!(
+        "file references by kind: {}",
+        render_counts(count_file_references_by_kind(&references))
+    );
+    println!(
+        "unresolved file reference reasons: {}",
+        render_counts(count_unresolved_file_reference_reasons(&references))
+    );
+    println!("top file-reference files:");
+    let top_files = top_file_reference_sources(&references, 10);
+    if top_files.is_empty() {
+        println!("  none");
+    } else {
+        for (path, count) in top_files {
+            println!("  {path}: {count}");
+        }
+    }
+}
+
+fn count_file_references_by_kind(references: &[FileReference]) -> BTreeMap<String, usize> {
+    let mut counts = BTreeMap::new();
+    for reference in references {
+        *counts
+            .entry(reference.reference_kind.clone())
+            .or_insert(0usize) += 1;
+    }
+    counts
+}
+
+fn count_unresolved_file_reference_reasons(
+    references: &[FileReference],
+) -> BTreeMap<String, usize> {
+    let mut counts = BTreeMap::new();
+    for reference in references {
+        if let Some(reason) = &reference.unresolved_reason {
+            *counts.entry(reason.clone()).or_insert(0usize) += 1;
+        }
+    }
+    counts
+}
+
+fn top_file_reference_sources(references: &[FileReference], limit: usize) -> Vec<(String, usize)> {
+    let mut counts = BTreeMap::new();
+    for reference in references {
+        *counts
+            .entry(reference.source_path.clone())
+            .or_insert(0usize) += 1;
+    }
+
+    let mut rows: Vec<(String, usize)> = counts.into_iter().collect();
+    rows.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+    rows.truncate(limit);
+    rows
+}
+
+fn render_counts(counts: BTreeMap<String, usize>) -> String {
+    if counts.is_empty() {
+        return "none".to_string();
+    }
+
+    counts
+        .into_iter()
+        .map(|(key, count)| format!("{key}={count}"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }

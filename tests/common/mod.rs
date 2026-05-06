@@ -493,6 +493,7 @@ pub fn assert_required_file_reference_fields(name: &str, references: &[FileRefer
 pub fn assert_allowed_file_reference_kinds(name: &str, references: &[FileReference]) {
     let allowed = [
         "import",
+        "export",
         "include",
         "require",
         "source",

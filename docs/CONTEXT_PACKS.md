@@ -25,6 +25,7 @@ Pack ranking favors:
 
 - exact primary symbol matches;
 - local dependency proximity around the primary files;
+- resolved local import/export/include file references before unresolved or heuristic evidence;
 - stronger confidence labels before heuristic evidence;
 - source-like files before test, docs, fixture, or example paths;
 - files with more references when other ranking signals are equal;
@@ -34,7 +35,7 @@ Quality manifest hints can improve this ranking when future plans add them. With
 
 ## Caps
 
-The default pack size is intentionally small. `-n` sets the total output budget, with primary rows always shown first and remaining slots distributed across bounded groups. Group caps keep broad text matches, tests, docs, configs, examples, and unresolved hints from crowding out high-signal source relationships.
+The default pack size is intentionally small. `-n` sets the total output budget, with primary rows always shown first and remaining slots distributed across bounded groups. Group caps keep broad text matches, tests, docs, configs, examples, and unresolved hints from crowding out high-signal source relationships. File-reference extraction also caps noisy source files before pack ranking sees them.
 
 ## Agent Use
 
