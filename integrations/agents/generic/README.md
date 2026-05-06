@@ -11,3 +11,5 @@ Use this pack when an agent accepts plain repository instructions but has no ded
 7. Run `build_index` manually only when you want an explicit rebuild or when `wi` reports that auto-build failed.
 
 `wi-stats` provides a local-only audit of recorded `wi` usage. It is an advisory report, not hard enforcement.
+
+Run `wi-init --dry-run` to preview repo-local instruction changes before writing files. No global agent configuration is modified by `wi-init`.

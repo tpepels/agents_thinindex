@@ -85,9 +85,159 @@ fn wi_init_help_describes_current_instruction_surfaces() {
             "does not create CLAUDE.md when absent",
         ))
         .stdout(predicates::str::contains("Does not create WI.md"))
+        .stdout(predicates::str::contains("--dry-run"))
+        .stdout(predicates::str::contains(
+            "preview repo-local file/index changes",
+        ))
         .stdout(predicates::str::contains(
             "global agent/editor configuration",
         ));
+}
+
+#[test]
+fn wi_init_dry_run_is_deterministic_and_does_not_write_repo_files() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_file(root, ".gitignore", "target/\n");
+
+    let first = wi_init_bin()
+        .current_dir(root)
+        .arg("--dry-run")
+        .output()
+        .expect("run wi-init dry-run");
+    let second = wi_init_bin()
+        .current_dir(root)
+        .arg("--dry-run")
+        .output()
+        .expect("run wi-init dry-run again");
+
+    assert!(first.status.success());
+    assert!(second.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&first.stdout),
+        String::from_utf8_lossy(&second.stdout),
+        "dry-run output should be deterministic for unchanged inputs"
+    );
+
+    let stdout = String::from_utf8_lossy(&first.stdout);
+    assert!(stdout.contains("dry-run: create:"));
+    assert!(stdout.contains("AGENTS.md"));
+    assert!(stdout.contains(".cursor/rules/thinindex.mdc"));
+    assert!(stdout.contains(".github/copilot-instructions.md"));
+    assert!(stdout.contains(".dev_index/index.sqlite"));
+    assert!(stdout.contains("dry-run: no files changed"));
+
+    assert!(!root.join(".thinindexignore").exists());
+    assert!(!root.join("AGENTS.md").exists());
+    assert!(!root.join(".cursor/rules/thinindex.mdc").exists());
+    assert!(!root.join(".github/copilot-instructions.md").exists());
+    assert!(!root.join(".dev_index").exists());
+    assert_eq!(
+        fs::read_to_string(root.join(".gitignore")).unwrap(),
+        "target/\n"
+    );
+}
+
+#[test]
+fn wi_init_dry_run_reports_updates_without_mutating_existing_files() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "AGENTS.md",
+        "# AGENTS\n\n## Repository search\n\nSee WI.md for repository search/index usage.\n",
+    );
+    write_file(root, "CLAUDE.md", "@AGENTS.md\n");
+    write_file(root, ".cursor/rules/thinindex.mdc", "# Cursor\n\n@WI.md\n");
+    write_file(
+        root,
+        ".github/copilot-instructions.md",
+        "# Copilot\n\n@WI.md\n",
+    );
+
+    let output = wi_init_bin()
+        .current_dir(root)
+        .arg("--dry-run")
+        .output()
+        .expect("run wi-init dry-run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("dry-run: update:"));
+    assert!(stdout.contains("AGENTS.md"));
+    assert!(stdout.contains("CLAUDE.md"));
+    assert!(stdout.contains("dry-run: update Cursor rule"));
+    assert!(stdout.contains("dry-run: update GitHub Copilot instructions"));
+
+    assert_eq!(
+        fs::read_to_string(root.join("AGENTS.md")).unwrap(),
+        "# AGENTS\n\n## Repository search\n\nSee WI.md for repository search/index usage.\n"
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("CLAUDE.md")).unwrap(),
+        "@AGENTS.md\n"
+    );
+    assert_eq!(
+        fs::read_to_string(root.join(".cursor/rules/thinindex.mdc")).unwrap(),
+        "# Cursor\n\n@WI.md\n"
+    );
+    assert_eq!(
+        fs::read_to_string(root.join(".github/copilot-instructions.md")).unwrap(),
+        "# Copilot\n\n@WI.md\n"
+    );
+    assert!(!root.join(".dev_index").exists());
+}
+
+#[test]
+fn wi_init_remove_dry_run_does_not_remove_index() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_file(root, ".dev_index/index.sqlite", "placeholder\n");
+
+    wi_init_bin()
+        .current_dir(root)
+        .args(["--remove", "--dry-run"])
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("dry-run: remove:"))
+        .stdout(predicates::str::contains("dry-run: no files changed"));
+
+    assert_eq!(
+        fs::read_to_string(root.join(".dev_index/index.sqlite")).unwrap(),
+        "placeholder\n"
+    );
+}
+
+#[test]
+fn wi_init_does_not_modify_global_agent_config_by_default() {
+    let repo = temp_repo();
+    let root = repo.path();
+    let home = tempfile::tempdir().expect("create fake home");
+    let xdg = tempfile::tempdir().expect("create fake xdg config");
+
+    wi_init_bin()
+        .current_dir(root)
+        .env("HOME", home.path())
+        .env("XDG_CONFIG_HOME", xdg.path())
+        .assert()
+        .success();
+
+    for path in [
+        home.path().join(".codex"),
+        home.path().join(".claude"),
+        home.path().join(".cursor"),
+        xdg.path().join("Codex"),
+        xdg.path().join("Claude"),
+        xdg.path().join("Cursor"),
+        xdg.path().join("opencode"),
+    ] {
+        assert!(
+            !path.exists(),
+            "wi-init should not modify global agent/editor config at {}",
+            path.display()
+        );
+    }
 }
 
 #[test]

@@ -27,6 +27,7 @@ Behavior:
   Writes AGENTS.md, .cursor/rules/thinindex.mdc, and .github/copilot-instructions.md.
   Normalizes an existing CLAUDE.md, but does not create CLAUDE.md when absent.
   Builds the repo-local .dev_index/index.sqlite cache.
+  Use --dry-run to preview repo-local file/index changes without writing files.
   Does not create WI.md or modify global agent/editor configuration.
 "
 )]
@@ -45,6 +46,9 @@ struct Args {
 
     #[arg(long, help = "Overwrite .thinindexignore even if it exists")]
     force: bool,
+
+    #[arg(long, help = "Preview repo-local changes without writing files")]
+    dry_run: bool,
 }
 
 fn main() {
@@ -69,6 +73,15 @@ fn run() -> Result<()> {
 
     let root = find_repo_root(&start)?;
     ensure_binary_matches_source(&root, "wi-init")?;
+
+    if args.dry_run {
+        if args.remove {
+            print_dry_run_remove(&root, args.keep_index);
+        } else {
+            print_dry_run_init(&root, args.force)?;
+        }
+        return Ok(());
+    }
 
     if args.remove {
         remove_repo(&root, args.keep_index)?;
@@ -96,6 +109,157 @@ fn run() -> Result<()> {
     println!("wrote: {}", root.join(".thinindexignore").display());
     println!("updated: {}", root.join("AGENTS.md").display());
     println!("records: {}", stats.records);
+
+    Ok(())
+}
+
+fn print_dry_run_remove(root: &Path, keep_index: bool) {
+    println!("dry-run: repository: {}", root.display());
+
+    if keep_index {
+        println!("dry-run: keep: {}", root.join(".dev_index").display());
+    } else {
+        println!("dry-run: remove: {}", root.join(".dev_index").display());
+    }
+
+    println!("dry-run: no files changed");
+}
+
+fn print_dry_run_init(root: &Path, force: bool) -> Result<()> {
+    println!("dry-run: repository: {}", root.display());
+    dry_run_thinindexignore(root, force)?;
+    dry_run_gitignore(root)?;
+    dry_run_agents_md(root)?;
+    dry_run_claude_md(root)?;
+    dry_run_optional_instruction_file(root, CURSOR_RULE_PATH, "# thinindex\n\n", "Cursor rule")?;
+    dry_run_optional_instruction_file(
+        root,
+        COPILOT_INSTRUCTIONS_PATH,
+        "# GitHub Copilot instructions\n\n",
+        "GitHub Copilot instructions",
+    )?;
+    println!(
+        "dry-run: build: {}",
+        root.join(".dev_index/index.sqlite").display()
+    );
+    println!("dry-run: no files changed");
+
+    Ok(())
+}
+
+fn dry_run_thinindexignore(root: &Path, force: bool) -> Result<()> {
+    let path = root.join(".thinindexignore");
+
+    if path.exists() && !force {
+        println!(
+            "dry-run: exists: {} (use --force to overwrite)",
+            path.display()
+        );
+    } else if path.exists() {
+        println!("dry-run: update: {}", path.display());
+    } else {
+        println!("dry-run: create: {}", path.display());
+    }
+
+    Ok(())
+}
+
+fn dry_run_gitignore(root: &Path) -> Result<()> {
+    let path = root.join(".gitignore");
+
+    if !path.exists() {
+        println!("dry-run: no-op: {} (absent)", path.display());
+        return Ok(());
+    }
+
+    let existing =
+        fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
+    let already_ignored = existing.lines().any(|line| {
+        let trimmed = line.trim();
+        trimmed == ".dev_index" || trimmed == ".dev_index/" || trimmed == "/.dev_index/"
+    });
+
+    if already_ignored {
+        println!(
+            "dry-run: no-op: {} (.dev_index already ignored)",
+            path.display()
+        );
+    } else {
+        println!("dry-run: update: {} (append .dev_index/)", path.display());
+    }
+
+    Ok(())
+}
+
+fn dry_run_agents_md(root: &Path) -> Result<()> {
+    let path = root.join("AGENTS.md");
+
+    if !path.exists() {
+        println!("dry-run: create: {}", path.display());
+        return Ok(());
+    }
+
+    let existing =
+        fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
+    let updated = normalize_repository_search_block(&existing, "# AGENTS\n\n");
+
+    if updated == existing {
+        println!("dry-run: no-op: {}", path.display());
+    } else {
+        println!("dry-run: update: {}", path.display());
+    }
+
+    Ok(())
+}
+
+fn dry_run_claude_md(root: &Path) -> Result<()> {
+    let path = root.join("CLAUDE.md");
+
+    if !path.exists() {
+        println!("dry-run: no-op: {} (absent)", path.display());
+        return Ok(());
+    }
+
+    let existing =
+        fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
+    let updated = normalize_repository_search_block(&existing, "");
+
+    if updated == existing {
+        println!("dry-run: no-op: {}", path.display());
+    } else {
+        println!("dry-run: update: {}", path.display());
+    }
+
+    Ok(())
+}
+
+fn dry_run_optional_instruction_file(
+    root: &Path,
+    relative_path: &str,
+    empty_base_prefix: &str,
+    description: &str,
+) -> Result<()> {
+    let path = root.join(relative_path);
+
+    let Some(existing) = (if path.exists() {
+        Some(
+            fs::read_to_string(&path)
+                .with_context(|| format!("failed to read {}", path.display()))?,
+        )
+    } else {
+        None
+    }) else {
+        println!("dry-run: create {description}: {}", path.display());
+        return Ok(());
+    };
+
+    let updated = normalize_repository_search_block(&existing, empty_base_prefix);
+
+    if updated == existing {
+        println!("dry-run: no-op {description}: {}", path.display());
+    } else {
+        println!("dry-run: update {description}: {}", path.display());
+    }
 
     Ok(())
 }

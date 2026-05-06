@@ -59,6 +59,48 @@ fn agent_integration_docs_are_local_and_advisory() {
 }
 
 #[test]
+fn docs_do_not_overclaim_mcp_or_opencode_specific_support() {
+    let agent_docs = repo_file("docs/AGENT_INTEGRATION.md");
+    let mcp_docs = repo_file("integrations/agents/mcp/README.md");
+
+    for required in [
+        "does not currently bundle an MCP server",
+        "MCP remains explicitly deferred",
+        "OpenCode should use the same `AGENTS.md` guidance",
+        "no OpenCode-specific config is required",
+        "`wi-init --dry-run`",
+    ] {
+        assert!(
+            agent_docs.contains(required),
+            "docs/AGENT_INTEGRATION.md should contain `{required}`, got:\n{agent_docs}"
+        );
+    }
+
+    for required in [
+        "does not currently bundle an MCP server",
+        "No MCP server is implemented or bundled",
+        "avoid arbitrary shell execution",
+        "avoid quality/comparator/real-repo workflows in normal search calls",
+    ] {
+        assert!(
+            mcp_docs.contains(required),
+            "integrations/agents/mcp/README.md should contain `{required}`, got:\n{mcp_docs}"
+        );
+    }
+
+    for forbidden in [
+        "MCP server is bundled",
+        "OpenCode config is generated",
+        "OpenCode-specific config is generated",
+    ] {
+        assert!(
+            !agent_docs.contains(forbidden) && !mcp_docs.contains(forbidden),
+            "agent integration docs should not overclaim `{forbidden}`"
+        );
+    }
+}
+
+#[test]
 fn wi_md_is_not_reintroduced() {
     assert!(
         !Path::new(env!("CARGO_MANIFEST_DIR")).join("WI.md").exists(),
