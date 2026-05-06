@@ -21,7 +21,7 @@ The workflow is intentionally direct:
 For a small code-change task, the minimum useful agent behavior is:
 
 1. Start with `wi <symbol-or-concept>` in the target repository. Do not require a manual `build_index` pre-step; missing or stale indexes should self-heal once and continue the query.
-2. Run `wi refs <symbol-or-concept>` to inspect callers, tests, and textual references before broad reference searches.
+2. Run `wi refs <symbol-or-concept>` to inspect callers, tests, file references, and textual references before broad reference searches. Treat `exact_local`, `resolved`, and `dependency` rows as stronger local evidence than `heuristic` text fallback rows.
 3. Run `wi pack <symbol-or-concept>` to build a compact context set for likely implementation files, dependencies, tests, docs, and config.
 4. Run `wi impact <symbol-or-concept>` before editing so affected files and likely tests are visible with reasons and confidence.
 5. Choose likely edit files and likely tests from the `pack` and `impact` output before any broad grep, find, ls, or blind file-read pass.

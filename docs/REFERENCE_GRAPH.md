@@ -19,6 +19,16 @@ Reference extraction is intentionally conservative. It combines Tree-sitter refe
 
 ## Confidence Labels
 
+`wi refs <term>` prints compact reference rows with:
+
+- the source file, line, reference kind, and target;
+- `reason: <label>; evidence: <line or path evidence>`;
+- `confidence: <label>`.
+
+Primary definitions stay as a short scan-friendly list. Reference rows remain
+bounded by the normal `-n`/default limits, and the command does not dump verbose
+internal parser metadata by default.
+
 - `exact_local`: a syntax/import reference target matches a local Tree-sitter symbol name.
 - `syntax`: the reference came from syntax captures or structured format parsing.
 - `dependency`: the reference came from a resolved dependency graph edge.
@@ -26,6 +36,12 @@ Reference extraction is intentionally conservative. It combines Tree-sitter refe
 - `unresolved`: the reference came from an unresolved dependency graph edge.
 
 Every ref row stores both `confidence` and `reason`. The reason is compact evidence for why the confidence label was assigned, such as `tree_sitter_reference_capture`, `local_symbol_match`, `dependency_graph_resolved_file`, or `broad_text_fallback`.
+
+File-reference rows are printed as `file_<kind>` rows, for example
+`file_import`, and use the `file_references` confidence labels such as
+`resolved`, `ambiguous`, or `unresolved`. Resolved local file references rank
+above broad heuristic text references, while still remaining distinguishable
+from symbol/name references.
 
 ## Syntax vs Semantic References
 

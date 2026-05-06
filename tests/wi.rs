@@ -144,6 +144,29 @@ fn assert_impact_rows_have_reasons_and_confidence(output: &str) {
     }
 }
 
+fn assert_ref_rows_have_reasons_and_confidence(output: &str) {
+    let lines: Vec<_> = output.lines().collect();
+    let references_index = lines
+        .iter()
+        .position(|line| *line == "References:")
+        .expect("References heading present");
+
+    for (index, line) in lines.iter().enumerate().skip(references_index + 1) {
+        if line.starts_with("- ") && !line.ends_with("none") {
+            let reason = lines.get(index + 1).copied().unwrap_or_default();
+            let confidence = lines.get(index + 2).copied().unwrap_or_default();
+            assert!(
+                reason.trim_start().starts_with("reason:"),
+                "ref row missing following reason line:\n{line}\n\nfull output:\n{output}"
+            );
+            assert!(
+                confidence.trim_start().starts_with("confidence:"),
+                "ref row missing following confidence line:\n{line}\n\nfull output:\n{output}"
+            );
+        }
+    }
+}
+
 fn workflow_row_count(output: &str) -> usize {
     output.lines().filter(|line| line.starts_with("- ")).count()
 }
@@ -243,9 +266,11 @@ def test_checkout_flow():
     assert!(
         refs.contains("src/checkout_consumer.py")
             && refs.contains("tests/test_checkout_service.py")
-            && refs.contains("reason:"),
+            && refs.contains("reason:")
+            && refs.contains("confidence:"),
         "refs workflow should show useful reference evidence, got:\n{refs}"
     );
+    assert_ref_rows_have_reasons_and_confidence(&refs);
     assert!(
         workflow_row_count(&refs) <= 25,
         "refs workflow should stay bounded, got:\n{refs}"
@@ -690,7 +715,14 @@ fn wi_refs_prompt_service_includes_primary_and_refs() {
         output.contains("docs/guide.md") && output.contains("markdown_link PromptService"),
         "missing markdown link reference:\n{output}"
     );
-    assert!(output.contains("reason:"), "missing reasons:\n{output}");
+    assert!(
+        output.contains("reason: local_symbol_match; evidence:")
+            && output.contains("confidence: exact_local")
+            && output.contains("reason: broad_text_fallback; evidence:")
+            && output.contains("confidence: heuristic"),
+        "missing reason/evidence/confidence labels:\n{output}"
+    );
+    assert_ref_rows_have_reasons_and_confidence(&output);
 }
 
 #[test]
@@ -714,6 +746,45 @@ fn wi_refs_order_is_deterministic_and_ranked() {
         import_pos < test_pos && test_pos < doc_pos,
         "expected import before test before doc, got:\n{first}"
     );
+}
+
+#[test]
+fn wi_refs_ranks_exact_and_file_reference_before_heuristic_refs() {
+    let repo = temp_repo();
+    let root = repo.path();
+    write_file(root, "src/widget.ts", "export class Widget {}\n");
+    write_file(
+        root,
+        "src/use_widget.ts",
+        "import { Widget } from \"./widget\";\nconst w = new Widget();\n",
+    );
+    write_file(root, "src/app.ts", "import \"./widget\";\n");
+    write_file(root, "docs/widget.md", "Widget docs mention\n");
+    run_build(root);
+
+    let output = run_wi(root, &["refs", "Widget"]);
+    let exact_pos = output
+        .find("src/use_widget.ts:1 import Widget")
+        .expect("exact local import ref present");
+    let file_ref_pos = output
+        .find("src/app.ts:1 file_import ./widget -> src/widget.ts")
+        .expect("file reference row present");
+    let heuristic_pos = output
+        .find("docs/widget.md:1 text_reference Widget")
+        .expect("heuristic docs text ref present");
+
+    assert!(
+        exact_pos < file_ref_pos && file_ref_pos < heuristic_pos,
+        "expected exact/local and file-reference evidence before heuristic refs:\n{output}"
+    );
+    assert!(
+        output.contains("confidence: exact_local")
+            && output.contains("confidence: resolved")
+            && output.contains("confidence: heuristic")
+            && output.contains("reason: broad_text_fallback; evidence:"),
+        "expected honest confidence/reason labels:\n{output}"
+    );
+    assert_ref_rows_have_reasons_and_confidence(&output);
 }
 
 #[test]

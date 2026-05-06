@@ -354,7 +354,10 @@ fn refs_pack_and_impact_surface_file_reference_evidence() {
 
     let refs = run_wi(root, &["refs", "Widget"]);
     assert!(
-        refs.contains("web/app.ts") && refs.contains("file_import"),
+        refs.contains("web/app.ts")
+            && refs.contains("file_import")
+            && refs.contains("confidence: resolved")
+            && refs.contains("reason: import resolves to web/widget.ts; evidence:"),
         "refs should surface file-reference evidence:\n{refs}"
     );
 

@@ -49,6 +49,12 @@ struct FileRefRow {
     rank: RefRank,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum RefOutputRow {
+    Symbol(RefRow),
+    File(FileRefRow),
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum RefRank {
     Production,
@@ -108,9 +114,11 @@ pub fn render_refs_command(
     }
 
     let refs_limit = command_limit(options, DEFAULT_REFS_LIMIT);
-    let refs = matching_refs(root, query, &primary, refs_limit)?;
-    let file_refs =
-        matching_file_references(root, query, &primary, refs_limit.saturating_sub(refs.len()))?;
+    let refs = matching_refs(root, query, &primary, usize::MAX)?;
+    let file_refs = matching_file_references(root, query, &primary, usize::MAX)?;
+    let mut rows = combined_ref_rows(refs, file_refs);
+    rows.sort_by_key(ref_output_row_key);
+    rows.truncate(refs_limit);
     let mut out = String::new();
 
     out.push_str("Primary:\n");
@@ -120,28 +128,17 @@ pub fn render_refs_command(
 
     out.push('\n');
     out.push_str("References:\n");
-    if refs.is_empty() && file_refs.is_empty() {
+    if rows.is_empty() {
         out.push_str(&format!("no references found for {query}\n"));
     } else {
-        for row in &refs {
-            out.push_str(&format!("- {}\n", ref_line(&row.reference)));
-            out.push_str(&format!(
-                "  reason: {}\n",
-                redact_sensitive_text(&row.reference.evidence)
-            ));
-        }
-        for row in &file_refs {
-            out.push_str(&format!("- {}\n", file_ref_line(&row.reference)));
-            out.push_str(&format!(
-                "  reason: {}\n",
-                redact_sensitive_text(&file_ref_reason(&row.reference))
-            ));
+        for row in &rows {
+            append_ref_output_row(&mut out, row);
         }
     }
 
     Ok(ContextOutput {
         text: out,
-        result_count: primary.len() + refs.len() + file_refs.len(),
+        result_count: primary.len() + rows.len(),
     })
 }
 
@@ -577,16 +574,12 @@ fn file_ref_line(reference: &FileReference) -> String {
 
 fn file_ref_reason(reference: &FileReference) -> String {
     if let Some(target) = reference.target_path.as_deref() {
-        format!(
-            "{} resolves to {target}: {}",
-            reference.reference_kind, reference.evidence
-        )
+        format!("{} resolves to {target}", reference.reference_kind)
     } else {
         format!(
-            "unresolved {}: {} ({})",
+            "unresolved {}: {}",
             reference.reference_kind,
-            reference.unresolved_reason.as_deref().unwrap_or("unknown"),
-            reference.evidence
+            reference.unresolved_reason.as_deref().unwrap_or("unknown")
         )
     }
 }
@@ -601,6 +594,125 @@ fn ref_row_key(row: &RefRow) -> (RefRank, usize, String, usize, usize, String, S
         row.reference.ref_kind.clone(),
         row.reference.to_name.clone(),
     )
+}
+
+fn combined_ref_rows(refs: Vec<RefRow>, file_refs: Vec<FileRefRow>) -> Vec<RefOutputRow> {
+    refs.into_iter()
+        .map(RefOutputRow::Symbol)
+        .chain(file_refs.into_iter().map(RefOutputRow::File))
+        .collect()
+}
+
+fn append_ref_output_row(out: &mut String, row: &RefOutputRow) {
+    match row {
+        RefOutputRow::Symbol(row) => {
+            let reference = &row.reference;
+            out.push_str(&format!("- {}\n", ref_line(reference)));
+            out.push_str(&format!("  reason: {}\n", ref_reason(reference)));
+            out.push_str(&format!(
+                "  confidence: {}\n",
+                redact_sensitive_text(&reference.confidence)
+            ));
+        }
+        RefOutputRow::File(row) => {
+            let reference = &row.reference;
+            out.push_str(&format!("- {}\n", file_ref_line(reference)));
+            out.push_str(&format!("  reason: {}\n", file_ref_reason_line(reference)));
+            out.push_str(&format!(
+                "  confidence: {}\n",
+                redact_sensitive_text(&reference.confidence)
+            ));
+        }
+    }
+}
+
+fn ref_reason(reference: &ReferenceRecord) -> String {
+    match reference.reason.as_deref() {
+        Some(reason) if !reference.evidence.trim().is_empty() => format!(
+            "{}; evidence: {}",
+            redact_sensitive_text(reason),
+            redact_sensitive_text(&reference.evidence)
+        ),
+        Some(reason) => redact_sensitive_text(reason),
+        None => format!("evidence: {}", redact_sensitive_text(&reference.evidence)),
+    }
+}
+
+fn file_ref_reason_line(reference: &FileReference) -> String {
+    if reference.evidence.trim().is_empty() {
+        redact_sensitive_text(&file_ref_reason(reference))
+    } else {
+        format!(
+            "{}; evidence: {}",
+            redact_sensitive_text(&file_ref_reason(reference)),
+            redact_sensitive_text(&reference.evidence)
+        )
+    }
+}
+
+fn ref_output_row_key(
+    row: &RefOutputRow,
+) -> (
+    usize,
+    usize,
+    RefRank,
+    usize,
+    String,
+    usize,
+    usize,
+    String,
+    String,
+) {
+    match row {
+        RefOutputRow::Symbol(row) => (
+            confidence_rank(&row.reference.confidence),
+            ref_evidence_priority(&row.reference),
+            row.rank,
+            path_penalty(&row.reference.from_path),
+            row.reference.from_path.clone(),
+            row.reference.from_line,
+            row.reference.from_col,
+            row.reference.ref_kind.clone(),
+            row.reference.to_name.clone(),
+        ),
+        RefOutputRow::File(row) => (
+            confidence_rank(&row.reference.confidence),
+            file_ref_evidence_priority(&row.reference),
+            row.rank,
+            path_penalty(&row.reference.source_path),
+            row.reference.source_path.clone(),
+            row.reference.source_line,
+            row.reference.source_col,
+            row.reference.reference_kind.clone(),
+            row.reference.raw_target.clone(),
+        ),
+    }
+}
+
+fn ref_evidence_priority(reference: &ReferenceRecord) -> usize {
+    match reference.ref_kind.as_str() {
+        "import" | "export" | "call" | "type_reference" => 0,
+        "module_dependency" if reference.confidence != "unresolved" => 1,
+        "markdown_link" | "css_usage" | "html_usage" => 3,
+        "test_reference" => 4,
+        "module_dependency" => 6,
+        "text_reference" => 8,
+        _ => 5,
+    }
+}
+
+fn file_ref_evidence_priority(reference: &FileReference) -> usize {
+    if reference.target_path.is_some() {
+        match reference.reference_kind.as_str() {
+            "import" | "include" | "require" | "source" => 1,
+            "script" | "stylesheet" => 2,
+            "asset" | "fixture" => 3,
+            "link" => 4,
+            _ => 5,
+        }
+    } else {
+        7
+    }
 }
 
 fn file_ref_row_key(row: &FileRefRow) -> (RefRank, usize, String, usize, usize, String, String) {
@@ -866,8 +978,11 @@ fn pack_row_key(
 
 fn confidence_rank(confidence: &str) -> usize {
     match confidence {
-        "direct" | "semantic" => 0,
-        "dependency" | "test-related" => 1,
+        "direct" | "exact_local" | "semantic" => 0,
+        "dependency" | "resolved" => 1,
+        "syntax" | "test-related" => 2,
+        "ambiguous" | "heuristic" => 3,
+        "unresolved" => 4,
         _ => 3,
     }
 }
