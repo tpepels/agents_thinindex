@@ -369,12 +369,13 @@ fn go_and_php_supported_rows_classify_real_repo_gap_without_downgrade() {
             "{name} should remain fixture-backed supported, got: {row}"
         );
         assert!(
-            row.contains("no Go/PHP-heavy local manifest target yet"),
+            row.contains("no Go/PHP-heavy local manifest target found"),
             "{name} should classify the real-repo hardening gap, got: {row}"
         );
         assert!(
-            row.contains("add manifest expected symbols when local target exists"),
-            "{name} should not imply expected-symbol manifest coverage already exists, got: {row}"
+            row.contains("fixture expected/absent symbols checked")
+                && row.contains("add manifest expected symbols when local target exists"),
+            "{name} should distinguish fixture checks from missing manifest coverage, got: {row}"
         );
     }
 }

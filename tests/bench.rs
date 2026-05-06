@@ -253,6 +253,101 @@ skip_reason = "fixture skip reason"
 }
 
 #[test]
+fn benchmark_manifest_parsing_preserves_go_php_expected_symbol_metadata() {
+    let temp = tempfile::tempdir().expect("create tempdir");
+    let root = temp.path();
+    std::fs::create_dir_all(root.join("go_app")).expect("create go repo");
+    std::fs::create_dir_all(root.join("php_app")).expect("create php repo");
+    std::fs::write(
+        root.join("MANIFEST.toml"),
+        r#"
+[[repo]]
+name = "go-app"
+path = "go_app"
+kind = "go-cli"
+languages = ["go"]
+queries = ["NewGoWidget"]
+
+[[repo.expected_symbol]]
+language = "go"
+path = "cmd/app/main.go"
+kind = "function"
+name = "NewGoWidget"
+
+[[repo.expected_symbol_pattern]]
+language = "go"
+path_glob = "**/*.go"
+kind = "method"
+name_regex = "^[A-Z].*"
+min_count = 1
+
+[[repo.expected_absent_symbol]]
+language = "go"
+path = "cmd/app/main.go"
+kind = "function"
+name = "GoCommentFake"
+
+[[repo]]
+name = "php-app"
+path = "php_app"
+kind = "php-library"
+languages = ["php"]
+queries = ["PhpWidget"]
+
+[[repo.expected_symbol]]
+language = "php"
+path = "src/Widget.php"
+kind = "class"
+name = "PhpWidget"
+
+[[repo.expected_symbol_pattern]]
+language = "php"
+path_glob = "src/**/*.php"
+kind = "method"
+name_regex = "^build.*"
+min_count = 1
+
+[[repo.expected_absent_symbol]]
+language = "php"
+path = "src/Widget.php"
+kind = "class"
+name = "PhpCommentFake"
+"#,
+    )
+    .expect("write manifest");
+
+    let BenchmarkRepoSet::Repos { repos, .. } =
+        load_benchmark_repo_set(root).expect("load benchmark repo set")
+    else {
+        panic!("expected manifest repos");
+    };
+
+    assert_eq!(repos.len(), 2);
+    let go = repos.iter().find(|repo| repo.name == "go-app").unwrap();
+    assert_eq!(go.languages, vec!["go".to_string()]);
+    assert_eq!(go.expected_symbol_specs[0].language.as_deref(), Some("go"));
+    assert_eq!(go.expected_symbol_specs[0].name, "NewGoWidget");
+    assert_eq!(
+        go.expected_symbol_pattern_specs[0].path_glob.as_deref(),
+        Some("**/*.go")
+    );
+    assert_eq!(go.expected_absent_symbol_specs[0].name, "GoCommentFake");
+
+    let php = repos.iter().find(|repo| repo.name == "php-app").unwrap();
+    assert_eq!(php.languages, vec!["php".to_string()]);
+    assert_eq!(
+        php.expected_symbol_specs[0].language.as_deref(),
+        Some("php")
+    );
+    assert_eq!(php.expected_symbol_specs[0].name, "PhpWidget");
+    assert_eq!(
+        php.expected_symbol_pattern_specs[0].path_glob.as_deref(),
+        Some("src/**/*.php")
+    );
+    assert_eq!(php.expected_absent_symbol_specs[0].name, "PhpCommentFake");
+}
+
+#[test]
 fn benchmark_manifest_missing_repo_fails_clearly() {
     let temp = tempfile::tempdir().expect("create tempdir");
     let root = temp.path();

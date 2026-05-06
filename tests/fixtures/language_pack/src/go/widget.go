@@ -26,3 +26,5 @@ func (widget GoWidget) Render() string {
 	ignored := "func GoStringFake() {}"
 	return fmt.Sprintf("%s", widget.Name)
 }
+
+// func GoCommentFake() {}

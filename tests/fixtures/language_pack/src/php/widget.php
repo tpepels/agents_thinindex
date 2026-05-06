@@ -28,3 +28,10 @@ class PhpWidget implements PhpRenderable
         return $this->name;
     }
 }
+
+enum PhpStatus
+{
+    case Ready;
+}
+
+// class PhpCommentFake {}
