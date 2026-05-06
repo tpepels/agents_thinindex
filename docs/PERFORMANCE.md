@@ -10,8 +10,11 @@ thinindex is designed to keep large repository indexing bounded and inspectable.
 - compares path, mtime, and size against the manifest;
 - reparses changed files only;
 - removes deleted or newly skipped paths from records;
-- rebuilds refs and dependency evidence from indexable text files when the
-  file set changed;
+- recomputes dependency edges, file references, and direct refs only for changed
+  existing source files where that is safe;
+- performs a full relationship rebuild when the file set changes, the index is
+  reset for schema/config reasons, semantic adapters are enabled, or changed
+  definitions alter the global text-reference target set;
 - rewrites the SQLite snapshot deterministically when indexed content changed.
 
 The normal summary reports scanned, changed, deleted, and record counts. A
@@ -93,6 +96,24 @@ If these budgets regress, inspect refs/dependency generation first, then check
 whether generated, vendored, ignored, or local `test_repos/` paths are being
 included accidentally.
 
+## Relationship Rebuild Diagnostics
+
+Changed-file builds report how much relationship work ran:
+
+- `relationship source files recomputed`: source files scanned for dependency,
+  file-reference, and direct-reference updates;
+- `dependency edges recomputed`, `file references recomputed`, and
+  `refs recomputed`: replacement rows generated during the relationship phase;
+- `stale relationship edges removed`: old dependency/file-reference/ref rows
+  removed for changed or deleted source paths before replacements were merged;
+- `full relationship rebuild`: `true` when the build intentionally rescanned all
+  indexable files for relationship data.
+
+An edit to an existing file that does not add/delete files or change exported
+symbol targets should show one recomputed relationship source file. Adding,
+deleting, moving, schema-resetting, or enabling semantic adapters can force a
+full relationship rebuild to avoid stale reverse edges.
+
 ## File Size Policy
 
 Very large files are skipped before parsing:
@@ -114,15 +135,15 @@ build_index --stats
 
 The report includes:
 
-- refs, dependency, and semantic fact counts;
+- refs, dependency, file-reference, and semantic fact counts;
 - parsed file count;
-- relationship recomputation count;
+- relationship recomputation count and incremental relationship-work counts;
 - quality/comparator and real-repo quality phase counts;
 - capped sensitive-looking path warning count;
 - unchanged file count;
 - total discovered file bytes;
 - file-size thresholds;
-- phase timings for discovery, ignore matching, metadata/stat work, change detection, parser setup, parsing, dependency extraction, reference extraction, and SQLite save;
+- phase timings for discovery, ignore matching, metadata/stat work, change detection, parser setup, parsing, dependency extraction, file-reference extraction, reference extraction, total relationship work, and SQLite save;
 - bounded large-file samples;
 - SQLite tuning summary.
 

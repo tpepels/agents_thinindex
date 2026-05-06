@@ -125,6 +125,27 @@ fn print_stats(stats: &thinindex::indexer::BuildStats) {
         stats.relationship_recomputations
     );
     println!(
+        "relationship source files recomputed: {}",
+        stats.relationship_source_files_recomputed
+    );
+    println!("refs recomputed: {}", stats.refs_recomputed);
+    println!(
+        "dependency edges recomputed: {}",
+        stats.dependency_edges_recomputed
+    );
+    println!(
+        "file references recomputed: {}",
+        stats.file_references_recomputed
+    );
+    println!(
+        "stale relationship edges removed: {}",
+        stats.stale_relationship_edges_removed
+    );
+    println!(
+        "full relationship rebuild: {}",
+        stats.full_relationship_rebuild
+    );
+    println!(
         "quality/comparator phases: {}",
         stats.quality_comparator_phases
     );
@@ -172,6 +193,11 @@ fn print_stats(stats: &thinindex::indexer::BuildStats) {
         stats.timings.file_references.as_millis()
     );
     println!("  refs ms: {}", stats.timings.refs.as_millis());
+    println!(
+        "  relationship phase ms: {}",
+        (stats.timings.dependencies + stats.timings.file_references + stats.timings.refs)
+            .as_millis()
+    );
     println!("  semantic ms: {}", stats.timings.semantic.as_millis());
     println!("  save ms: {}", stats.timings.save.as_millis());
     println!("  total ms: {}", stats.timings.total.as_millis());

@@ -304,6 +304,12 @@ fn build_index_stats_reports_scale_metrics_without_large_snapshots() {
         "top file-reference files:",
         "parsed files:",
         "relationship recomputations:",
+        "relationship source files recomputed:",
+        "refs recomputed:",
+        "dependency edges recomputed:",
+        "file references recomputed:",
+        "stale relationship edges removed:",
+        "full relationship rebuild:",
         "quality/comparator phases:",
         "real-repo quality phases:",
         "total file bytes:",
@@ -312,6 +318,7 @@ fn build_index_stats_reports_scale_metrics_without_large_snapshots() {
         "ignore matching ms:",
         "metadata/stat ms:",
         "parser setup ms:",
+        "relationship phase ms:",
         "large files:",
         "sqlite tuning:",
         "sensitive path warnings:",
@@ -357,6 +364,12 @@ fn no_change_build_index_stats_enforces_incremental_performance_contract() {
         "changed files: 0",
         "parsed files: 0",
         "relationship recomputations: 0",
+        "relationship source files recomputed: 0",
+        "refs recomputed: 0",
+        "dependency edges recomputed: 0",
+        "file references recomputed: 0",
+        "stale relationship edges removed: 0",
+        "full relationship rebuild: false",
         "quality/comparator phases: 0",
         "real-repo quality phases: 0",
         "  parser setup ms: 0",
@@ -371,6 +384,171 @@ fn no_change_build_index_stats_enforces_incremental_performance_contract() {
             "no-change build should enforce `{invariant}`, got:\n{stdout}"
         );
     }
+}
+
+#[test]
+fn changed_file_rebuild_recomputes_only_affected_relationship_sources() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "web/a.ts", "export const a = 1;\n");
+    write_file(root, "web/b.ts", "export const b = 1;\n");
+    write_file(root, "web/app.ts", "import { a } from './a';\n");
+    write_file(root, "web/other.ts", "import { a } from './a';\n");
+
+    run_build(root);
+    write_file(root, "web/app.ts", "import { b } from './b';\n");
+
+    let output = build_index_bin()
+        .current_dir(root)
+        .arg("--stats")
+        .output()
+        .expect("run changed-file build_index --stats");
+    assert!(
+        output.status.success(),
+        "changed-file build_index --stats failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for expected in [
+        "changed files: 1",
+        "parsed files: 1",
+        "relationship recomputations: 1",
+        "relationship source files recomputed: 1",
+        "dependency edges recomputed: 1",
+        "file references recomputed: 1",
+        "full relationship rebuild: false",
+        "quality/comparator phases: 0",
+        "real-repo quality phases: 0",
+    ] {
+        assert!(
+            stdout.contains(expected),
+            "missing changed-file incremental stat `{expected}`, got:\n{stdout}"
+        );
+    }
+
+    let dependencies = thinindex::store::load_dependencies(root).expect("load dependencies");
+    assert!(
+        dependencies.iter().any(|dependency| {
+            dependency.from_path == "web/app.ts"
+                && dependency.import_path == "./b"
+                && dependency.target_path.as_deref() == Some("web/b.ts")
+        }),
+        "changed dependency should be rewritten to ./b:\n{dependencies:#?}"
+    );
+    assert!(
+        !dependencies
+            .iter()
+            .any(|dependency| dependency.from_path == "web/app.ts"
+                && dependency.import_path == "./a"),
+        "stale changed-file dependency should be removed:\n{dependencies:#?}"
+    );
+    assert!(
+        dependencies.iter().any(|dependency| {
+            dependency.from_path == "web/other.ts"
+                && dependency.import_path == "./a"
+                && dependency.target_path.as_deref() == Some("web/a.ts")
+        }),
+        "unchanged file dependency should be preserved:\n{dependencies:#?}"
+    );
+
+    let file_references =
+        thinindex::store::load_file_references(root).expect("load file references");
+    assert!(
+        file_references.iter().any(|reference| {
+            reference.source_path == "web/app.ts"
+                && reference.raw_target == "./b"
+                && reference.target_path.as_deref() == Some("web/b.ts")
+        }),
+        "changed file reference should be rewritten to ./b:\n{file_references:#?}"
+    );
+    assert!(
+        !file_references
+            .iter()
+            .any(|reference| reference.source_path == "web/app.ts" && reference.raw_target == "./a"),
+        "stale changed-file reference should be removed:\n{file_references:#?}"
+    );
+}
+
+#[test]
+fn added_target_file_forces_full_relationship_rebuild_and_resolves_stale_import() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "web/app.ts", "import { missing } from './missing';\n");
+    run_build(root);
+    write_file(root, "web/missing.ts", "export const missing = 1;\n");
+
+    let output = build_index_bin()
+        .current_dir(root)
+        .arg("--stats")
+        .output()
+        .expect("run added-target build_index --stats");
+    assert!(
+        output.status.success(),
+        "added-target build_index --stats failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("changed files: 1") && stdout.contains("full relationship rebuild: true"),
+        "adding a target file should force full relationship rebuild, got:\n{stdout}"
+    );
+
+    let dependencies = thinindex::store::load_dependencies(root).expect("load dependencies");
+    assert!(
+        dependencies.iter().any(|dependency| {
+            dependency.from_path == "web/app.ts"
+                && dependency.import_path == "./missing"
+                && dependency.target_path.as_deref() == Some("web/missing.ts")
+        }),
+        "full rebuild should resolve previously unresolved import:\n{dependencies:#?}"
+    );
+}
+
+#[test]
+fn changed_target_symbol_surface_rebuilds_refs_for_unchanged_files() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "src/service.py", "class OldService: pass\n");
+    write_file(root, "docs/guide.md", "NewService is documented here.\n");
+    run_build(root);
+    write_file(root, "src/service.py", "class NewService: pass\n");
+
+    let output = build_index_bin()
+        .current_dir(root)
+        .arg("--stats")
+        .output()
+        .expect("run changed-target build_index --stats");
+    assert!(
+        output.status.success(),
+        "changed-target build_index --stats failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("changed files: 1")
+            && stdout.contains("relationship source files recomputed: 1")
+            && stdout.contains("full relationship rebuild: false"),
+        "changed target symbol should keep dependency work incremental, got:\n{stdout}"
+    );
+
+    let refs = thinindex::store::load_refs(root).expect("load refs");
+    assert!(
+        refs.iter().any(|reference| {
+            reference.from_path == "docs/guide.md"
+                && reference.to_name == "NewService"
+                && reference.ref_kind == "text_reference"
+        }),
+        "refs from unchanged docs should be rebuilt when target symbols change:\n{refs:#?}"
+    );
 }
 
 #[test]

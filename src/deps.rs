@@ -48,12 +48,27 @@ pub fn extract_dependencies(
     files: &[PathBuf],
     records: &[IndexRecord],
 ) -> Result<Vec<DependencyEdge>> {
+    extract_dependencies_for_paths(root, files, files, records)
+}
+
+pub fn extract_dependencies_for_paths(
+    root: &Path,
+    all_files: &[PathBuf],
+    source_files: &[PathBuf],
+    records: &[IndexRecord],
+) -> Result<Vec<DependencyEdge>> {
     let mut file_set = BTreeSet::new();
     let mut rel_files = Vec::new();
+    let mut source_paths = BTreeSet::new();
 
-    for path in files {
+    for path in all_files {
         let rel = relpath(root, path)?;
         file_set.insert(rel.clone());
+    }
+
+    for path in source_files {
+        let rel = relpath(root, path)?;
+        source_paths.insert(rel.clone());
         rel_files.push((path.clone(), rel));
     }
 
@@ -63,6 +78,7 @@ pub fn extract_dependencies(
     for record in records {
         if record.kind == "import"
             && record.source == "tree_sitter"
+            && source_paths.contains(&record.path)
             && let Some(edge) = edge_from_import_record(record, &resolver)
         {
             edges.push(edge);

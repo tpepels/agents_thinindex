@@ -81,7 +81,16 @@ pub fn extract_file_references(
     files: &[PathBuf],
     dependencies: &[DependencyEdge],
 ) -> Result<FileReferenceExtraction> {
-    let resolver = FileResolver::new(root, files)?;
+    extract_file_references_for_paths(root, files, files, dependencies)
+}
+
+pub fn extract_file_references_for_paths(
+    root: &Path,
+    all_files: &[PathBuf],
+    source_files: &[PathBuf],
+    dependencies: &[DependencyEdge],
+) -> Result<FileReferenceExtraction> {
+    let resolver = FileResolver::new(root, all_files)?;
     let mut references = Vec::new();
 
     references.extend(
@@ -90,7 +99,7 @@ pub fn extract_file_references(
             .filter_map(file_reference_from_dependency),
     );
 
-    for path in files {
+    for path in source_files {
         let rel = relpath(root, path)?;
         let Some(text) = read_utf8_file(path)? else {
             continue;

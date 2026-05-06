@@ -10,17 +10,24 @@ use anyhow::{Context, Result};
 use ignore::WalkBuilder;
 
 use crate::{
-    deps::extract_dependencies,
+    deps::{extract_dependencies, extract_dependencies_for_paths, finalize_dependencies},
     extras::index_extras,
-    file_refs::{FileReferenceCapWarning, extract_file_references},
-    model::{FileMeta, IndexRecord},
+    file_refs::{
+        FileReferenceCapWarning, MAX_FILE_REFERENCES_PER_FILE, MAX_FILE_REFERENCES_PER_FILE_KIND,
+        extract_file_references, extract_file_references_for_paths, finalize_file_references,
+    },
+    model::{DependencyEdge, FileMeta, IndexRecord, ReferenceRecord},
     privacy::{SENSITIVE_PATH_WARNING_LIMIT, SensitivePathWarning, sensitive_path_reason},
-    refs::{ReferenceIndex, extract_refs_with_index, finalize_refs, refs_from_dependencies},
+    refs::{
+        MAX_TOTAL_REFS_PER_BUILD, ReferenceIndex, extract_refs_with_index, finalize_refs,
+        refs_from_dependencies,
+    },
     semantic::SemanticAdapterRegistry,
     store::{
-        load_index_counts, load_manifest, load_records, prepare_for_build,
-        remove_records_for_paths, save_index_snapshot, sort_file_references, sort_records,
-        sort_refs,
+        load_dependencies, load_file_references, load_index_counts, load_manifest, load_records,
+        load_refs, prepare_for_build, remove_dependencies_for_paths,
+        remove_file_references_for_paths, remove_records_for_paths, remove_refs_for_paths,
+        save_index_snapshot, sort_file_references, sort_records, sort_refs,
     },
     tree_sitter_extraction::TreeSitterExtractionEngine,
 };
@@ -83,6 +90,12 @@ pub struct BuildStats {
     pub file_references: usize,
     pub semantic_facts: usize,
     pub relationship_recomputations: usize,
+    pub relationship_source_files_recomputed: usize,
+    pub refs_recomputed: usize,
+    pub dependency_edges_recomputed: usize,
+    pub file_references_recomputed: usize,
+    pub stale_relationship_edges_removed: usize,
+    pub full_relationship_rebuild: bool,
     pub quality_comparator_phases: usize,
     pub real_repo_quality_phases: usize,
     pub total_file_bytes: u64,
@@ -201,15 +214,30 @@ pub fn build_index_with_semantic_adapters(
     }
 
     let mut changed_paths = Vec::new();
+    let mut added_paths = Vec::new();
     let mut changed_files = Vec::new();
     let mut indexable_files = Vec::new();
     let mut unchanged_files = 0usize;
+    let mut resolver_inputs_changed = false;
 
     for discovered in discovered_files {
+        let previous_meta = manifest.files.get(&discovered.rel);
+        let was_indexed = previous_meta.is_some();
         let changed = manifest.files.get(&discovered.rel) != Some(&discovered.meta);
 
         if changed {
             changed_paths.push(discovered.rel.clone());
+            if !was_indexed {
+                added_paths.push(discovered.rel.clone());
+            }
+            if previous_meta.is_some_and(|meta| meta.size <= MAX_INDEXED_FILE_BYTES)
+                != discovered.indexable
+            {
+                resolver_inputs_changed = true;
+            }
+            if is_relationship_resolver_config(&discovered.rel) {
+                resolver_inputs_changed = true;
+            }
         } else {
             unchanged_files += 1;
         }
@@ -248,6 +276,12 @@ pub fn build_index_with_semantic_adapters(
             file_references: counts.file_references,
             semantic_facts: counts.semantic_facts,
             relationship_recomputations: 0,
+            relationship_source_files_recomputed: 0,
+            refs_recomputed: 0,
+            dependency_edges_recomputed: 0,
+            file_references_recomputed: 0,
+            stale_relationship_edges_removed: 0,
+            full_relationship_rebuild: false,
             quality_comparator_phases: 0,
             real_repo_quality_phases: 0,
             total_file_bytes,
@@ -267,11 +301,17 @@ pub fn build_index_with_semantic_adapters(
     }
 
     let existing_records = load_records(&root)?;
+    let stale_record_targets_before =
+        relationship_target_keys_for_paths(&existing_records, &stale_paths);
     let mut records = remove_records_for_paths(existing_records, &stale_paths);
 
     let parse_start = Instant::now();
     let mut parser_setup_elapsed = Duration::default();
     let mut parsed_files = 0usize;
+    let relationship_source_files: Vec<PathBuf> = changed_files
+        .iter()
+        .map(|(path, _, _)| path.clone())
+        .collect();
     if !changed_files.is_empty() {
         let parser_setup_start = Instant::now();
         let parser = TreeSitterExtractionEngine::default();
@@ -301,25 +341,126 @@ pub fn build_index_with_semantic_adapters(
     dedupe_records_by_location(&mut records);
     debug_assert_unique_record_locations(&records);
     sort_records(&mut records);
+    let stale_record_targets_after = relationship_target_keys_for_paths(&records, &stale_paths);
+    let relationship_targets_changed = stale_record_targets_before != stale_record_targets_after;
+    let mut full_relationship_rebuild = reset_message.is_some()
+        || !semantic_adapters.is_empty()
+        || !deleted_paths.is_empty()
+        || !added_paths.is_empty()
+        || resolver_inputs_changed;
+    if !full_relationship_rebuild && relationship_caps_may_have_truncated(&root)? {
+        full_relationship_rebuild = true;
+    }
 
     let dependencies_start = Instant::now();
-    let dependencies = extract_dependencies(&root, &indexable_files, &records)?;
+    let (dependencies, dependency_edges_recomputed, stale_dependencies_removed) =
+        if full_relationship_rebuild {
+            let dependencies = extract_dependencies(&root, &indexable_files, &records)?;
+            let recomputed = dependencies.len();
+            (dependencies, recomputed, 0)
+        } else {
+            let existing_dependencies = load_dependencies(&root)?;
+            let stale_count = existing_dependencies
+                .iter()
+                .filter(|dependency| stale_paths.contains(&dependency.from_path))
+                .count();
+            let mut dependencies =
+                remove_dependencies_for_paths(existing_dependencies, &stale_paths);
+            let mut changed_dependencies = extract_dependencies_for_paths(
+                &root,
+                &indexable_files,
+                &relationship_source_files,
+                &records,
+            )?;
+            let recomputed = changed_dependencies.len();
+            dependencies.append(&mut changed_dependencies);
+            dependencies = finalize_dependencies(dependencies);
+            (dependencies, recomputed, stale_count)
+        };
     let dependencies_elapsed = dependencies_start.elapsed();
 
     let file_references_start = Instant::now();
-    let file_reference_extraction =
-        extract_file_references(&root, &indexable_files, &dependencies)?;
-    let file_reference_warnings = file_reference_extraction.warnings;
-    let mut file_references = file_reference_extraction.references;
+    let (
+        mut file_references,
+        file_reference_warnings,
+        file_references_recomputed,
+        stale_file_references_removed,
+    ) = if full_relationship_rebuild {
+        let file_reference_extraction =
+            extract_file_references(&root, &indexable_files, &dependencies)?;
+        let recomputed = file_reference_extraction.references.len();
+        (
+            file_reference_extraction.references,
+            file_reference_extraction.warnings,
+            recomputed,
+            0,
+        )
+    } else {
+        let existing_file_references = load_file_references(&root)?;
+        let stale_count = existing_file_references
+            .iter()
+            .filter(|reference| stale_paths.contains(&reference.source_path))
+            .count();
+        let mut file_references =
+            remove_file_references_for_paths(existing_file_references, &stale_paths);
+        let changed_dependencies: Vec<DependencyEdge> = dependencies
+            .iter()
+            .filter(|dependency| stale_paths.contains(&dependency.from_path))
+            .cloned()
+            .collect();
+        let changed_file_reference_extraction = extract_file_references_for_paths(
+            &root,
+            &indexable_files,
+            &relationship_source_files,
+            &changed_dependencies,
+        )?;
+        let recomputed = changed_file_reference_extraction.references.len();
+        file_references.extend(changed_file_reference_extraction.references);
+        let file_reference_extraction = finalize_file_references(file_references);
+        (
+            file_reference_extraction.references,
+            file_reference_extraction.warnings,
+            recomputed,
+            stale_count,
+        )
+    };
     sort_file_references(&mut file_references);
     let file_references_elapsed = file_references_start.elapsed();
 
     let refs_start = Instant::now();
-    let mut refs = extract_all_refs(&root, &indexable_files, &records, &dependencies)?;
+    let full_refs_rebuild = full_relationship_rebuild || relationship_targets_changed;
+    let (mut refs, refs_recomputed, stale_refs_removed) = if full_refs_rebuild {
+        let refs = extract_all_refs(&root, &indexable_files, &records, &dependencies)?;
+        let recomputed = refs.len();
+        (refs, recomputed, 0)
+    } else {
+        let existing_refs = load_refs(&root)?;
+        let stale_count = existing_refs
+            .iter()
+            .filter(|reference| stale_paths.contains(&reference.from_path))
+            .count();
+        let mut refs = remove_refs_for_paths(existing_refs, &stale_paths);
+        let changed_dependencies: Vec<DependencyEdge> = dependencies
+            .iter()
+            .filter(|dependency| stale_paths.contains(&dependency.from_path))
+            .cloned()
+            .collect();
+        let mut changed_refs = extract_all_refs(
+            &root,
+            &relationship_source_files,
+            &records,
+            &changed_dependencies,
+        )?;
+        let recomputed = changed_refs.len();
+        refs.append(&mut changed_refs);
+        (refs, recomputed, stale_count)
+    };
     dedupe_refs_by_location(&mut refs);
     refs = finalize_refs(refs);
     sort_refs(&mut refs);
     let refs_elapsed = refs_start.elapsed();
+    let stale_relationship_edges_removed =
+        stale_dependencies_removed + stale_file_references_removed + stale_refs_removed;
 
     let semantic_start = Instant::now();
     let semantic_facts = semantic_adapters.collect_facts(&root, &records, &dependencies);
@@ -349,7 +490,19 @@ pub fn build_index_with_semantic_adapters(
         dependencies: dependencies.len(),
         file_references: file_references.len(),
         semantic_facts: semantic_facts.len(),
-        relationship_recomputations: 1,
+        relationship_recomputations: usize::from(
+            full_relationship_rebuild || !relationship_source_files.is_empty(),
+        ),
+        relationship_source_files_recomputed: if full_relationship_rebuild {
+            indexable_files.len()
+        } else {
+            relationship_source_files.len()
+        },
+        refs_recomputed,
+        dependency_edges_recomputed,
+        file_references_recomputed,
+        stale_relationship_edges_removed,
+        full_relationship_rebuild,
         quality_comparator_phases: 0,
         real_repo_quality_phases: 0,
         total_file_bytes,
@@ -382,6 +535,73 @@ fn enforce_record_limit_for_file(rel: &str, record_count: usize) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn relationship_target_keys_for_paths(
+    records: &[IndexRecord],
+    paths: &[String],
+) -> BTreeSet<(String, String)> {
+    records
+        .iter()
+        .filter(|record| paths.contains(&record.path))
+        .filter(|record| is_relationship_target_record(record))
+        .map(|record| (record.kind.clone(), record.name.clone()))
+        .collect()
+}
+
+fn is_relationship_target_record(record: &IndexRecord) -> bool {
+    is_text_reference_target_name(&record.name)
+}
+
+fn is_text_reference_target_name(name: &str) -> bool {
+    name.chars().count() >= 3
+        && !matches!(
+            name,
+            "test" | "main" | "new" | "run" | "app" | "id" | "name" | "type" | "value"
+        )
+        && name
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
+        && name
+            .chars()
+            .next()
+            .is_some_and(|ch| ch.is_ascii_alphabetic() || ch == '_')
+}
+
+fn is_relationship_resolver_config(path: &str) -> bool {
+    matches!(
+        path,
+        "go.mod" | "package.json" | "pubspec.yaml" | "pubspec.yml"
+    )
+}
+
+fn relationship_caps_may_have_truncated(root: &Path) -> Result<bool> {
+    let refs = load_refs(root)?;
+    if refs.len() >= MAX_TOTAL_REFS_PER_BUILD {
+        return Ok(true);
+    }
+
+    let file_references = load_file_references(root)?;
+    let mut file_refs_by_file = std::collections::BTreeMap::new();
+    let mut file_refs_by_file_kind = std::collections::BTreeMap::new();
+    for reference in &file_references {
+        *file_refs_by_file
+            .entry(reference.source_path.clone())
+            .or_insert(0usize) += 1;
+        *file_refs_by_file_kind
+            .entry((
+                reference.source_path.clone(),
+                reference.reference_kind.clone(),
+            ))
+            .or_insert(0usize) += 1;
+    }
+
+    Ok(file_refs_by_file
+        .values()
+        .any(|count| *count >= MAX_FILE_REFERENCES_PER_FILE)
+        || file_refs_by_file_kind
+            .values()
+            .any(|count| *count >= MAX_FILE_REFERENCES_PER_FILE_KIND))
 }
 
 /// Cheap pre-check: compare manifest entries to current file mtimes/sizes
@@ -492,8 +712,8 @@ fn extract_all_refs(
     root: &Path,
     files: &[PathBuf],
     records: &[IndexRecord],
-    dependencies: &[crate::model::DependencyEdge],
-) -> Result<Vec<crate::model::ReferenceRecord>> {
+    dependencies: &[DependencyEdge],
+) -> Result<Vec<ReferenceRecord>> {
     let mut refs = Vec::new();
     let reference_index = ReferenceIndex::new(records);
 
@@ -512,7 +732,7 @@ fn extract_all_refs(
     Ok(refs)
 }
 
-fn dedupe_refs_by_location(refs: &mut Vec<crate::model::ReferenceRecord>) {
+fn dedupe_refs_by_location(refs: &mut Vec<ReferenceRecord>) {
     sort_refs(refs);
 
     let mut seen_locations = BTreeSet::new();

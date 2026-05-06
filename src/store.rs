@@ -1023,6 +1023,26 @@ pub fn remove_refs_for_paths(refs: Vec<ReferenceRecord>, paths: &[String]) -> Ve
         .collect()
 }
 
+pub fn remove_dependencies_for_paths(
+    dependencies: Vec<DependencyEdge>,
+    paths: &[String],
+) -> Vec<DependencyEdge> {
+    dependencies
+        .into_iter()
+        .filter(|dependency| !paths.contains(&dependency.from_path))
+        .collect()
+}
+
+pub fn remove_file_references_for_paths(
+    file_references: Vec<FileReference>,
+    paths: &[String],
+) -> Vec<FileReference> {
+    file_references
+        .into_iter()
+        .filter(|reference| !paths.contains(&reference.source_path))
+        .collect()
+}
+
 pub fn sort_records(records: &mut [IndexRecord]) {
     records.sort_by(|a, b| {
         a.path
