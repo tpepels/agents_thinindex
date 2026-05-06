@@ -35,7 +35,8 @@ Use the commands as a product workflow, not as isolated demos:
 - Find the owner of a named symbol with `wi <symbol>`.
 - Search a broader concept with `wi <term>` when you do not know the exact
   symbol name.
-- Inspect reference evidence with `wi refs <term>`.
+- Inspect reference evidence with `wi refs <term>`; rows include compact reason
+  and confidence labels.
 - Build a bounded read set before implementation with `wi pack <term>`.
 - Check likely affected files before editing with `wi impact <term>`.
 - Diagnose repository state with `wi doctor`.

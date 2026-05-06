@@ -16,7 +16,7 @@ use clap::Parser;
 Repository search rules:
   Use `wi <term>` directly before grep/find/ls/Read for repository discovery.
   `wi` auto-builds or auto-rebuilds a missing/stale index once before searching.
-  Use `wi refs <term>` before broad reference searches.
+  Use `wi refs <term>` before broad reference searches; refs show compact reason/confidence evidence.
   Use `wi pack <term>` before implementation; it includes useful local file references.
   Use `wi impact <term>` before edits; it includes reverse file references where available.
   `wi` returns repo-local file:line landmarks; Read only returned files unless insufficient.

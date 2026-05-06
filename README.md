@@ -12,7 +12,7 @@ thinindex indexes named repository landmarks: functions, classes, methods, CSS s
 
 The context commands use the same local data:
 
-- `wi refs <term>` shows deterministic references around a landmark.
+- `wi refs <term>` shows deterministic references around a landmark with compact reason/confidence evidence.
 - `wi pack <term>` returns a compact read set for implementation work.
 - `wi impact <term>` returns evidence-backed files to inspect before edits.
 
@@ -82,7 +82,7 @@ Installed commands:
 
 - `build_index`: builds or updates `.dev_index/index.sqlite`; `build_index --stats` adds compact scale diagnostics.
 - `wi <term>`: searches named landmarks and returns compact file:line results.
-- `wi refs <term>`: shows deterministic references for matching landmarks.
+- `wi refs <term>`: shows deterministic references for matching landmarks with compact reason/confidence evidence.
 - `wi pack <term>`: returns a dependency-aware, deduplicated read set for implementation work.
 - `wi impact <term>`: returns dependency-aware related files with concrete reasons and confidence labels.
 - `wi doctor`: checks index, schema, freshness, agent instruction files, ignore rules, parser support, optional quality state, license status, and binary path.

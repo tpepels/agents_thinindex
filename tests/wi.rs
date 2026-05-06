@@ -505,6 +505,7 @@ fn wi_help_mentions_context_commands() {
         .success()
         .stdout(predicates::str::contains("auto-builds or auto-rebuilds"))
         .stdout(predicates::str::contains("Use `wi refs <term>`"))
+        .stdout(predicates::str::contains("reason/confidence evidence"))
         .stdout(predicates::str::contains("Related commands:"))
         .stdout(predicates::str::contains("build_index"))
         .stdout(predicates::str::contains("wi-init"))
