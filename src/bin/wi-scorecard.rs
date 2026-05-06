@@ -3,7 +3,7 @@ use std::{env, path::PathBuf};
 use anyhow::Result;
 use clap::Parser;
 use thinindex::{
-    binary_state::print_version_if_requested,
+    binary_state::{ensure_binary_matches_source, print_version_if_requested},
     indexer::find_repo_root,
     scorecard::{ScorecardOptions, render_scorecard, run_scorecard},
 };
@@ -49,6 +49,7 @@ fn run() -> Result<()> {
         env::current_dir()?.join(args.repo)
     };
     let root = find_repo_root(&start)?;
+    ensure_binary_matches_source(&root, "wi-scorecard")?;
     let report = run_scorecard(&root, &ScorecardOptions { query: args.query })?;
 
     print!("{}", render_scorecard(&report));

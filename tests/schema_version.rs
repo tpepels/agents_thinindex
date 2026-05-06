@@ -287,6 +287,51 @@ version = "0.1.4"
 }
 
 #[test]
+fn wi_scorecard_source_checkout_schema_newer_than_binary_blocks_recovery() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(
+        root,
+        "Cargo.toml",
+        r#"[package]
+name = "thinindex"
+version = "0.1.4"
+"#,
+    );
+    write_file(
+        root,
+        "src/model.rs",
+        "pub const INDEX_SCHEMA_VERSION: u32 = 999;\n",
+    );
+    write_file(root, "src/main.py", "class FreshService: pass\n");
+
+    let output = wi_scorecard_bin()
+        .current_dir(root)
+        .args(["--query", "FreshService"])
+        .output()
+        .expect("run wi-scorecard from source-like mismatch repo");
+
+    assert!(
+        !output.status.success(),
+        "wi-scorecard should refuse source/binary schema mismatch"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("does not match this thinindex source checkout")
+            && stderr.contains("binary: version")
+            && stderr.contains("schema")
+            && stderr.contains("source: version 0.1.4 schema 999")
+            && stderr.contains("./install.sh"),
+        "schema mismatch should give clear reinstall guidance, got:\n{stderr}"
+    );
+    assert!(
+        !sqlite_path(root).exists(),
+        "mismatched wi-scorecard should not recover by writing an old-schema index"
+    );
+}
+
+#[test]
 fn wi_doctor_reports_source_binary_schema_mismatch() {
     let repo = temp_repo();
     let root = repo.path();

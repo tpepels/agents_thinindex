@@ -17,7 +17,7 @@ dist/thinindex-0.1.4-x86_64-unknown-linux-gnu.tar.gz
 SHA256:
 
 ```text
-a3629a31ce51d4935649fdad7ae82e55cb1c853047bf873bfccb397b017c6e1e
+7f283c3dd03cccfbee6c107a8c793cc11c8e8c79a5708c88e688a6aeff3d135f
 ```
 
 Checksum sidecar:

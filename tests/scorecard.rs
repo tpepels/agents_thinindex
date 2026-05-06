@@ -189,6 +189,7 @@ fn checked_in_scorecard_docs_explain_interpretation() {
         "fail",
         "wi-scorecard",
         "No product claim should be promoted from a warning or failure",
+        "same installed/source version and schema agreement guard",
     ] {
         assert!(
             docs.contains(needle),

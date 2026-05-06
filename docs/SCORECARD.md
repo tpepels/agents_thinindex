@@ -42,6 +42,11 @@ The scorecard covers:
 The command is local-only. It does not upload source, call a hosted service,
 enable telemetry, or require `test_repos/` for normal runs.
 
+`wi-scorecard` may rebuild a missing or stale repository index once while
+checking recovery evidence. When it runs inside a thinindex source checkout, it
+uses the same installed/source version and schema agreement guard as `wi` and
+`build_index` before that recovery path can write `.dev_index/index.sqlite`.
+
 ## Interpreting Results
 
 A good scorecard for a release candidate has no `fail` rows. Warnings are
