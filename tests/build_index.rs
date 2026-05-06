@@ -1,6 +1,6 @@
 mod common;
 
-use std::fs;
+use std::{fs, path::Path, process::Command};
 
 use common::*;
 use rusqlite::Connection;
@@ -298,9 +298,16 @@ fn build_index_stats_reports_scale_metrics_without_large_snapshots() {
     for needle in [
         "refs:",
         "dependencies:",
+        "parsed files:",
+        "relationship recomputations:",
+        "quality/comparator phases:",
+        "real-repo quality phases:",
         "total file bytes:",
         "max indexed file bytes:",
         "performance:",
+        "ignore matching ms:",
+        "metadata/stat ms:",
+        "parser setup ms:",
         "large files:",
         "sqlite tuning:",
         "sensitive path warnings:",
@@ -311,6 +318,78 @@ fn build_index_stats_reports_scale_metrics_without_large_snapshots() {
             "missing stats field {needle:?}, got:\n{stdout}"
         );
     }
+}
+
+#[test]
+fn no_change_build_index_stats_enforces_incremental_performance_contract() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    for index in 0..12 {
+        write_file(
+            root,
+            &format!("src/service_{index}.py"),
+            &format!("class PerfGuardService{index}: pass\n"),
+        );
+    }
+
+    run_build(root);
+    let output = build_index_bin()
+        .current_dir(root)
+        .arg("--stats")
+        .output()
+        .expect("run no-change build_index --stats");
+
+    assert!(
+        output.status.success(),
+        "no-change build_index --stats failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for invariant in [
+        "changed files: 0",
+        "parsed files: 0",
+        "relationship recomputations: 0",
+        "quality/comparator phases: 0",
+        "real-repo quality phases: 0",
+        "  parser setup ms: 0",
+        "  parse ms: 0",
+        "  dependencies ms: 0",
+        "  file references ms: 0",
+        "  refs ms: 0",
+        "  save ms: 0",
+    ] {
+        assert!(
+            stdout.contains(invariant),
+            "no-change build should enforce `{invariant}`, got:\n{stdout}"
+        );
+    }
+}
+
+#[test]
+fn check_build_performance_script_fails_clearly_on_synthetic_budget_violation() {
+    let output =
+        Command::new(Path::new(env!("CARGO_MANIFEST_DIR")).join("scripts/check-build-performance"))
+            .env("THININDEX_BUILD_PERF_MAX_MS", "1")
+            .output()
+            .expect("run performance guard with impossible budget");
+
+    assert!(
+        !output.status.success(),
+        "impossible performance budget should fail\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("build performance guard failed")
+            && stderr.contains("THININDEX_BUILD_PERF_MAX_MS=1")
+            && stderr.contains("next: run build_index --stats"),
+        "failure should name budget and diagnostic step, got:\n{stderr}"
+    );
 }
 
 #[test]

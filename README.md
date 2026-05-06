@@ -374,6 +374,7 @@ Build and test:
 ```bash
 cargo fmt --check
 cargo test
+scripts/check-build-performance
 cargo clippy --all-targets --all-features -- -D warnings
 ```
 

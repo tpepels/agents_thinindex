@@ -10,6 +10,7 @@ Use the existing local gates:
 ```bash
 cargo fmt --check
 cargo test
+scripts/check-build-performance
 cargo clippy --all-targets --all-features -- -D warnings
 cargo run --bin build_index
 cargo run --bin wi -- doctor
@@ -99,6 +100,7 @@ jobs:
           components: clippy,rustfmt
       - run: cargo fmt --check
       - run: cargo test
+      - run: scripts/check-build-performance
       - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: cargo run --bin build_index
       - run: cargo run --bin wi -- doctor

@@ -48,7 +48,10 @@ pub struct FileSizeWarning {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct BuildTimings {
     pub discover: Duration,
+    pub ignore_matching: Duration,
+    pub metadata_stat: Duration,
     pub change_detection: Duration,
+    pub parser_setup: Duration,
     pub parse: Duration,
     pub dependencies: Duration,
     pub file_references: Duration,
@@ -73,11 +76,15 @@ pub struct BuildStats {
     pub changed_files: usize,
     pub unchanged_files: usize,
     pub deleted_files: usize,
+    pub parsed_files: usize,
     pub records: usize,
     pub refs: usize,
     pub dependencies: usize,
     pub file_references: usize,
     pub semantic_facts: usize,
+    pub relationship_recomputations: usize,
+    pub quality_comparator_phases: usize,
+    pub real_repo_quality_phases: usize,
     pub total_file_bytes: u64,
     pub large_files: Vec<FileSizeWarning>,
     pub sensitive_paths: Vec<SensitivePathWarning>,
@@ -121,7 +128,7 @@ pub fn build_index_with_semantic_adapters(
     let files = discover_files(&root)?;
     let discover_elapsed = discover_start.elapsed();
 
-    let change_start = Instant::now();
+    let metadata_start = Instant::now();
     let mut discovered_files = Vec::new();
     let mut current_paths = BTreeSet::new();
     let mut total_file_bytes = 0u64;
@@ -167,6 +174,7 @@ pub fn build_index_with_semantic_adapters(
             indexable,
         });
     }
+    let metadata_elapsed = metadata_start.elapsed();
 
     large_files.sort_by_key(|warning| {
         (
@@ -179,6 +187,7 @@ pub fn build_index_with_semantic_adapters(
     sensitive_paths.sort_by(|a, b| a.path.cmp(&b.path).then(a.reason.cmp(b.reason)));
     sensitive_paths.truncate(SENSITIVE_PATH_WARNING_LIMIT);
 
+    let change_start = Instant::now();
     let deleted_paths: Vec<String> = manifest
         .files
         .keys()
@@ -231,16 +240,22 @@ pub fn build_index_with_semantic_adapters(
             changed_files: 0,
             unchanged_files,
             deleted_files: 0,
+            parsed_files: 0,
             records: counts.records,
             refs: counts.refs,
             dependencies: counts.dependencies,
             file_references: counts.file_references,
             semantic_facts: counts.semantic_facts,
+            relationship_recomputations: 0,
+            quality_comparator_phases: 0,
+            real_repo_quality_phases: 0,
             total_file_bytes,
             large_files,
             sensitive_paths,
             timings: BuildTimings {
                 discover: discover_elapsed,
+                ignore_matching: discover_elapsed,
+                metadata_stat: metadata_elapsed,
                 change_detection: change_elapsed,
                 total: total_start.elapsed(),
                 ..BuildTimings::default()
@@ -253,8 +268,12 @@ pub fn build_index_with_semantic_adapters(
     let mut records = remove_records_for_paths(existing_records, &stale_paths);
 
     let parse_start = Instant::now();
+    let mut parser_setup_elapsed = Duration::default();
+    let mut parsed_files = 0usize;
     if !changed_files.is_empty() {
+        let parser_setup_start = Instant::now();
         let parser = TreeSitterExtractionEngine::default();
+        parser_setup_elapsed = parser_setup_start.elapsed();
 
         for (path, rel, meta) in changed_files {
             let Some(text) = read_utf8_source_file(&path, "failed to read source file")? else {
@@ -270,6 +289,7 @@ pub fn build_index_with_semantic_adapters(
             file_records.append(&mut extra_records);
             enforce_record_limit_for_file(&rel, file_records.len())?;
             records.append(&mut file_records);
+            parsed_files += 1;
 
             manifest.files.insert(rel, meta);
         }
@@ -318,17 +338,24 @@ pub fn build_index_with_semantic_adapters(
         changed_files: changed_paths.len(),
         unchanged_files,
         deleted_files: deleted_paths.len(),
+        parsed_files,
         records: records.len(),
         refs: refs.len(),
         dependencies: dependencies.len(),
         file_references: file_references.len(),
         semantic_facts: semantic_facts.len(),
+        relationship_recomputations: 1,
+        quality_comparator_phases: 0,
+        real_repo_quality_phases: 0,
         total_file_bytes,
         large_files,
         sensitive_paths,
         timings: BuildTimings {
             discover: discover_elapsed,
+            ignore_matching: discover_elapsed,
+            metadata_stat: metadata_elapsed,
             change_detection: change_elapsed,
+            parser_setup: parser_setup_elapsed,
             parse: parse_elapsed,
             dependencies: dependencies_elapsed,
             file_references: file_references_elapsed,

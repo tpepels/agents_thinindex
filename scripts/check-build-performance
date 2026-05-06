@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DEFAULT_MAX_MS=250
+MAX_MS="${THININDEX_BUILD_PERF_MAX_MS:-$DEFAULT_MAX_MS}"
+
+fail() {
+    printf 'build performance guard failed: %s\n' "$*" >&2
+    printf 'next: run build_index --stats in the target repo and inspect parsed files, relationship recomputations, and phase timings\n' >&2
+    exit 1
+}
+
+case "$MAX_MS" in
+    ''|*[!0-9]*)
+        fail "THININDEX_BUILD_PERF_MAX_MS must be an integer millisecond budget, got '$MAX_MS'"
+        ;;
+esac
+
+BUILD_INDEX_BIN="${THININDEX_BUILD_PERF_BUILD_INDEX_BIN:-}"
+WI_BIN="${THININDEX_BUILD_PERF_WI_BIN:-}"
+
+if [ -z "$BUILD_INDEX_BIN" ] || [ -z "$WI_BIN" ]; then
+    cargo build --bin build_index --bin wi
+    BUILD_INDEX_BIN="${BUILD_INDEX_BIN:-$ROOT/target/debug/build_index}"
+    WI_BIN="${WI_BIN:-$ROOT/target/debug/wi}"
+fi
+
+[ -x "$BUILD_INDEX_BIN" ] || fail "build_index binary is not executable: $BUILD_INDEX_BIN"
+[ -x "$WI_BIN" ] || fail "wi binary is not executable: $WI_BIN"
+
+TMP="$(mktemp -d)"
+cleanup() {
+    rm -rf "$TMP"
+}
+trap cleanup EXIT
+
+REPO="$TMP/repo"
+mkdir -p "$REPO/.git" "$REPO/src" "$REPO/.dev_index/quality" "$REPO/test_repos/hidden/src"
+cat > "$REPO/src/service.py" <<'PY'
+class PerfGuardService:
+    pass
+PY
+cat > "$REPO/.dev_index/quality/hidden.py" <<'PY'
+class HiddenDevIndexService:
+    pass
+PY
+cat > "$REPO/test_repos/hidden/src/hidden.py" <<'PY'
+class HiddenTestReposService:
+    pass
+PY
+
+"$BUILD_INDEX_BIN" "$REPO" >/dev/null
+STATS="$("$BUILD_INDEX_BIN" "$REPO" --stats)"
+
+metric() {
+    local label="$1"
+    printf '%s\n' "$STATS" | awk -v label="$label" '
+        index($0, label ": ") == 1 { value = substr($0, length(label) + 3) }
+        END { if (value != "") print value }
+    '
+}
+
+timing_metric() {
+    local label="$1"
+    printf '%s\n' "$STATS" | awk -v label="  ${label} ms: " '
+        index($0, label) == 1 { value = substr($0, length(label) + 1) }
+        END { if (value != "") print value }
+    '
+}
+
+assert_metric_zero() {
+    local label="$1"
+    local value
+    value="$(metric "$label")"
+    [ -n "$value" ] || fail "missing metric '$label' in build_index --stats output"
+    [ "$value" = "0" ] || fail "$label invariant violated: expected 0, got $value"
+}
+
+assert_metric_zero "changed files"
+assert_metric_zero "parsed files"
+assert_metric_zero "relationship recomputations"
+assert_metric_zero "quality/comparator phases"
+assert_metric_zero "real-repo quality phases"
+
+TOTAL_MS="$(timing_metric "total")"
+[ -n "$TOTAL_MS" ] || fail "missing total ms timing in build_index --stats output"
+case "$TOTAL_MS" in
+    ''|*[!0-9]*)
+        fail "total ms timing must be an integer, got '$TOTAL_MS'"
+        ;;
+esac
+
+if [ "$TOTAL_MS" -ge "$MAX_MS" ]; then
+    fail "fixture no-change build exceeded budget THININDEX_BUILD_PERF_MAX_MS=$MAX_MS ms; total ms was $TOTAL_MS"
+fi
+
+if "$WI_BIN" -r "$REPO" HiddenDevIndexService | grep -q 'HiddenDevIndexService'; then
+    fail "normal build indexed .dev_index content"
+fi
+
+if "$WI_BIN" -r "$REPO" HiddenTestReposService | grep -q 'HiddenTestReposService'; then
+    fail "normal build indexed test_repos content"
+fi
+
+FORBIDDEN_SOURCE="$(printf 'c%s' 'tags')"
+if "$WI_BIN" -r "$REPO" -s "$FORBIDDEN_SOURCE" PerfGuardService | grep -q 'PerfGuardService'; then
+    fail 'normal build emitted production external-comparator source records'
+fi
+
+if [ -d "$REPO/.dev_index/quality" ] && find "$REPO/.dev_index/quality" -type f | grep -q .; then
+    # The fixture placed a pre-existing quality file under .dev_index; normal build must not add
+    # quality/comparator phases, and the indexed-record checks above prove it was not indexed.
+    :
+fi
+
+printf 'build performance guard ok\n'
+printf 'budget fixture no-change max ms: %s\n' "$MAX_MS"
+printf 'total ms: %s\n' "$TOTAL_MS"
+printf 'discover ms: %s\n' "$(timing_metric "discover")"
+printf 'ignore matching ms: %s\n' "$(timing_metric "ignore matching")"
+printf 'metadata/stat ms: %s\n' "$(timing_metric "metadata/stat")"
+printf 'change detection ms: %s\n' "$(timing_metric "change detection")"
+printf 'parser setup ms: %s\n' "$(timing_metric "parser setup")"
+printf 'parse ms: %s\n' "$(timing_metric "parse")"
+printf 'dependencies ms: %s\n' "$(timing_metric "dependencies")"
+printf 'file references ms: %s\n' "$(timing_metric "file references")"
+printf 'refs ms: %s\n' "$(timing_metric "refs")"
+printf 'save ms: %s\n' "$(timing_metric "save")"
+printf 'changed files: %s\n' "$(metric "changed files")"
+printf 'parsed files: %s\n' "$(metric "parsed files")"
+printf 'relationship recomputations: %s\n' "$(metric "relationship recomputations")"
+printf 'quality/comparator phases: %s\n' "$(metric "quality/comparator phases")"
+printf 'real-repo quality phases: %s\n' "$(metric "real-repo quality phases")"

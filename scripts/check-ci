@@ -7,6 +7,7 @@ cargo test --test parser_conformance
 cargo test --test support_levels
 cargo test --test quality
 cargo test --test quality_gates
+scripts/check-build-performance
 cargo clippy --all-targets --all-features -- -D warnings
 cargo deny check licenses
 

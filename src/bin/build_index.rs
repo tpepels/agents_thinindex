@@ -113,6 +113,19 @@ fn print_stats(stats: &thinindex::indexer::BuildStats) {
     println!("dependencies: {}", stats.dependencies);
     println!("file references: {}", stats.file_references);
     println!("semantic facts: {}", stats.semantic_facts);
+    println!("parsed files: {}", stats.parsed_files);
+    println!(
+        "relationship recomputations: {}",
+        stats.relationship_recomputations
+    );
+    println!(
+        "quality/comparator phases: {}",
+        stats.quality_comparator_phases
+    );
+    println!(
+        "real-repo quality phases: {}",
+        stats.real_repo_quality_phases
+    );
     println!("sensitive path warnings: {}", stats.sensitive_paths.len());
     println!("unchanged files: {}", stats.unchanged_files);
     println!("total file bytes: {}", stats.total_file_bytes);
@@ -128,8 +141,20 @@ fn print_stats(stats: &thinindex::indexer::BuildStats) {
     println!("performance:");
     println!("  discover ms: {}", stats.timings.discover.as_millis());
     println!(
+        "  ignore matching ms: {}",
+        stats.timings.ignore_matching.as_millis()
+    );
+    println!(
+        "  metadata/stat ms: {}",
+        stats.timings.metadata_stat.as_millis()
+    );
+    println!(
         "  change detection ms: {}",
         stats.timings.change_detection.as_millis()
+    );
+    println!(
+        "  parser setup ms: {}",
+        stats.timings.parser_setup.as_millis()
     );
     println!("  parse ms: {}", stats.timings.parse.as_millis());
     println!(

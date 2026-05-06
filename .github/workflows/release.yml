@@ -18,6 +18,7 @@ jobs:
       - run: cargo install cargo-deny --locked
       - run: cargo fmt --check
       - run: cargo test
+      - run: scripts/check-build-performance
       - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: cargo deny check licenses
       - run: cargo run --bin wi -- --help

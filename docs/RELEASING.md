@@ -16,7 +16,7 @@ or:
 make ci-check
 ```
 
-This runs formatting, normal tests, deterministic parser/quality fixture suites, clippy, license audit, and command smoke checks. It intentionally does not run ignored tests and does not require local real repositories or optional comparator commands.
+This runs formatting, normal tests, deterministic parser/quality fixture suites, the `build_index` performance guard, clippy, license audit, and command smoke checks. It intentionally does not run ignored tests and does not require local real repositories or optional comparator commands.
 
 Security/privacy release guidance is documented in `docs/SECURITY_PRIVACY.md`. Release artifacts must not include `.dev_index/`, `.dev_index/quality/`, `test_repos/`, local quality reports, or local benchmark output.
 

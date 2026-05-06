@@ -31,8 +31,9 @@ fn github_actions_workflows_cover_release_gates() {
             workflow.contains("cargo fmt --check")
                 && workflow.contains("cargo test")
                 && workflow.contains("cargo clippy --all-targets --all-features -- -D warnings")
+                && workflow.contains("scripts/check-build-performance")
                 && workflow.contains("cargo deny check licenses"),
-            "workflow should run fmt, test, clippy, and license gates"
+            "workflow should run fmt, test, build-performance, clippy, and license gates"
         );
         assert!(
             workflow.contains("cargo run --bin wi -- --help")
@@ -79,6 +80,7 @@ fn local_release_check_runs_required_gates_without_real_repos() {
         script.contains("cargo fmt --check")
             && script.contains("cargo test")
             && script.contains("cargo clippy --all-targets --all-features -- -D warnings")
+            && script.contains("scripts/check-build-performance")
             && script.contains("cargo deny check licenses")
             && script.contains("scripts/package-release")
             && script.contains("scripts/check-package-contents")

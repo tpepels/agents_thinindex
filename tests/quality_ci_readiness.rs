@@ -20,6 +20,7 @@ fn local_ci_script_runs_deterministic_gates_only() {
         "cargo test --test support_levels",
         "cargo test --test quality",
         "cargo test --test quality_gates",
+        "scripts/check-build-performance",
         "cargo clippy --all-targets --all-features -- -D warnings",
         "cargo deny check licenses",
         "cargo run --bin wi -- --help",
@@ -51,6 +52,11 @@ fn ci_workflow_has_fixture_quality_job_without_manual_inputs() {
             && workflow.contains("cargo test --test quality")
             && workflow.contains("cargo test --test quality_gates"),
         "CI workflow should run deterministic parser and quality fixture suites"
+    );
+    assert!(
+        workflow.contains("build-performance")
+            && workflow.contains("scripts/check-build-performance"),
+        "CI workflow should run the build_index performance guard"
     );
 
     for forbidden in ["--ignored", "test_repos", "ctags"] {

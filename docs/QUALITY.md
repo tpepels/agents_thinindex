@@ -179,7 +179,7 @@ or:
 make ci-check
 ```
 
-`scripts/check-ci` runs formatting, normal tests, deterministic parser/quality fixture suites, clippy, license audit, and command smoke checks. It does not run ignored tests, does not require `test_repos/`, does not invoke optional external comparators, and does not need network access beyond whatever a caller already uses to install the Rust toolchain and cargo-deny.
+`scripts/check-ci` runs formatting, normal tests, deterministic parser/quality fixture suites, the `build_index` performance guard, clippy, license audit, and command smoke checks. It does not run ignored tests, does not require `test_repos/`, does not invoke optional external comparators, and does not need network access beyond whatever a caller already uses to install the Rust toolchain and cargo-deny.
 
 ## CI-Safe Gates
 
@@ -189,6 +189,7 @@ The CI-safe quality set is deterministic and source-controlled:
 - support-level claim checks: `cargo test --test support_levels`
 - quality report/export fixtures: `cargo test --test quality`
 - expected-symbol and threshold fixtures: `cargo test --test quality_gates`
+- build performance guard: `scripts/check-build-performance`
 - ctags allowlist gate: covered by normal `cargo test`
 - license audit: `cargo deny check licenses`
 

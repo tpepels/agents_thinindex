@@ -7,6 +7,7 @@ Run before cutting a thinindex release:
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo deny check licenses`
 - `scripts/check-ci`
+- `scripts/check-build-performance`
 - `cargo test --test local_index -- --ignored`
 - `cargo test --test real_repos -- --ignored` when `test_repos/` exists
 - `scripts/check-release`
@@ -21,7 +22,7 @@ Run before cutting a thinindex release:
 - confirm `scripts/check-package-contents <archive>` validates `SBOM.md` fields and rejects unexpected release payload entries
 - confirm `docs/SECURITY_PRIVACY.md` matches current index, report, and release artifact behavior
 - confirm the documented parser support matrix matches the bundled Tree-sitter grammar dependencies
-- confirm `docs/QUALITY_SYSTEM_AUDIT.md` still matches parser, support, quality, ctags, license, and release behavior
+- confirm `docs/QUALITY_SYSTEM_AUDIT.md` still matches parser, support, quality, ctags, license, deterministic parser/quality fixtures, and release behavior
 - confirm `docs/TECHNICAL_FINAL_AUDIT.md` still matches dependency, refs, pack, impact, performance, semantic adapter, and agent integration behavior
 - `scripts/package-release`
 - `scripts/check-package-contents <archive>`

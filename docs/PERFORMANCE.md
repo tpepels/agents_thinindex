@@ -18,6 +18,42 @@ The normal summary reports scanned, changed, deleted, and record counts. A
 second build with no edits should report `changed files: 0` and should use the
 metadata fast path instead of regenerating refs or rewriting SQLite.
 
+## Performance Guard
+
+Run the hard local guard with:
+
+```bash
+scripts/check-build-performance
+```
+
+The guard creates a small fixture repository, runs `build_index` twice, and
+fails if the no-change build violates the incremental contract:
+
+- `changed files: 0`;
+- `parsed files: 0`;
+- `relationship recomputations: 0`;
+- `quality/comparator phases: 0`;
+- `real-repo quality phases: 0`;
+- `.dev_index/` and `test_repos/` are not indexed;
+- production records do not use the optional external-comparator source;
+- fixture no-change wall-clock time is below the active budget.
+
+The default fixture no-change budget is 250 ms. Override only the wall-clock
+budget when a local or CI machine needs more headroom:
+
+```bash
+THININDEX_BUILD_PERF_MAX_MS=500 scripts/check-build-performance
+```
+
+The override does not relax structural invariants. Reparsed unchanged files,
+changed files on a no-change build, relationship recomputation, quality or
+real-repo phases, `.dev_index/` indexing, `test_repos/` indexing, and production
+external-comparator production records always fail.
+
+Failure output names the violated budget or invariant and suggests running
+`build_index --stats` in the target repository. Passing output prints the active
+budget plus phase timings so the current bottleneck is visible.
+
 ## Current Budgets
 
 These budgets are practical local targets for the thinindex repository on a
@@ -79,11 +115,14 @@ build_index --stats
 The report includes:
 
 - refs, dependency, and semantic fact counts;
+- parsed file count;
+- relationship recomputation count;
+- quality/comparator and real-repo quality phase counts;
 - capped sensitive-looking path warning count;
 - unchanged file count;
 - total discovered file bytes;
 - file-size thresholds;
-- phase timings for discovery, change detection, parsing, dependency extraction, reference extraction, and SQLite save;
+- phase timings for discovery, ignore matching, metadata/stat work, change detection, parser setup, parsing, dependency extraction, reference extraction, and SQLite save;
 - bounded large-file samples;
 - SQLite tuning summary.
 

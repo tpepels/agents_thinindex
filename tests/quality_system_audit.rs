@@ -87,6 +87,7 @@ fn release_and_ci_docs_include_deterministic_quality_gates() {
 
     assert!(
         release_checklist.contains("scripts/check-ci")
+            && release_checklist.contains("scripts/check-build-performance")
             && release_checklist.contains("deterministic parser/quality fixtures"),
         "release checklist should include CI-safe quality gates"
     );

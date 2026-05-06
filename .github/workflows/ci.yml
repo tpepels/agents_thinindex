@@ -34,6 +34,14 @@ jobs:
       - run: cargo test --test quality
       - run: cargo test --test quality_gates
 
+  build-performance:
+    name: build_index performance guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: scripts/check-build-performance
+
   clippy:
     name: cargo clippy
     runs-on: ubuntu-latest
