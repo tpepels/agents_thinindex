@@ -30,7 +30,7 @@ Status: coherent after Plan 40 cleanup, with caveats documented below.
 
 ## Impact
 
-- `wi impact <term>` uses SQLite `records`, `refs`, and `dependencies`.
+- `wi impact <term>` uses SQLite `records`, `refs`, `dependencies`, and `file_references`.
 - Every output row must have a concrete file:line reason from indexed evidence.
 - Output groups cover direct definitions, references, dependent files, likely tests, docs, build/config files, and unresolved/unknown areas when evidence exists.
 - It is intentionally not an exhaustive semantic impact engine.
@@ -58,6 +58,7 @@ Status: coherent after Plan 40 cleanup, with caveats documented below.
 - Adapters are optional and disabled by default.
 - A successful adapter may write isolated `semantic_facts`; failures or unavailable adapters are skipped cleanly.
 - Semantic facts do not pollute parser `records`, deterministic `refs`, or normal baseline command output.
+- Semantic facts are internal/deferred and are not consumed by normal `wi`, `wi refs`, `wi pack`, or `wi impact` output.
 - Future adapter requirements and placeholders are documented in `docs/SEMANTIC_ADAPTERS.md`.
 
 ## Agent Integration
@@ -74,6 +75,6 @@ Status: coherent after Plan 40 cleanup, with caveats documented below.
 - Tree-sitter extraction is syntactic, not semantic or LSP-level analysis.
 - Dependency resolution is local and deterministic; it does not invoke package managers, build tools, compilers, or LSP servers.
 - Experimental languages remain experimental until coverage and real-repo evidence improve.
-- Optional comparator and semantic adapter data are quality/advisory signals, not production ground truth.
+- Optional comparator data is a quality/advisory signal; semantic facts remain internal/deferred, not production ground truth.
 - Real-repo quality and benchmark confidence depends on local `test_repos/` contents.
 - Security/privacy, signed distribution, licensing enforcement, hosted/team workflows, and product polish are separate later plans.

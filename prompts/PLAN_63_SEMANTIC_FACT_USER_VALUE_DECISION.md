@@ -24,14 +24,21 @@ Decision options:
 - explicitly decline semantic feature work for now
 
 Phases:
-- [ ] Inspect semantic data model, tests, docs, and any CLI mentions.
-- [ ] Confirm whether normal user flows consume semantic facts.
-- [ ] Identify overclaims or confusing docs.
-- [ ] Decide internal/deferred vs scoped user-facing path.
-- [ ] Implement only minimal docs/tests/CLI cleanup required by the decision.
-- [ ] Do not add real language-server integrations in this plan.
-- [ ] Run verification.
-- [ ] Commit.
+- [x] Inspect semantic data model, tests, docs, and any CLI mentions.
+- [x] Confirm whether normal user flows consume semantic facts.
+- [x] Identify overclaims or confusing docs.
+- [x] Decide internal/deferred vs scoped user-facing path.
+- [x] Implement only minimal docs/tests/CLI cleanup required by the decision.
+- [x] Do not add real language-server integrations in this plan.
+- [x] Run verification.
+- [x] Commit.
+
+Decision:
+Keep semantic facts internal/deferred for this release. The data model, SQLite
+table, adapter trait, and test-only static adapter remain as an isolated future
+extension boundary, but no current normal `wi`, `wi refs`, `wi pack`, or
+`wi impact` user path consumes `semantic_facts`. Do not expose semantic claims
+until a later scoped plan wires real adapters into bounded user-facing output.
 
 If deferred:
 - docs must say semantic facts are internal/experimental/deferred.

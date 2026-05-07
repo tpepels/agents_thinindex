@@ -31,7 +31,7 @@ fn technical_final_audit_covers_relationship_navigation_layers() {
         "Tree-sitter registry",
         "SQLite `dependencies`",
         "SQLite `refs`",
-        "`wi impact <term>` uses SQLite `records`, `refs`, and `dependencies`",
+        "`wi impact <term>` uses SQLite `records`, `refs`, `dependencies`, and `file_references`",
         "`wi pack <term>` returns a bounded, reasoned read set",
         "Adapters are optional and disabled by default",
         "`WI.md` is not generated or restored",

@@ -47,7 +47,7 @@ from symbol/name references.
 
 Syntax references are AST-backed observations that a token appears in a call, export, import, or type-like position. They do not prove that the token resolves to a specific declaration.
 
-Semantic references require compiler, language-server, package-manager, or build-system information. The baseline index does not perform that work. Optional semantic adapters may write isolated `semantic_facts`; they are not copied into `refs` or `records` by default. When a syntax reference target name matches a local symbol, thinindex labels it `exact_local`, but that remains a local name match rather than full compiler resolution.
+Semantic references require compiler, language-server, package-manager, or build-system information. The baseline index does not perform that work. Semantic facts are internal/deferred; optional adapters may write isolated `semantic_facts` only through the adapter-aware indexer entrypoint, and normal `wi refs` output does not consume them. When a syntax reference target name matches a local symbol, thinindex labels it `exact_local`, but that remains a local name match rather than full compiler resolution.
 
 ## Dependency-backed References
 

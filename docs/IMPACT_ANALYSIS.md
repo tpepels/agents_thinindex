@@ -23,7 +23,7 @@ Rows are deduplicated by file across non-primary groups. When a file has multipl
 - `direct`: exact primary definitions or local syntax/import references.
 - `dependency`: local dependency graph or import-like file-reference evidence resolved to a repository file.
 - `test-related`: test path, test reference, test dependency, or same-name test convention.
-- `semantic`: reserved for adapter-supplied semantic facts when a future context command consumes them.
+- `semantic`: internal/reserved only; current `wi impact` output does not consume `semantic_facts`.
 - `heuristic`: capped text fallback, docs/config/file references, unresolved imports, fixtures, examples, or other best-effort evidence.
 
 Every output row includes a reason string. The reason explains the indexed evidence, not a guarantee that editing the primary symbol will break the impacted file.
@@ -47,6 +47,6 @@ Impact quality improves when the index has better local evidence:
 - prefer explicit local import/export/include paths over package aliases when possible;
 - keep tests near conventional `tests/`, `test/`, `__tests__/`, `*_test`, `.test.`, or `.spec.` paths;
 - add or improve deterministic Tree-sitter query captures for precise references;
-- add future manifest or semantic-adapter data only when it can produce concrete file:line evidence and clear confidence labels.
+- add future manifest data only when it can produce concrete file:line evidence and clear confidence labels.
 
-Known limits: dynamic dispatch, generated code, inheritance, overloads, macro expansion, runtime routing, package-manager resolution, and LSP/compiler-level semantics are not claimed unless a semantic adapter supplies explicit evidence. Semantic adapters are optional and disabled by default; see [SEMANTIC_ADAPTERS.md](SEMANTIC_ADAPTERS.md).
+Known limits: dynamic dispatch, generated code, inheritance, overloads, macro expansion, runtime routing, package-manager resolution, and LSP/compiler-level semantics are not claimed. Semantic facts are internal/deferred, optional adapters are disabled by default, and current impact output does not consume them; see [SEMANTIC_ADAPTERS.md](SEMANTIC_ADAPTERS.md).
