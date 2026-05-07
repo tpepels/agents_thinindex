@@ -29,6 +29,25 @@ Classify each local corpus entry before treating it as support evidence:
 
 Supported languages can remain supported when fixture and conformance evidence is valid, even if local real-repo evidence is still incomplete. Record that separately as a real-repo hardening gap. Current known examples are Go and PHP: both are fixture-backed supported languages, but this checkout does not currently have a Go-heavy or PHP-heavy manifest target.
 
+## Committed Synthetic Evidence
+
+Normal tests also include committed synthetic corpora for high-risk evidence
+that should not depend on third-party local clones. The current stable corpus is
+`tests/fixtures/synthetic_real_repo/`. It covers Go, PHP, TypeScript
+import/export references, resolved file references, expected symbols,
+expected-absent symbols, and `wi`/`wi refs`/`wi pack`/`wi impact` smoke queries
+through the normal `cargo test` path.
+
+Treat this synthetic evidence as stronger than ad hoc fixtures but narrower than
+real third-party repository evidence. It proves selected product slices are
+stable in CI; it does not replace ignored local `test_repos/` checks for
+broader syntax diversity. Support docs should distinguish:
+
+- conformance fixtures: one-file parser and extras checks;
+- committed synthetic evidence: stable mini-repo product slices in normal tests;
+- local real-repo evidence: ignored/manual checks over uncommitted
+  `test_repos/MANIFEST.toml` entries.
+
 ## Required Repo Fields
 
 Every active repo entry must include:

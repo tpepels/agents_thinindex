@@ -17,15 +17,15 @@ Product rule:
 Support claims need reproducible evidence. Local third-party `test_repos/` are useful, but committed synthetic/minimal corpora are needed for stable CI.
 
 Phases:
-- [ ] Inspect current real-repo checks and manifest support.
-- [ ] Identify support areas that rely only on local `test_repos/`.
-- [ ] Add committed synthetic mini-repos or fixture corpora for high-risk evidence gaps.
-- [ ] Prioritize Go, PHP, file references, import/export references, refs, pack, and impact.
-- [ ] Add expected symbols, expected patterns, expected absent symbols, and thresholds where useful.
-- [ ] Keep third-party repos uncommitted.
-- [ ] Update docs explaining local `test_repos/` vs committed synthetic evidence.
-- [ ] Run verification.
-- [ ] Commit.
+- [x] Inspect current real-repo checks and manifest support.
+- [x] Identify support areas that rely only on local `test_repos/`.
+- [x] Add committed synthetic mini-repos or fixture corpora for high-risk evidence gaps.
+- [x] Prioritize Go, PHP, file references, import/export references, refs, pack, and impact.
+- [x] Add expected symbols, expected patterns, expected absent symbols, and thresholds where useful.
+- [x] Keep third-party repos uncommitted.
+- [x] Update docs explaining local `test_repos/` vs committed synthetic evidence.
+- [x] Run verification.
+- [x] Commit.
 
 Required behavior:
 - Normal tests get stable committed evidence for important parser/ref/file-reference behavior.

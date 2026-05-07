@@ -648,7 +648,7 @@ fn conformance_status(entry: &SupportEntry) -> &'static str {
 
 fn real_repo_status(entry: &SupportEntry) -> &'static str {
     if matches!(entry.name, "Go" | "PHP") {
-        return "fixture-backed; no Go/PHP-heavy local manifest target found";
+        return "fixture + committed synthetic evidence; no Go/PHP-heavy local manifest target found";
     }
 
     match entry.support_level {
@@ -661,7 +661,7 @@ fn real_repo_status(entry: &SupportEntry) -> &'static str {
 
 fn expected_symbol_status(entry: &SupportEntry) -> &'static str {
     if matches!(entry.name, "Go" | "PHP") {
-        return "fixture expected/absent symbols checked; add manifest expected symbols when local target exists";
+        return "fixture/synthetic expected and absent symbols checked; add manifest expected symbols when local target exists";
     }
 
     match entry.support_level {

@@ -44,13 +44,13 @@ Universal Ctags is optional, external, not bundled, not required, and not used b
 | TypeScript | supported | tree_sitter | `tree-sitter-typescript` | `.ts` | query spec maps functions, methods, classes, interfaces, types, variables, imports, and exports | `tests/fixtures/language_pack/src/typescript/widget.ts` | local manifest includes TypeScript repos such as `zustand` and `gray-matter` | No type alias, generic constraint, project graph, or compiler semantics. |
 | TSX | supported | tree_sitter | `tree-sitter-typescript` | `.tsx` | query spec maps TypeScript declarations; element usage remains reference evidence | `tests/fixtures/language_pack/src/typescript/widget.tsx` | local manifest includes TSX coverage through `zustand` | TSX component/element references are deterministic references, not semantic React analysis. |
 | Java | supported | tree_sitter | `tree-sitter-java` | `.java` | query spec maps methods, classes, enums, interfaces, types, variables, and imports | `tests/fixtures/language_pack/src/java/JavaWidget.java` | local manifest includes Java files in JVM/mobile sample repos | No package visibility, inherited member, or build-system classpath resolution. |
-| Go | supported | tree_sitter | `tree-sitter-go` | `.go` | query spec maps functions, methods, structs, interfaces, types, modules, variables, constants, and imports | `tests/fixtures/language_pack/src/go/widget.go` | deferred: no current local manifest entry for a Go-heavy repo was found in this checkout | Fixture conformance checks exact module/import/constant/variable/struct/interface/type/function/method records and expected-absent string/comment fakes; real-repo expansion remains future hardening. |
+| Go | supported | tree_sitter | `tree-sitter-go` | `.go` | query spec maps functions, methods, structs, interfaces, types, modules, variables, constants, and imports | `tests/fixtures/language_pack/src/go/widget.go`; `tests/fixtures/synthetic_real_repo/` | committed synthetic evidence now covers Go symbols, imports, file references, and refs/pack/impact smoke queries; no current local manifest entry for a Go-heavy third-party repo was found in this checkout | Fixture and committed synthetic checks cover exact symbols, expected-absent string/comment fakes, and a stable mini-repo product slice; broader real-repo expansion remains future hardening. |
 | C | supported | tree_sitter | `tree-sitter-c` | `.c`, `.h` | query spec maps functions, structs, enums, types, variables, and imports | `tests/fixtures/language_pack/src/c/widget.c` | local manifest includes C sample coverage | No macro expansion, preprocessor configuration, or compile database semantics. |
 | C# | supported | tree_sitter | `tree-sitter-c-sharp` | `.cs` | query spec maps methods, classes, structs, enums, interfaces, types, modules, variables, and imports | `tests/fixtures/language_pack/src/csharp/Widget.cs` | local manifest includes `csharp-paint` and C# sample repos | No partial-type, assembly, or Roslyn-level resolution. |
 | C++ | supported | tree_sitter | `tree-sitter-cpp` | `.cc`, `.cpp`, `.cxx`, `.hh`, `.hpp`, `.hxx` | query spec maps functions, methods, classes, structs, enums, types, modules, variables, and imports | `tests/fixtures/language_pack/src/cpp/widget.cpp` | local manifest includes C++ coverage in mixed native/mobile samples | No template instantiation, macro expansion, or compile database semantics. |
 | Shell | supported | tree_sitter | `tree-sitter-bash` | `.sh`, `.bash` | query spec maps functions and variables | `tests/fixtures/language_pack/src/shell/widget.sh` | local manifest includes shell files in mixed native/mobile samples | Sourced files and shell runtime expansion are not resolved. |
 | Ruby | supported | tree_sitter | `tree-sitter-ruby` | `.rb` | query spec maps methods, classes, modules, and constants | `tests/fixtures/language_pack/src/ruby/widget.rb` | local manifest includes `ruby-gem-template` | No require/load target or metaprogramming resolution. |
-| PHP | supported | tree_sitter | `tree-sitter-php` | `.php` | query spec maps functions, methods, classes, interfaces, traits, enums, modules, variables, constants, and imports | `tests/fixtures/language_pack/src/php/widget.php` | deferred: no current local manifest entry for a PHP-heavy repo was found in this checkout | Fixture conformance checks exact module/import/constant/interface/trait/class/enum/method/variable records and expected-absent string/comment fakes; real-repo expansion remains future hardening. |
+| PHP | supported | tree_sitter | `tree-sitter-php` | `.php` | query spec maps functions, methods, classes, interfaces, traits, enums, modules, variables, constants, and imports | `tests/fixtures/language_pack/src/php/widget.php`; `tests/fixtures/synthetic_real_repo/` | committed synthetic evidence now covers PHP symbols, include file references, and refs/pack/impact smoke queries; no current local manifest entry for a PHP-heavy third-party repo was found in this checkout | Fixture and committed synthetic checks cover exact symbols, expected-absent string/comment fakes, and a stable mini-repo product slice; broader real-repo expansion remains future hardening. |
 | Scala | experimental | tree_sitter | `tree-sitter-scala` | `.scala` | query spec maps functions, classes, enums, traits, types, modules, variables, constants, and imports | `tests/fixtures/language_pack/src/scala/Widget.scala` | local manifest includes Scala sample repos | Givens, implicits, extension handling, and real-repo hardening remain incomplete. |
 | Kotlin | experimental | tree_sitter | `tree-sitter-kotlin-ng` | `.kt`, `.kts` | query spec maps functions, classes, enums, types, modules, variables, and imports | `tests/fixtures/language_pack/src/kotlin/Widget.kt` | local manifest includes Kotlin/mobile sample repos | Interface, enum-class, extension distinctions, and real-repo hardening remain incomplete. |
 | Swift | experimental | tree_sitter | `tree-sitter-swift` | `.swift` | query spec maps functions, methods, classes, structs, enums, interfaces, types, variables, and imports | `tests/fixtures/language_pack/src/swift/Widget.swift` | local manifest includes Swift sample repos | Extension, overload, module handling, and real-repo hardening remain incomplete. |
@@ -75,12 +75,13 @@ Universal Ctags is optional, external, not bundled, not required, and not used b
 No public support-level downgrades were required.
 
 The audit adds this canonical claim-vs-implementation view and records two
-real-repo coverage gaps: Go and PHP have supported Tree-sitter fixture coverage,
-but this checkout's local ignored manifest does not currently include a
-Go-heavy or PHP-heavy real-repo target. Their fixture evidence now includes
-broader exact expected-symbol checks and expected-absent comment/string fakes.
-That is still fixture-backed support evidence, not a replacement for local
-real-repo hardening.
+real-repo coverage gaps: Go and PHP have supported Tree-sitter fixture coverage
+and committed synthetic mini-corpus evidence, but this checkout's local ignored
+manifest does not currently include a Go-heavy or PHP-heavy third-party
+real-repo target. Their fixture and synthetic evidence now includes broader
+exact expected-symbol checks, expected-absent comment/string fakes, resolved
+file references, and `wi`/`wi refs`/`wi pack`/`wi impact` smoke queries. That is
+still narrower than local real-repo hardening.
 
 ## Real-repo Coverage Status
 
@@ -107,17 +108,19 @@ corpora for normal tests.
 ## RECOVERY_11 Readiness Classification
 
 RECOVERY_11 kept support levels unchanged. Go and PHP remain supported because
-they have grammar/query/fixture/license/docs coverage and normal conformance
-validation. Their missing Go-heavy and PHP-heavy local manifest targets are
-classified as real-repo hardening gaps, not reasons to weaken fixture-backed
-support claims.
+they have grammar/query/fixture/license/docs coverage, normal conformance
+validation, and now a committed synthetic mini-corpus that runs in normal tests.
+Their missing Go-heavy and PHP-heavy local manifest targets are classified as
+real-repo hardening gaps, not reasons to weaken fixture-backed support claims.
 
 The local ignored real-repo manifest is practical hardening evidence when
 present. In this checkout it includes many active repos and expected-symbol or
 expected-pattern checks, but some side corpora remain exploratory until stable
 checks are added. Local clones under `test_repos/` that are not manifest entries
 are out of scope for support claims until a scoped plan adds, skips, or
-classifies them.
+classifies them. Committed synthetic evidence under
+`tests/fixtures/synthetic_real_repo/` is reproducible CI evidence, but it should
+not be described as broad third-party repository coverage.
 
 The ignored real-repo test is intentionally local-only and can take several
 minutes because it removes and rebuilds each repo's `.dev_index/`. Run it with

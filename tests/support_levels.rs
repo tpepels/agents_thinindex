@@ -369,11 +369,12 @@ fn go_and_php_supported_rows_classify_real_repo_gap_without_downgrade() {
             "{name} should remain fixture-backed supported, got: {row}"
         );
         assert!(
-            row.contains("no Go/PHP-heavy local manifest target found"),
-            "{name} should classify the real-repo hardening gap, got: {row}"
+            row.contains("fixture + committed synthetic evidence")
+                && row.contains("no Go/PHP-heavy local manifest target found"),
+            "{name} should distinguish synthetic evidence from local real-repo gap, got: {row}"
         );
         assert!(
-            row.contains("fixture expected/absent symbols checked")
+            row.contains("fixture/synthetic expected and absent symbols checked")
                 && row.contains("add manifest expected symbols when local target exists"),
             "{name} should distinguish fixture checks from missing manifest coverage, got: {row}"
         );
@@ -391,6 +392,8 @@ fn real_repo_manifest_docs_explain_readiness_and_progress() {
         "exploratory",
         "skipped",
         "out of scope",
+        "Committed Synthetic Evidence",
+        "tests/fixtures/synthetic_real_repo",
         "Go and PHP",
         "cargo test --test real_repos -- --ignored --nocapture",
         "can take several minutes",
@@ -404,6 +407,7 @@ fn real_repo_manifest_docs_explain_readiness_and_progress() {
     assert!(
         language_audit.contains("RECOVERY_11 Readiness Classification")
             && language_audit.contains("real-repo hardening gaps")
+            && language_audit.contains("committed synthetic mini-corpus")
             && language_audit.contains("Go-heavy and PHP-heavy manifest targets")
             && language_audit.contains("Do not commit third-party repository contents"),
         "language support audit should record RECOVERY_11 claim classification"

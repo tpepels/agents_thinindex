@@ -8,7 +8,8 @@ use std::{
 };
 
 use common::{
-    load_index_snapshot_from_sqlite, run_named_index_integrity_checks, temp_repo, write_file,
+    fixture_repo, load_index_snapshot_from_sqlite, run_named_index_integrity_checks, temp_repo,
+    write_file,
 };
 use regex::Regex;
 use thinindex::{
@@ -160,6 +161,188 @@ fn check_repo(repo: &BenchmarkRepo) -> RepoHardeningReport {
 
     print_parser_coverage_report(&report);
     report
+}
+
+fn assert_resolved_file_reference(
+    snapshot: &common::IndexSnapshot,
+    source_path: &str,
+    raw_target: &str,
+    target_path: &str,
+    reference_kind: &str,
+) {
+    assert!(
+        snapshot.file_references.iter().any(|reference| {
+            reference.source_path == source_path
+                && reference.raw_target == raw_target
+                && reference.target_path.as_deref() == Some(target_path)
+                && reference.reference_kind == reference_kind
+        }),
+        "expected file reference {source_path} {reference_kind} {raw_target:?} -> {target_path}, got:\n{:#?}",
+        snapshot.file_references
+    );
+}
+
+#[test]
+fn committed_synthetic_real_repo_evidence_covers_go_php_and_context_commands() {
+    let temp = fixture_repo("synthetic_real_repo");
+    let repo = BenchmarkRepo {
+        name: "synthetic-real-repo".to_string(),
+        path: temp.path().to_path_buf(),
+        kind: Some("synthetic-fixture-corpus".to_string()),
+        languages: vec!["go".to_string(), "php".to_string(), "ts".to_string()],
+        description: Some(
+            "Committed mini-corpus for stable Go/PHP/import-export/reference evidence".to_string(),
+        ),
+        skip_reason: None,
+        notes: Some(
+            "Normal-test evidence; local third-party test_repos remain ignored/manual".to_string(),
+        ),
+        ignore_guidance: None,
+        queries: Some(vec![
+            "NewGreeter".to_string(),
+            "AppController".to_string(),
+            "buildSyntheticWidget".to_string(),
+        ]),
+        expected_paths: vec![
+            "cmd/synthetic/main.go".to_string(),
+            "internal/greeter/greeter.go".to_string(),
+            "php/src/AppController.php".to_string(),
+            "web/widget.ts".to_string(),
+        ],
+        expected_symbols: Vec::new(),
+        expected_symbol_patterns: Vec::new(),
+        expected_symbol_specs: vec![
+            ExpectedSymbol {
+                language: Some("go".to_string()),
+                path: Some("internal/greeter/greeter.go".to_string()),
+                kind: Some("struct".to_string()),
+                name: "Greeter".to_string(),
+            },
+            ExpectedSymbol {
+                language: Some("go".to_string()),
+                path: Some("internal/greeter/greeter.go".to_string()),
+                kind: Some("interface".to_string()),
+                name: "Renderer".to_string(),
+            },
+            ExpectedSymbol {
+                language: Some("go".to_string()),
+                path: Some("internal/greeter/greeter.go".to_string()),
+                kind: Some("function".to_string()),
+                name: "NewGreeter".to_string(),
+            },
+            ExpectedSymbol {
+                language: Some("php".to_string()),
+                path: Some("php/src/AppController.php".to_string()),
+                kind: Some("interface".to_string()),
+                name: "Handler".to_string(),
+            },
+            ExpectedSymbol {
+                language: Some("php".to_string()),
+                path: Some("php/src/AppController.php".to_string()),
+                kind: Some("trait".to_string()),
+                name: "ResponseTrait".to_string(),
+            },
+            ExpectedSymbol {
+                language: Some("php".to_string()),
+                path: Some("php/src/AppController.php".to_string()),
+                kind: Some("class".to_string()),
+                name: "AppController".to_string(),
+            },
+            ExpectedSymbol {
+                language: Some("ts".to_string()),
+                path: Some("web/widget.ts".to_string()),
+                kind: Some("function".to_string()),
+                name: "buildSyntheticWidget".to_string(),
+            },
+        ],
+        expected_symbol_pattern_specs: vec![
+            ExpectedSymbolPattern {
+                language: Some("go".to_string()),
+                path_glob: Some("internal/**/*.go".to_string()),
+                kind: Some("method".to_string()),
+                name_regex: "^Render$".to_string(),
+                min_count: 1,
+            },
+            ExpectedSymbolPattern {
+                language: Some("php".to_string()),
+                path_glob: Some("php/src/*.php".to_string()),
+                kind: Some("method".to_string()),
+                name_regex: "^(handle|responseLabel)$".to_string(),
+                min_count: 2,
+            },
+        ],
+        expected_absent_symbol_specs: vec![
+            ExpectedAbsentSymbol {
+                language: Some("go".to_string()),
+                path: Some("internal/greeter/greeter.go".to_string()),
+                kind: Some("function".to_string()),
+                name: "GoSyntheticCommentFake".to_string(),
+            },
+            ExpectedAbsentSymbol {
+                language: Some("php".to_string()),
+                path: Some("php/src/AppController.php".to_string()),
+                kind: Some("class".to_string()),
+                name: "PhpSyntheticCommentFake".to_string(),
+            },
+        ],
+        quality_thresholds: Vec::new(),
+        from_manifest: false,
+    };
+
+    let report = check_repo(&repo);
+    let snapshot = load_index_snapshot_from_sqlite(temp.path());
+
+    assert_eq!(report.query_smoke.checked, 3);
+    assert_eq!(report.query_smoke.misses, 0);
+    assert_eq!(report.symbol_coverage.symbols_missing.len(), 0);
+    assert_eq!(report.symbol_coverage.patterns_missing.len(), 0);
+    assert_eq!(report.symbol_coverage.absent_symbols_found.len(), 0);
+    assert!(
+        report.file_reference_coverage.total >= 4 && report.file_reference_coverage.resolved >= 4,
+        "synthetic corpus should prove resolved file references, got {:?}",
+        report.file_reference_coverage
+    );
+    assert!(
+        report
+            .file_reference_coverage
+            .by_kind
+            .contains_key("import")
+            && report
+                .file_reference_coverage
+                .by_kind
+                .contains_key("include"),
+        "synthetic corpus should cover import/include references, got {:?}",
+        report.file_reference_coverage.by_kind
+    );
+    assert_resolved_file_reference(
+        &snapshot,
+        "cmd/synthetic/main.go",
+        "example.com/synthetic/internal/greeter",
+        "internal/greeter/greeter.go",
+        "import",
+    );
+    assert_resolved_file_reference(
+        &snapshot,
+        "php/src/AppController.php",
+        "../lib/helpers.php",
+        "php/lib/helpers.php",
+        "include",
+    );
+    assert_resolved_file_reference(
+        &snapshot,
+        "web/app.ts",
+        "./widget",
+        "web/widget.ts",
+        "import",
+    );
+    assert_resolved_file_reference(
+        &snapshot,
+        "web/app.ts",
+        "./widget",
+        "web/widget.ts",
+        "export",
+    );
+    assert_resolved_file_reference(&snapshot, "web/app.ts", "./lazy", "web/lazy.ts", "import");
 }
 
 #[derive(Debug, Default)]
