@@ -135,13 +135,18 @@ SMOKE
 (
     cd "$SMOKE_REPO"
     "$PACKAGE_DIR/wi-init$EXE_SUFFIX" >/dev/null
-    "$PACKAGE_DIR/build_index$EXE_SUFFIX" >/dev/null
+    "$PACKAGE_DIR/build_index$EXE_SUFFIX" --stats >/dev/null
     DOCTOR_OUTPUT="$("$PACKAGE_DIR/wi$EXE_SUFFIX" doctor)"
     printf '%s\n' "$DOCTOR_OUTPUT"
     if printf '%s\n' "$DOCTOR_OUTPUT" | grep -q '^\[fail\]'; then
         echo "error: packaged wi doctor reported a failure" >&2
         exit 1
     fi
+    "$PACKAGE_DIR/wi$EXE_SUFFIX" thinindex_release_smoke_symbol >/dev/null
+    "$PACKAGE_DIR/wi$EXE_SUFFIX" refs thinindex_release_smoke_symbol >/dev/null
+    "$PACKAGE_DIR/wi$EXE_SUFFIX" pack thinindex_release_smoke_symbol >/dev/null
+    "$PACKAGE_DIR/wi$EXE_SUFFIX" impact thinindex_release_smoke_symbol >/dev/null
+    "$PACKAGE_DIR/wi-scorecard$EXE_SUFFIX" --query thinindex_release_smoke_symbol >/dev/null
 )
 
 echo "release archive smoke ok: $ARCHIVE"

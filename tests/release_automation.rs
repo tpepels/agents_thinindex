@@ -215,6 +215,11 @@ fn make_archive(options: &[&str]) -> PathBuf {
         .expect("write getting started");
     fs::write(package.join("docs/RELEASING.md"), "releasing").expect("write releasing");
     fs::write(package.join("docs/INSTALLERS.md"), "installers").expect("write installers");
+    fs::write(
+        package.join("docs/TARGET_PLATFORM_SMOKE.md"),
+        "target platform smoke",
+    )
+    .expect("write target platform smoke");
     fs::write(package.join("docs/LICENSING.md"), "licensing").expect("write licensing");
     fs::write(package.join("docs/SCORECARD.md"), "scorecard").expect("write scorecard");
     fs::write(package.join("docs/SECURITY_PRIVACY.md"), "privacy").expect("write privacy");
@@ -334,6 +339,18 @@ case "${1:-}" in
     echo "overall: ok"
     echo "[ok] fake"
     ;;
+  refs|pack|impact)
+    shift
+    if [ "${1:-}" = "thinindex_release_smoke_symbol" ]; then
+      echo "smoke context"
+    else
+      echo "unexpected wi context query: $*" >&2
+      exit 2
+    fi
+    ;;
+  thinindex_release_smoke_symbol)
+    echo "smoke.rs:1 function thinindex_release_smoke_symbol"
+    ;;
   *)
     echo "unexpected wi args: $*" >&2
     exit 2
@@ -347,6 +364,13 @@ esac
 set -eu
 if [ "${1:-}" = "--version" ]; then
   echo "build_index 9.9.9 (index schema 12)"
+  exit 0
+fi
+if [ "${1:-}" = "--stats" ]; then
+  mkdir -p .dev_index
+  : > .dev_index/index.sqlite
+  echo "indexed"
+  echo "changed files: 1"
   exit 0
 fi
 mkdir -p .dev_index
@@ -387,6 +411,10 @@ echo "stats"
 set -eu
 if [ "${1:-}" = "--version" ]; then
   echo "wi-scorecard 9.9.9 (index schema 12)"
+  exit 0
+fi
+if [ "${1:-}" = "--query" ] && [ "${2:-}" = "thinindex_release_smoke_symbol" ]; then
+  echo "scorecard"
   exit 0
 fi
 echo "scorecard"

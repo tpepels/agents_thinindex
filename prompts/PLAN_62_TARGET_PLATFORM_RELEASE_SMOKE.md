@@ -17,15 +17,15 @@ Product rule:
 Do not publish a target artifact until it has been smoked on a compatible target platform.
 
 Phases:
-- [ ] Inspect current release scripts and archive smoke scripts.
-- [ ] List supported/intended targets.
-- [ ] Add per-target smoke checklist entries.
-- [ ] Add target status tracking document.
-- [ ] Ensure current Linux target remains verified.
-- [ ] Add clear “not smoked, do not publish” status for untested targets.
-- [ ] Add tests/checks that release docs do not imply unverified targets are ready.
-- [ ] Run verification.
-- [ ] Commit.
+- [x] Inspect current release scripts and archive smoke scripts.
+- [x] List supported/intended targets.
+- [x] Add per-target smoke checklist entries.
+- [x] Add target status tracking document.
+- [x] Ensure current Linux target remains verified.
+- [x] Add clear “not smoked, do not publish” status for untested targets.
+- [x] Add tests/checks that release docs do not imply unverified targets are ready.
+- [x] Run verification.
+- [x] Commit.
 
 Target smoke requirements:
 For each target archive:

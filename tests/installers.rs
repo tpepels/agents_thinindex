@@ -88,6 +88,7 @@ fn installer_docs_are_honest_about_platform_status_and_signing() {
     let releasing = repo_file("docs/RELEASING.md");
     let readme = repo_file("README.md");
     let checklist = repo_file("docs/RELEASE_CHECKLIST.md");
+    let target_smoke = repo_file("docs/TARGET_PLATFORM_SMOKE.md");
 
     for platform in ["Windows", "macOS", "Linux"] {
         assert!(
@@ -150,6 +151,15 @@ fn installer_docs_are_honest_about_platform_status_and_signing() {
         installers.contains("index schema")
             && installers.contains("schema or `binary/source` mismatch"),
         "installer docs should explain schema-bearing versions and stale binary recovery"
+    );
+    assert!(
+        installers.contains("docs/TARGET_PLATFORM_SMOKE.md")
+            && target_smoke.contains("Status Matrix")
+            && target_smoke.contains("not smoked")
+            && target_smoke.contains("do not publish")
+            && target_smoke.contains("x86_64-unknown-linux-gnu")
+            && target_smoke.contains("scripts/smoke-release-archive"),
+        "installer/release docs should point to target-platform smoke status"
     );
 }
 

@@ -53,6 +53,9 @@ scripts/smoke-release-archive <archive>
 ```
 
 The local release check intentionally does not require `test_repos/` and does not run ignored real-repo tests.
+It verifies the current-platform archive only. A target archive is not
+publishable until `docs/TARGET_PLATFORM_SMOKE.md` marks that target as smoked on
+a compatible platform.
 
 ## Build A Release Archive
 
@@ -107,6 +110,7 @@ Each archive contains:
 - `docs/GETTING_STARTED.md`
 - `docs/RELEASING.md`
 - `docs/INSTALLERS.md`
+- `docs/TARGET_PLATFORM_SMOKE.md`
 - `docs/LICENSING.md`
 - `docs/SCORECARD.md`
 - `docs/SECURITY_PRIVACY.md`
@@ -206,6 +210,7 @@ The check verifies that the archive:
 - includes `wi`, `build_index`, `wi-init`, `wi-stats`, and `wi-scorecard`
 - includes `THIRD_PARTY_NOTICES`
 - includes `README.md`, `INSTALL.md`, `SBOM.md`, `docs/CI_INTEGRATION.md`, `docs/GETTING_STARTED.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, `docs/LICENSING.md`, `docs/SCORECARD.md`, `docs/SECURITY_PRIVACY.md`, `docs/TEAM_CI_ROADMAP.md`, and `docs/TROUBLESHOOTING.md`
+- includes `docs/TARGET_PLATFORM_SMOKE.md`
 - validates `SBOM.md` fields for the archive basename, checksum sidecar, shipped binaries, notice file, license-audit command, and not-bundled local/secret/comparator boundaries
 - excludes `.dev_index/`
 - excludes `test_repos/`
@@ -230,12 +235,18 @@ The smoke check:
 - verifies the generated `.sha256` sidecar with `sha256sum -c` or `shasum -a 256 -c`
 - unpacks the archive into a temporary directory
 - runs packaged `wi --help`
-- runs packaged `wi-init`, `build_index`, and `wi doctor` inside a temporary repository
+- runs packaged `wi-init`, `build_index --stats`, and `wi doctor` inside a temporary repository
+- runs packaged `wi`, `wi refs`, `wi pack`, `wi impact`, and `wi-scorecard` against `thinindex_release_smoke_symbol`
 - fails if `wi doctor` reports any failure rows
 
 This remains a local, source-upload-free, credential-free archive validation
 path. It does not sign, notarize, publish, or build native package-manager
 artifacts.
+
+Target-platform smoke status is tracked in
+[TARGET_PLATFORM_SMOKE.md](TARGET_PLATFORM_SMOKE.md). Windows and macOS archive
+paths are not publishable until the target smoke checklist passes on compatible
+Windows and macOS machines.
 
 ## CI Workflows
 
@@ -265,3 +276,5 @@ thinindex-<version>-x86_64-unknown-linux-gnu.tar.gz.sha256
 ```
 
 Windows and macOS archive scripts exist, but CI packaging for those platforms is not enabled yet. Cross-platform packaging should be added only when the target toolchains and artifact checks are verified.
+Until `docs/TARGET_PLATFORM_SMOKE.md` records compatible-platform smoke
+evidence, those target artifacts are `not smoked, do not publish`.

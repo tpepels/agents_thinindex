@@ -32,6 +32,11 @@ All installer helpers install only the thinindex commands:
 
 They do not run `wi-init`, create `.dev_index`, mutate user repositories, delete repo-local `.dev_index`, or remove project files. Uninstall helpers remove only installed thinindex command files from the selected bin directory.
 
+Target-platform archive smoke status is tracked in
+`docs/TARGET_PLATFORM_SMOKE.md`. Do not publish a Windows, macOS, or Linux target
+artifact until that exact archive has passed the target smoke checklist on a
+compatible platform.
+
 Installer helpers smoke-test each installed command with `--version`. Version
 output includes the index schema, so an install/update should show lines such as
 `wi 0.1.4 (index schema 12)`. After installing from a source checkout or

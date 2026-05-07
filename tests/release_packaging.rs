@@ -36,6 +36,7 @@ fn release_package_script_stages_expected_payload() {
         "docs/GETTING_STARTED.md",
         "docs/RELEASING.md",
         "docs/INSTALLERS.md",
+        "docs/TARGET_PLATFORM_SMOKE.md",
         "docs/LICENSING.md",
         "docs/SCORECARD.md",
         "docs/SECURITY_PRIVACY.md",
@@ -179,6 +180,7 @@ fn release_docs_describe_archive_install_and_boundaries() {
         releasing.contains("SBOM.md")
             && releasing.contains("docs/CI_INTEGRATION.md")
             && releasing.contains("docs/GETTING_STARTED.md")
+            && releasing.contains("docs/TARGET_PLATFORM_SMOKE.md")
             && releasing.contains("docs/LICENSING.md")
             && releasing.contains("docs/SCORECARD.md")
             && releasing.contains("docs/TEAM_CI_ROADMAP.md")
@@ -198,6 +200,15 @@ fn release_docs_describe_archive_install_and_boundaries() {
             && releasing.contains("scripts/smoke-release-archive")
             && releasing.contains("docs/INSTALLERS.md"),
         "release docs should mention archive install helpers, archive smoke, and installer docs"
+    );
+    assert!(
+        releasing.contains("not publishable")
+            && releasing.contains("docs/TARGET_PLATFORM_SMOKE.md")
+            && checklist.contains("not smoked")
+            && checklist.contains("do not publish")
+            && repo_file("docs/TARGET_PLATFORM_SMOKE.md")
+                .contains("Untested target archives are blocked from publication"),
+        "release docs should block unverified target artifacts from publication"
     );
     assert!(
         roadmap

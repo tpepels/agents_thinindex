@@ -17,7 +17,7 @@ dist/thinindex-0.1.4-x86_64-unknown-linux-gnu.tar.gz
 SHA256:
 
 ```text
-7f283c3dd03cccfbee6c107a8c793cc11c8e8c79a5708c88e688a6aeff3d135f
+a9f6c65f1ded053541a3cddcb10ee82228bb4bc2f2d77525538a1d486f1073af
 ```
 
 Checksum sidecar:
@@ -79,6 +79,8 @@ scripts/check-release
 - RC status is `ready_with_caveats`, not a fully published release.
 - This handoff covers the local Linux `x86_64-unknown-linux-gnu` archive.
 - Other target archives need their own target-platform smoke before publishing.
+- Target-platform status is tracked in `docs/TARGET_PLATFORM_SMOKE.md`; targets
+  marked `not smoked` or `do not publish` are blocked from publication.
 - Optional local `test_repos/` evidence is checkout-local; third-party repos are
   intentionally not committed.
 - File-reference extraction remains best-effort and local; it does not claim
@@ -110,8 +112,10 @@ For each non-Linux target archive:
 4. Run `scripts/smoke-release-archive <archive>` on a compatible target.
 5. Smoke the archive installer on the target platform.
 6. Confirm all packaged binaries report `0.1.4 (index schema 12)`.
-7. Confirm `wi doctor`, `build_index`, `wi <query>`, and `wi-scorecard` work in
-   a temporary repository.
+7. Confirm `wi doctor`, `build_index --stats`, `wi <query>`, `wi refs`, `wi
+   pack`, `wi impact`, and `wi-scorecard` work in a temporary repository.
+8. Update `docs/TARGET_PLATFORM_SMOKE.md` with concrete target evidence before
+   treating the artifact as publishable.
 
 ## Rollback
 
