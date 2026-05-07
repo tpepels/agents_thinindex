@@ -113,3 +113,48 @@ fn quality_docs_separate_ci_safe_and_manual_only_gates() {
         "README and releasing docs should keep CI-safe and manual gates separated"
     );
 }
+
+#[test]
+fn quality_cli_is_explicitly_deferred_and_docs_do_not_overclaim_it() {
+    let quality = repo_file("docs/QUALITY.md");
+    let quality_loop = repo_file("docs/QUALITY_LOOP.md");
+    let readme = repo_file("README.md");
+
+    for required in [
+        "There is no\n`wi quality` command yet",
+        "explicitly deferred",
+        "Maintainers should use the commands below instead of `wi quality`",
+        "cargo test --test quality",
+        "cargo test --test quality_gates",
+        "cargo test --test quality_ctags_allowlist",
+    ] {
+        assert!(
+            quality.contains(required),
+            "docs/QUALITY.md should document `{required}`"
+        );
+    }
+
+    assert!(
+        quality_loop.contains("There is no `wi quality` command")
+            && quality_loop.contains("maintainer-only ignored-test workflow"),
+        "docs/QUALITY_LOOP.md should document quality CLI deferral"
+    );
+
+    for (path, contents) in [
+        ("README.md", readme.as_str()),
+        ("docs/QUALITY.md", quality.as_str()),
+        ("docs/QUALITY_LOOP.md", quality_loop.as_str()),
+    ] {
+        for forbidden in [
+            "wi quality report",
+            "wi quality gate",
+            "wi quality comparator",
+            "wi quality triage",
+        ] {
+            assert!(
+                !contents.contains(forbidden),
+                "{path} should not imply `{forbidden}` exists"
+            );
+        }
+    }
+}

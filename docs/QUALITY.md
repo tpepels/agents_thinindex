@@ -22,7 +22,24 @@ Normal tests do not require Universal Ctags. Release packages and installer scri
 
 ## Manual Run Shape
 
-The quality layer is library tooling in this phase. A manual or ignored test run should:
+The quality layer is library/test/script tooling in this phase. There is no
+`wi quality` command yet. That CLI surface is explicitly deferred because the
+current quality workflows depend on maintainer-only fixtures, ignored tests,
+optional local `test_repos/`, optional external comparator commands, and local
+`.dev_index/quality/` artifacts. Adding a normal user-facing CLI before those
+workflows have a stable bounded command contract would risk making quality work
+look like part of normal indexing/search.
+
+Maintainers should use the commands below instead of `wi quality`:
+
+- `cargo test --test quality`
+- `cargo test --test quality_gates`
+- `cargo test --test quality_ctags_allowlist`
+- `cargo test --test quality_gates -- --ignored`
+- `cargo test --test quality -- --ignored`
+- `cargo test --test quality_loop -- --ignored`
+
+A manual or ignored test run should:
 
 1. Build the thinindex SQLite index with `cargo run --bin build_index`.
 2. Load thinindex `records`.

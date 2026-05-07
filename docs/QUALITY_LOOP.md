@@ -4,6 +4,11 @@ The quality loop is a bounded Check -> Plan -> Act workflow for improving parser
 
 It is not a production indexing path. It does not write comparator output to production SQLite `records` or `refs`, and it does not add install, release, network, telemetry, payment, or license-enforcement behavior.
 
+There is no `wi quality` command in this release. The loop remains a
+maintainer-only ignored-test workflow so it cannot be mistaken for normal
+indexing/search or run accidentally by agents using `wi`, `wi pack`, or
+`build_index`.
+
 One execution is exactly one quality cycle. A cycle run may check, write one plan, help drive one bounded fix batch, write one final report, and then stop. Agents must not start a second cycle automatically from the same execution.
 
 ## Check

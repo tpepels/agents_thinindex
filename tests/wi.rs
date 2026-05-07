@@ -516,6 +516,7 @@ fn wi_help_mentions_context_commands() {
         .stdout(predicates::str::contains("wi impact PromptService"))
         .stdout(predicates::str::contains("wi doctor"))
         .stdout(predicates::str::contains("wi bench"))
+        .stdout(predicates::str::contains("wi quality").not())
         .stdout(predicates::str::contains("WI.md").not())
         .stdout(predicates::str::contains("JSONL").not())
         .stdout(predicates::str::contains(removed_external_tagger()).not());
