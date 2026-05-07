@@ -103,6 +103,7 @@ is_allowed_entry() {
         "$PACKAGE_NAME/docs/GETTING_STARTED.md") return 0 ;;
         "$PACKAGE_NAME/docs/RELEASING.md") return 0 ;;
         "$PACKAGE_NAME/docs/INSTALLERS.md") return 0 ;;
+        "$PACKAGE_NAME/docs/NATIVE_DISTRIBUTION_PLAN.md") return 0 ;;
         "$PACKAGE_NAME/docs/TARGET_PLATFORM_SMOKE.md") return 0 ;;
         "$PACKAGE_NAME/docs/LICENSING.md") return 0 ;;
         "$PACKAGE_NAME/docs/SCORECARD.md") return 0 ;;
@@ -157,6 +158,7 @@ require_entry '/docs/CI_INTEGRATION\.md$' "docs/CI_INTEGRATION.md"
 require_entry '/docs/GETTING_STARTED\.md$' "docs/GETTING_STARTED.md"
 require_entry '/docs/RELEASING\.md$' "docs/RELEASING.md"
 require_entry '/docs/INSTALLERS\.md$' "docs/INSTALLERS.md"
+require_entry '/docs/NATIVE_DISTRIBUTION_PLAN\.md$' "docs/NATIVE_DISTRIBUTION_PLAN.md"
 require_entry '/docs/TARGET_PLATFORM_SMOKE\.md$' "docs/TARGET_PLATFORM_SMOKE.md"
 require_entry '/docs/LICENSING\.md$' "docs/LICENSING.md"
 require_entry '/docs/SCORECARD\.md$' "docs/SCORECARD.md"

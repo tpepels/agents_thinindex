@@ -89,6 +89,7 @@ fn installer_docs_are_honest_about_platform_status_and_signing() {
     let readme = repo_file("README.md");
     let checklist = repo_file("docs/RELEASE_CHECKLIST.md");
     let target_smoke = repo_file("docs/TARGET_PLATFORM_SMOKE.md");
+    let native_distribution = repo_file("docs/NATIVE_DISTRIBUTION_PLAN.md");
 
     for platform in ["Windows", "macOS", "Linux"] {
         assert!(
@@ -130,6 +131,8 @@ fn installer_docs_are_honest_about_platform_status_and_signing() {
             && installers.contains("`.pkg`")
             && installers.contains("`.deb`")
             && installers.contains("`.rpm`")
+            && native_distribution.contains("Homebrew")
+            && native_distribution.contains("winget")
             && installers.contains("AppImage"),
         "installer docs should be explicit about platform package scaffolds"
     );
@@ -154,6 +157,11 @@ fn installer_docs_are_honest_about_platform_status_and_signing() {
     );
     assert!(
         installers.contains("docs/TARGET_PLATFORM_SMOKE.md")
+            && installers.contains("NATIVE_DISTRIBUTION_PLAN.md")
+            && native_distribution.contains(
+                "Archive RC readiness does not mean production native distribution readiness"
+            )
+            && native_distribution.contains("Production Distribution Blockers")
             && target_smoke.contains("Status Matrix")
             && target_smoke.contains("not smoked")
             && target_smoke.contains("do not publish")

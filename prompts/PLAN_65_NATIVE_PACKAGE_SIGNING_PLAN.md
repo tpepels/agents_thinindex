@@ -17,16 +17,25 @@ Product rule:
 Distribution claims must distinguish archive RC readiness from signed/native production distribution readiness.
 
 Phases:
-- [ ] Inspect current install, archive, signing, release, and installer docs/scripts.
-- [ ] Inventory target formats.
-- [ ] Identify credentials required for signing/notarization.
-- [ ] Identify platform machines required for smoke.
-- [ ] Define package-manager publishing path separately from archive publishing.
-- [ ] Add explicit production distribution blockers.
-- [ ] Add a staged distribution roadmap.
-- [ ] Add tests/docs checks to prevent overclaiming signed/native readiness.
-- [ ] Run verification.
-- [ ] Commit.
+- [x] Inspect current install, archive, signing, release, and installer docs/scripts.
+- [x] Inventory target formats.
+- [x] Identify credentials required for signing/notarization.
+- [x] Identify platform machines required for smoke.
+- [x] Define package-manager publishing path separately from archive publishing.
+- [x] Add explicit production distribution blockers.
+- [x] Add a staged distribution roadmap.
+- [x] Add tests/docs checks to prevent overclaiming signed/native readiness.
+- [x] Run verification.
+- [x] Commit.
+
+Decision:
+Keep production native distribution deferred while preserving the archive RC
+path. Current release readiness means unsigned local archives with checksum
+sidecars, SBOM/notices, content checks, and target-platform smoke. Native
+packages, real signing/notarization, Homebrew, winget, repository publishing,
+managed update channels, and rollback policy require later platform-specific
+plans with external credentials, compatible smoke machines, and package-manager
+review paths.
 
 Target areas:
 - Linux archive

@@ -1,6 +1,6 @@
 # Installers And Signing
 
-This document describes the current native installer and signing status. It does not add payments, license enforcement, telemetry, cloud behavior, auto-updates, repository publishing, or native package-manager distribution.
+This document describes the current native installer and signing status. It does not add payments, license enforcement, telemetry, cloud behavior, auto-updates, repository publishing, or native package-manager distribution. The production native distribution roadmap and external blockers are tracked in [NATIVE_DISTRIBUTION_PLAN.md](NATIVE_DISTRIBUTION_PLAN.md).
 
 ## Current Status
 
@@ -187,6 +187,17 @@ Linux packaging status:
 - The scaffold requires `gpg` and `THININDEX_LINUX_GPG_KEY_ID` from the local environment or secure CI secrets.
 
 Package manager formats and signing are future work. Do not claim `.deb`, `.rpm`, AppImage, repository metadata, or package-manager signing support until those artifacts are generated and content-checked in CI.
+
+## Native Distribution Roadmap
+
+Production native distribution is a separate track from archive RC readiness.
+Before claiming `.deb`, `.rpm`, AppImage, MSI, MSIX, `.pkg`, `.dmg`, Homebrew,
+winget, signed release, notarized release, repository publishing, or managed
+update-channel readiness, follow [NATIVE_DISTRIBUTION_PLAN.md](NATIVE_DISTRIBUTION_PLAN.md).
+
+That plan requires explicit target formats, external signing/notarization
+credentials, compatible platform smoke machines, package-manager publishing
+steps, rollback/uninstall behavior, and production distribution blockers.
 
 ## Checksum Verification
 

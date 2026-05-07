@@ -111,6 +111,7 @@ Read:
 
 - [Releasing](RELEASING.md)
 - [Installers and signing](INSTALLERS.md)
+- [Native distribution plan](NATIVE_DISTRIBUTION_PLAN.md)
 - [Release checklist](RELEASE_CHECKLIST.md)
 - [License audit](LICENSE_AUDIT.md)
 - [Licensing foundation](LICENSING.md)

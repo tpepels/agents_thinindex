@@ -216,6 +216,11 @@ fn make_archive(options: &[&str]) -> PathBuf {
     fs::write(package.join("docs/RELEASING.md"), "releasing").expect("write releasing");
     fs::write(package.join("docs/INSTALLERS.md"), "installers").expect("write installers");
     fs::write(
+        package.join("docs/NATIVE_DISTRIBUTION_PLAN.md"),
+        "native distribution plan",
+    )
+    .expect("write native distribution plan");
+    fs::write(
         package.join("docs/TARGET_PLATFORM_SMOKE.md"),
         "target platform smoke",
     )

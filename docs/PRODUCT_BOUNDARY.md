@@ -67,6 +67,9 @@ These are roadmap candidates. They are not active feature gates in the current t
 
 Future team and CI value is documented in [TEAM_CI_ROADMAP.md](TEAM_CI_ROADMAP.md)
 and [CI_INTEGRATION.md](CI_INTEGRATION.md). It is roadmap-only today.
+Future signed/native distribution is documented in
+[NATIVE_DISTRIBUTION_PLAN.md](NATIVE_DISTRIBUTION_PLAN.md). It is roadmap-only
+today and does not change the current unsigned archive release path.
 
 Candidate value may include local CI summaries, agent-readiness reports,
 redacted support bundles, team policy packs, benchmark trend reports, hosted

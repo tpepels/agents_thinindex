@@ -36,6 +36,7 @@ fn release_package_script_stages_expected_payload() {
         "docs/GETTING_STARTED.md",
         "docs/RELEASING.md",
         "docs/INSTALLERS.md",
+        "docs/NATIVE_DISTRIBUTION_PLAN.md",
         "docs/TARGET_PLATFORM_SMOKE.md",
         "docs/LICENSING.md",
         "docs/SCORECARD.md",
@@ -181,6 +182,7 @@ fn release_docs_describe_archive_install_and_boundaries() {
             && releasing.contains("docs/CI_INTEGRATION.md")
             && releasing.contains("docs/GETTING_STARTED.md")
             && releasing.contains("docs/TARGET_PLATFORM_SMOKE.md")
+            && releasing.contains("docs/NATIVE_DISTRIBUTION_PLAN.md")
             && releasing.contains("docs/LICENSING.md")
             && releasing.contains("docs/SCORECARD.md")
             && releasing.contains("docs/TEAM_CI_ROADMAP.md")
@@ -216,4 +218,96 @@ fn release_docs_describe_archive_install_and_boundaries() {
             && roadmap.contains("SHA256 checksum"),
         "roadmap should describe the shipped archive packaging surface"
     );
+}
+
+#[test]
+fn native_distribution_plan_keeps_signed_native_claims_deferred() {
+    let plan = repo_file("docs/NATIVE_DISTRIBUTION_PLAN.md");
+    let installers = repo_file("docs/INSTALLERS.md");
+    let checklist = repo_file("docs/RELEASE_CHECKLIST.md");
+    let product_boundary = repo_file("docs/PRODUCT_BOUNDARY.md");
+    let package_script = repo_file("scripts/package-release");
+    let content_check = repo_file("scripts/check-package-contents");
+
+    for required in [
+        "Archive RC readiness does not mean production native distribution readiness",
+        "Target Format Inventory",
+        "External Credentials And Tools",
+        "Platform Smoke Requirements",
+        "Package Manager Path",
+        "Production Distribution Blockers",
+        "Staged Roadmap",
+        "Rollback And Uninstall",
+        "Homebrew",
+        "winget",
+        "managed update channel",
+        "not required for the current archive path",
+        "current archive RC",
+        "does not replace MSI/MSIX",
+        "verified `.sha256` sidecar",
+        "release-ready",
+        "no production SBOM-format decision",
+        "SPDX/CycloneDX",
+    ] {
+        assert!(
+            plan.contains(required),
+            "native distribution plan should document `{required}`"
+        );
+    }
+
+    for deferred in [
+        ".deb", ".rpm", "AppImage", "MSI", "MSIX", ".pkg", ".dmg", "Homebrew", "winget",
+    ] {
+        assert!(
+            plan.contains(deferred),
+            "native distribution plan should inventory {deferred}"
+        );
+    }
+
+    for credential in [
+        "THININDEX_WINDOWS_CERT_PATH",
+        "THININDEX_APPLE_NOTARY_PROFILE",
+        "THININDEX_LINUX_GPG_KEY_ID",
+    ] {
+        assert!(
+            installers.contains(credential),
+            "installer docs should keep signing credential placeholders documented"
+        );
+    }
+
+    assert!(
+        installers.contains("NATIVE_DISTRIBUTION_PLAN.md")
+            && checklist.contains("NATIVE_DISTRIBUTION_PLAN.md")
+            && product_boundary.contains("NATIVE_DISTRIBUTION_PLAN.md"),
+        "primary release/product docs should link the native distribution plan"
+    );
+    assert!(
+        package_script.contains("docs/NATIVE_DISTRIBUTION_PLAN.md")
+            && content_check.contains("docs/NATIVE_DISTRIBUTION_PLAN.md"),
+        "release archive packaging and content checks should carry the native distribution boundary doc"
+    );
+
+    for (name, contents) in [
+        ("docs/NATIVE_DISTRIBUTION_PLAN.md", plan.as_str()),
+        ("docs/INSTALLERS.md", installers.as_str()),
+        ("docs/RELEASE_CHECKLIST.md", checklist.as_str()),
+    ] {
+        for forbidden in [
+            "production-ready native",
+            "signed release ready",
+            "notarized release ready",
+            "Homebrew ready",
+            "winget ready",
+            "signing is complete",
+            "notarization is complete",
+            "Homebrew is implemented",
+            "winget is implemented",
+            "managed updates are implemented",
+        ] {
+            assert!(
+                !contents.contains(forbidden),
+                "{name} should not overclaim `{forbidden}`"
+            );
+        }
+    }
 }

@@ -1,6 +1,6 @@
 # Releasing
 
-This document covers release archives, archive install helpers, package content checks, and signing/notarization scaffolding. Native package formats, completed signing/notarization, payments, license enforcement, telemetry, and cloud behavior are later work.
+This document covers release archives, archive install helpers, package content checks, and signing/notarization scaffolding. Native package formats, completed signing/notarization, package-manager publishing, managed update channels, payments, license enforcement, telemetry, and cloud behavior are later work. The staged native distribution path is documented in [NATIVE_DISTRIBUTION_PLAN.md](NATIVE_DISTRIBUTION_PLAN.md).
 
 ## Local Release Gates
 
@@ -66,7 +66,7 @@ scripts/package-release
 ```
 
 The script uses the Cargo package version by default and writes artifacts under `dist/`.
-It also generates `SBOM.md` inside the archive and writes a SHA256 checksum sidecar beside the archive when `sha256sum` or `shasum` is available.
+It also generates `SBOM.md` inside the archive and writes a SHA256 checksum sidecar beside the archive when `sha256sum` or `shasum` is available. An archive without a generated and verified `.sha256` sidecar is not release-ready.
 
 For a specific target triple when the local toolchain can build it:
 
@@ -110,6 +110,7 @@ Each archive contains:
 - `docs/GETTING_STARTED.md`
 - `docs/RELEASING.md`
 - `docs/INSTALLERS.md`
+- `docs/NATIVE_DISTRIBUTION_PLAN.md`
 - `docs/TARGET_PLATFORM_SMOKE.md`
 - `docs/LICENSING.md`
 - `docs/SCORECARD.md`
@@ -209,7 +210,7 @@ The check verifies that the archive:
 - contains only the expected release payload entries under the archive root and rejects unexpected payload entries such as source checkout files
 - includes `wi`, `build_index`, `wi-init`, `wi-stats`, and `wi-scorecard`
 - includes `THIRD_PARTY_NOTICES`
-- includes `README.md`, `INSTALL.md`, `SBOM.md`, `docs/CI_INTEGRATION.md`, `docs/GETTING_STARTED.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, `docs/LICENSING.md`, `docs/SCORECARD.md`, `docs/SECURITY_PRIVACY.md`, `docs/TEAM_CI_ROADMAP.md`, and `docs/TROUBLESHOOTING.md`
+- includes `README.md`, `INSTALL.md`, `SBOM.md`, `docs/CI_INTEGRATION.md`, `docs/GETTING_STARTED.md`, `docs/RELEASING.md`, `docs/INSTALLERS.md`, `docs/NATIVE_DISTRIBUTION_PLAN.md`, `docs/LICENSING.md`, `docs/SCORECARD.md`, `docs/SECURITY_PRIVACY.md`, `docs/TEAM_CI_ROADMAP.md`, and `docs/TROUBLESHOOTING.md`
 - includes `docs/TARGET_PLATFORM_SMOKE.md`
 - validates `SBOM.md` fields for the archive basename, checksum sidecar, shipped binaries, notice file, license-audit command, and not-bundled local/secret/comparator boundaries
 - excludes `.dev_index/`
