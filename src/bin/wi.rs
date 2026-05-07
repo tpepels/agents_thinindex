@@ -1,4 +1,4 @@
-use std::env;
+use std::{collections::BTreeSet, env};
 
 use anyhow::{Context, Result, bail};
 use clap::Parser;
@@ -8,7 +8,7 @@ use thinindex::{
     context::{render_impact_command, render_pack_command, render_refs_command},
     doctor::{render_doctor_report, run_doctor},
     indexer::{build_index, find_repo_root, index_is_fresh},
-    search::{SearchOptions, format_result, search},
+    search::{SearchOptions, format_file_result, format_result, search, search_files},
     stats::{self, UsageEvent},
     wi_cli::{WiArgs, WiCommand},
 };
@@ -70,10 +70,69 @@ fn run() -> Result<()> {
     let result_count = match command {
         WiCommand::Search => {
             let results = search(&root, &query, &options)?;
-            let result_count = results.len();
+            let strong_record_paths = results
+                .iter()
+                .filter(|result| result.score <= 3)
+                .map(|result| result.record.path.clone())
+                .collect::<BTreeSet<_>>();
+            let mut strong_results = results
+                .iter()
+                .filter(|result| result.score <= 3)
+                .cloned()
+                .collect::<Vec<_>>();
+            strong_results.truncate(limit);
 
-            for result in &results {
-                println!("{}", format_result(result, options.verbose));
+            let remaining_after_strong = limit.saturating_sub(strong_results.len());
+            let mut file_results = if remaining_after_strong == 0 {
+                Vec::new()
+            } else {
+                let mut file_options = options.clone();
+                file_options.limit = remaining_after_strong;
+                search_files(&root, &query, &file_options)?
+            };
+            file_results.retain(|result| !strong_record_paths.contains(&result.path));
+            file_results.truncate(remaining_after_strong);
+
+            let file_paths = file_results
+                .iter()
+                .map(|result| result.path.clone())
+                .collect::<BTreeSet<_>>();
+            let remaining_after_files =
+                limit.saturating_sub(strong_results.len() + file_results.len());
+            let mut weak_results = results
+                .iter()
+                .filter(|result| result.score > 3 && !file_paths.contains(&result.record.path))
+                .cloned()
+                .collect::<Vec<_>>();
+            weak_results.truncate(remaining_after_files);
+
+            let result_count = strong_results.len() + file_results.len() + weak_results.len();
+
+            if result_count == 0 {
+                print!("{}", render_search_miss(&query, &options));
+            } else {
+                for result in &strong_results {
+                    println!("{}", format_result(result, options.verbose));
+                }
+
+                if !file_results.is_empty() {
+                    if !strong_results.is_empty() {
+                        println!();
+                    }
+                    println!("File matches:");
+                    for result in &file_results {
+                        println!("{}", format_file_result(result));
+                    }
+
+                    if !weak_results.is_empty() {
+                        println!();
+                        println!("Indexed symbols/content:");
+                    }
+                }
+
+                for result in &weak_results {
+                    println!("{}", format_result(result, options.verbose));
+                }
             }
 
             result_count
@@ -138,6 +197,22 @@ fn run() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn render_search_miss(query: &str, options: &SearchOptions) -> String {
+    let mut output = format!("No matches for: {}\n\nChecked:\n", query);
+
+    if options.kind.is_none() && options.source.is_none() {
+        output.push_str("- filenames/paths\n");
+    }
+    output.push_str("- indexed symbols/content\n\n");
+    output.push_str("Try:\n");
+    output.push_str("- rtk build_index\n");
+    output.push_str("- rtk wi <filename-or-symbol>\n");
+    output.push_str("- rtk wi <term> --path <path-substring>\n");
+    output.push_str("- rtk wi refs <symbol>\n");
+
+    output
 }
 
 fn ensure_index_ready_once(root: &std::path::Path) -> Result<()> {

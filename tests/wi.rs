@@ -365,6 +365,138 @@ class PromptService:
 }
 
 #[test]
+fn wi_finds_makefile_by_filename() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "Makefile", "test:\n\tcargo test\n");
+    run_build(root);
+
+    let stdout = run_wi(root, &["Makefile"]);
+
+    assert!(
+        stdout.contains("File matches:") && stdout.contains("Makefile"),
+        "expected Makefile path match, got:\n{stdout}"
+    );
+}
+
+#[test]
+fn wi_finds_pyproject_by_basename() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "pyproject.toml", "[project]\nname = \"fixture\"\n");
+    run_build(root);
+
+    let stdout = run_wi(root, &["pyproject"]);
+
+    assert!(
+        stdout.contains("File matches:") && stdout.contains("pyproject.toml"),
+        "expected pyproject.toml path match, got:\n{stdout}"
+    );
+}
+
+#[test]
+fn wi_multi_term_filename_lookup_returns_each_matching_path() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "Makefile", "test:\n\tcargo test\n");
+    write_file(root, "pyproject.toml", "[project]\nname = \"fixture\"\n");
+    run_build(root);
+
+    let stdout = run_wi(root, &["Makefile", "pyproject"]);
+
+    assert!(
+        stdout.contains("File matches:")
+            && stdout.contains("Makefile")
+            && stdout.contains("pyproject.toml"),
+        "expected both file matches for multi-term lookup, got:\n{stdout}"
+    );
+}
+
+#[test]
+fn wi_search_miss_prints_helpful_next_steps() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "src/main.py", "class PromptService: pass\n");
+    run_build(root);
+
+    let stdout = run_wi(root, &["NoSuchSymbolPleaseMissXYZ"]);
+
+    for expected in [
+        "No matches for: NoSuchSymbolPleaseMissXYZ",
+        "Checked:",
+        "- filenames/paths",
+        "- indexed symbols/content",
+        "Try:",
+        "- rtk build_index",
+        "- rtk wi <filename-or-symbol>",
+        "- rtk wi <term> --path <path-substring>",
+        "- rtk wi refs <symbol>",
+    ] {
+        assert!(
+            stdout.contains(expected),
+            "expected miss output to contain `{expected}`, got:\n{stdout}"
+        );
+    }
+}
+
+#[test]
+fn wi_missing_index_search_miss_suggests_build_index_after_auto_build() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "src/main.py", "class PromptService: pass\n");
+
+    let output = wi_bin()
+        .current_dir(root)
+        .arg("NoSuchSymbolPleaseMissXYZ")
+        .output()
+        .expect("run wi missing-index miss");
+
+    assert!(
+        output.status.success(),
+        "wi should auto-build then report a useful miss\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stdout.contains("No matches for: NoSuchSymbolPleaseMissXYZ")
+            && stdout.contains("- rtk build_index"),
+        "expected miss output to suggest rtk build_index, got:\n{stdout}"
+    );
+    assert!(
+        stderr.contains("running `build_index` once"),
+        "expected missing index auto-build message, got:\n{stderr}"
+    );
+}
+
+#[test]
+fn wi_file_match_dedupes_same_path_content_hits() {
+    let repo = temp_repo();
+    let root = repo.path();
+
+    write_file(root, "README.md", "# README\n\nProject notes.\n");
+    run_build(root);
+
+    let stdout = run_wi(root, &["README"]);
+    let count = stdout.matches("README.md").count();
+
+    assert_eq!(
+        count, 1,
+        "README.md should appear once when path and content both match, got:\n{stdout}"
+    );
+    assert!(
+        stdout.contains("README.md"),
+        "expected README.md path in output, got:\n{stdout}"
+    );
+}
+
+#[test]
 fn wi_filters_by_path() {
     let repo = temp_repo();
     let root = repo.path();
@@ -1627,7 +1759,7 @@ fn fixture_repo_indexes_config_extras_without_scalar_noise() {
 
     let scalar_value = run_wi(root, &["YamlStringFake"]);
     assert!(
-        scalar_value.trim().is_empty(),
+        scalar_value.contains("No matches for: YamlStringFake"),
         "YAML scalar string should not be indexed as a symbol, got:\n{scalar_value}"
     );
 }

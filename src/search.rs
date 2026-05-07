@@ -2,7 +2,11 @@ use std::path::Path;
 
 use anyhow::Result;
 
-use crate::{model::IndexRecord, privacy::redact_sensitive_text, store::load_records};
+use crate::{
+    model::IndexRecord,
+    privacy::redact_sensitive_text,
+    store::{load_manifest, load_records},
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct SearchOptions {
@@ -17,6 +21,12 @@ pub struct SearchOptions {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SearchResult {
     pub record: IndexRecord,
+    pub score: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileSearchResult {
+    pub path: String,
     pub score: usize,
 }
 
@@ -63,6 +73,52 @@ pub fn search(root: &Path, query: &str, options: &SearchOptions) -> Result<Vec<S
     Ok(results)
 }
 
+pub fn search_files(
+    root: &Path,
+    query: &str,
+    options: &SearchOptions,
+) -> Result<Vec<FileSearchResult>> {
+    let query = query.trim();
+
+    if query.is_empty() || !file_search_enabled(options) {
+        return Ok(Vec::new());
+    }
+
+    let terms: Vec<_> = query.split_whitespace().collect();
+    if terms.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let manifest = load_manifest(root)?;
+    let mut results = manifest
+        .files
+        .keys()
+        .filter(|path| file_matches_filters(path, options))
+        .filter_map(|path| {
+            terms
+                .iter()
+                .filter_map(|term| file_match_rank(path, term))
+                .min()
+                .map(|score| FileSearchResult {
+                    path: path.clone(),
+                    score,
+                })
+        })
+        .collect::<Vec<_>>();
+
+    results.sort_by_key(file_rank_key);
+
+    let limit = if options.limit == 0 {
+        30
+    } else {
+        options.limit
+    };
+
+    results.truncate(limit);
+
+    Ok(results)
+}
+
 fn matches_filters(record: &IndexRecord, options: &SearchOptions) -> bool {
     if options
         .kind
@@ -97,6 +153,101 @@ fn matches_filters(record: &IndexRecord, options: &SearchOptions) -> bool {
     }
 
     true
+}
+
+fn file_search_enabled(options: &SearchOptions) -> bool {
+    options.kind.is_none() && options.source.is_none()
+}
+
+fn file_matches_filters(path: &str, options: &SearchOptions) -> bool {
+    if options
+        .path
+        .as_ref()
+        .is_some_and(|filter| !path.contains(filter))
+    {
+        return false;
+    }
+
+    if let Some(lang) = &options.lang {
+        let expected = lang.trim_start_matches('.').to_ascii_lowercase();
+        let extension = Path::new(path)
+            .extension()
+            .and_then(|value| value.to_str())
+            .unwrap_or_default()
+            .to_ascii_lowercase();
+
+        if extension != expected {
+            return false;
+        }
+    }
+
+    true
+}
+
+fn file_match_rank(path: &str, query: &str) -> Option<usize> {
+    let query = query.trim();
+    if query.is_empty() {
+        return None;
+    }
+
+    let normalized_path = path.replace('\\', "/");
+    let path_lower = normalized_path.to_ascii_lowercase();
+    let query_lower = query.replace('\\', "/").to_ascii_lowercase();
+    let file_name = Path::new(&normalized_path)
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or(&normalized_path);
+    let file_name_lower = file_name.to_ascii_lowercase();
+    let file_stem_lower = Path::new(file_name)
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .unwrap_or(file_name)
+        .to_ascii_lowercase();
+
+    if normalized_path == query {
+        return Some(0);
+    }
+
+    if file_name == query {
+        return Some(1);
+    }
+
+    if path_lower == query_lower {
+        return Some(2);
+    }
+
+    if file_name_lower == query_lower {
+        return Some(3);
+    }
+
+    if file_stem_lower == query_lower {
+        return Some(4);
+    }
+
+    if file_name_lower.starts_with(&query_lower) {
+        return Some(5);
+    }
+
+    if path_lower
+        .split('/')
+        .any(|component| component == query_lower || component.starts_with(&query_lower))
+    {
+        return Some(6);
+    }
+
+    if path_lower.contains(&query_lower) {
+        return Some(10);
+    }
+
+    None
+}
+
+fn file_rank_key(result: &FileSearchResult) -> (usize, usize, String) {
+    (
+        result.score,
+        path_depth(&result.path),
+        result.path.to_ascii_lowercase(),
+    )
 }
 
 fn score_record(record: IndexRecord, query: &str) -> Option<SearchResult> {
@@ -289,4 +440,8 @@ pub fn format_result(result: &SearchResult, verbose: bool) -> String {
     } else {
         format!("{}:{} {} {}", path, record.line, kind, name)
     }
+}
+
+pub fn format_file_result(result: &FileSearchResult) -> String {
+    redact_sensitive_text(&result.path)
 }

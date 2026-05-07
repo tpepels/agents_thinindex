@@ -263,7 +263,7 @@ fn large_source_files_are_skipped_reported_and_tracked_incrementally() {
     );
     let huge = run_wi(root, &["HugeGeneratedService"]);
     assert!(
-        huge.trim().is_empty(),
+        huge.contains("No matches for: HugeGeneratedService"),
         "large skipped source should not emit records, got:\n{huge}"
     );
 
@@ -698,7 +698,7 @@ class DeletedService:
 
     let after = run_wi(root, &["DeletedService"]);
     assert!(
-        after.trim().is_empty(),
+        after.contains("No matches for: DeletedService"),
         "deleted symbol should not remain in index:\n{after}"
     );
 }

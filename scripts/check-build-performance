@@ -95,16 +95,16 @@ if [ "$TOTAL_MS" -ge "$MAX_MS" ]; then
     fail "fixture no-change build exceeded budget THININDEX_BUILD_PERF_MAX_MS=$MAX_MS ms; total ms was $TOTAL_MS"
 fi
 
-if "$WI_BIN" -r "$REPO" HiddenDevIndexService | grep -q 'HiddenDevIndexService'; then
+if "$WI_BIN" -r "$REPO" HiddenDevIndexService | grep -q '\.dev_index/quality/hidden.py'; then
     fail "normal build indexed .dev_index content"
 fi
 
-if "$WI_BIN" -r "$REPO" HiddenTestReposService | grep -q 'HiddenTestReposService'; then
+if "$WI_BIN" -r "$REPO" HiddenTestReposService | grep -q 'test_repos/hidden/src/hidden.py'; then
     fail "normal build indexed test_repos content"
 fi
 
 FORBIDDEN_SOURCE="$(printf 'c%s' 'tags')"
-if "$WI_BIN" -r "$REPO" -s "$FORBIDDEN_SOURCE" PerfGuardService | grep -q 'PerfGuardService'; then
+if "$WI_BIN" -r "$REPO" -s "$FORBIDDEN_SOURCE" PerfGuardService -v | grep -q "source: $FORBIDDEN_SOURCE"; then
     fail 'normal build emitted production external-comparator source records'
 fi
 

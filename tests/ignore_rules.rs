@@ -17,19 +17,19 @@ fn fixture_ignored_repo_skips_default_ignored_dirs() {
 
     let node_modules = run_wi(root, &["FakeNodeModulesSymbol"]);
     assert!(
-        node_modules.trim().is_empty(),
+        node_modules.contains("No matches for: FakeNodeModulesSymbol"),
         "node_modules symbol should be ignored, got:\n{node_modules}"
     );
 
     let next = run_wi(root, &["FakeNextSymbol"]);
     assert!(
-        next.trim().is_empty(),
+        next.contains("No matches for: FakeNextSymbol"),
         ".next symbol should be ignored, got:\n{next}"
     );
 
     let dist = run_wi(root, &["FakeDistSymbol"]);
     assert!(
-        dist.trim().is_empty(),
+        dist.contains("No matches for: FakeDistSymbol"),
         "dist symbol should be ignored, got:\n{dist}"
     );
 }
@@ -49,13 +49,13 @@ fn fixture_thinindexignore_repo_uses_gitignore_style_patterns() {
 
     let generated = run_wi(root, &["GeneratedHiddenService"]);
     assert!(
-        generated.trim().is_empty(),
+        generated.contains("No matches for: GeneratedHiddenService"),
         "generated file should be ignored, got:\n{generated}"
     );
 
     let secret = run_wi(root, &["SecretService"]);
     assert!(
-        secret.trim().is_empty(),
+        secret.contains("No matches for: SecretService"),
         "secret.py should be ignored, got:\n{secret}"
     );
 
@@ -81,7 +81,7 @@ fn fixture_gitignore_rules_are_respected() {
 
     let ignored = run_wi(root, &["GitignoredService"]);
     assert!(
-        ignored.trim().is_empty(),
+        ignored.contains("No matches for: GitignoredService"),
         ".gitignore ignored file should not be indexed, got:\n{ignored}"
     );
 
@@ -125,7 +125,7 @@ class VisibleSymbol:
 
     let secret = run_wi(root, &["SecretSymbol"]);
     assert!(
-        secret.trim().is_empty(),
+        secret.contains("No matches for: SecretSymbol"),
         "secret symbol should be ignored via .thinindexignore, got:\n{secret}"
     );
 }

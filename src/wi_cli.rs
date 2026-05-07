@@ -15,6 +15,7 @@ use clap::Parser;
 
 Repository search rules:
   Use `wi <term>` directly before grep/find/ls/Read for repository discovery.
+  Filename, basename, and path-like terms return indexed file matches when present.
   `wi` auto-builds or auto-rebuilds a missing/stale index once before searching.
   Use `wi refs <term>` before broad reference searches; refs show compact reason/confidence evidence.
   Use `wi pack <term>` before implementation; it includes useful local file references.
@@ -32,6 +33,8 @@ Related commands:
 Examples:
   wi IndexRecord
   wi build_index
+  wi Makefile
+  wi pyproject
   wi refs PromptService
   wi pack PromptService
   wi impact PromptService
