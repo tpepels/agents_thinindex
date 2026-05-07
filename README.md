@@ -74,7 +74,7 @@ The canonical agent workflow is:
 
 `wi-init` creates or normalizes this workflow in `AGENTS.md` and normalizes an existing `CLAUDE.md` when present. It does not generate a `WI.md` instruction file.
 
-Optional integration packs for Codex, Claude, generic agents, and future local tool wrappers live under `integrations/agents/`. See [docs/AGENT_INTEGRATION.md](docs/AGENT_INTEGRATION.md) for read-budget guidance and the local-only `wi-stats` workflow audit.
+Optional integration packs for Codex, Claude, generic agents, and an explicit MCP deferral note live under `integrations/agents/`. No MCP server, helper command, or client configuration is bundled today. See [docs/AGENT_INTEGRATION.md](docs/AGENT_INTEGRATION.md) for read-budget guidance and the local-only `wi-stats` workflow audit.
 
 ## Commands
 

@@ -23,14 +23,23 @@ Decision options:
 - explicitly reject MCP for now
 
 Phases:
-- [ ] Inspect current MCP docs and agent integration docs.
-- [ ] Inspect current agent helper surfaces.
-- [ ] Decide whether MCP is needed now.
-- [ ] If deferring, make docs explicit and remove any wording implying MCP is implemented.
-- [ ] If implementing, keep it minimal, local-only, bounded, and safe.
-- [ ] Add tests for whichever path is chosen.
-- [ ] Run verification.
-- [ ] Commit.
+- [x] Inspect current MCP docs and agent integration docs.
+- [x] Inspect current agent helper surfaces.
+- [x] Decide whether MCP is needed now.
+- [x] If deferring, make docs explicit and remove any wording implying MCP is implemented.
+- [x] If implementing, keep it minimal, local-only, bounded, and safe. (MCP not implemented; explicitly deferred.)
+- [x] Add tests for whichever path is chosen.
+- [x] Run verification.
+- [x] Commit.
+
+Decision:
+Defer MCP for this release. Current agent integration remains repo-local
+instruction surfaces plus `wi-init --dry-run` and advisory `wi-stats`.
+thinindex does not bundle an MCP server, MCP helper command, or MCP client
+configuration helper. A future MCP plan must be local-only, bounded, path
+validated, stale-index compatible with `wi`, and must not add arbitrary shell
+execution, network access, telemetry, hosted behavior, or normal quality/
+comparator/real-repo workflows.
 
 If MCP is implemented:
 - local-only
